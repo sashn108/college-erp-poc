@@ -962,35 +962,136 @@ function MessageModal({ to, toAll, subject: subjectName, onClose }) {
 }
 
 // ─── Faculty Subjects View ────────────────────────────────────────────────────
+function StudentTimetable() {
+  const days = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+  const slots = ["9:00–10:00","10:00–11:00","11:00–12:00","12:00–1:00","1:00–2:00","2:00–3:00","3:00–4:00","4:00–5:00"];
+  const today = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"][new Date().getDay()];
+  const tt = {
+    "Monday":    ["CS301·LH-101","CS301·LH-101","—","CS302·LH-102","BREAK","CS304·LH-103","—","—"],
+    "Tuesday":   ["CS303·LH-202","—","CS305·LH-201","—","BREAK","CS301·LH-101","CS301·LH-101","—"],
+    "Wednesday": ["—","CS302·LH-102","CS302·LH-102","—","BREAK","CS304·LH-103","CS305·LH-201","—"],
+    "Thursday":  ["CS301·LH-101","—","CS303·LH-202","CS303·LH-202","BREAK","—","CS302·LH-102","—"],
+    "Friday":    ["CS305·LH-201","CS304·LH-103","—","CS301·LH-101","BREAK","—","CS303·LH-202","—"],
+    "Saturday":  ["CS301L·DBLab","CS301L·DBLab","—","—","BREAK","—","—","—"],
+  };
+  const cc = {CS301:"#6366f1",CS302:"#10b981",CS303:"#f59e0b",CS304:"#8b5cf6",CS305:"#ec4899",CS301L:"#14b8a6"};
+  const cn = {CS301:"DBMS",CS302:"OS",CS303:"CN",CS304:"TOC",CS305:"SE",CS301L:"DBMS Lab"};
+  return (
+    <div style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:12,overflow:"hidden"}}>
+      <div style={{background:"linear-gradient(135deg,#6366f1,#8b5cf6)",padding:"12px 16px",color:"#fff",fontWeight:700,fontSize:13}}>
+        📅 My Weekly Timetable — Spring 2025-26
+      </div>
+      <div style={{padding:14,overflowX:"auto"}}>
+        <table style={{width:"100%",borderCollapse:"collapse",fontSize:12,minWidth:700}}>
+          <thead>
+            <tr style={{background:"#f8fafc"}}>
+              <th style={{padding:"8px 10px",fontWeight:700,color:"#475569",fontSize:11,width:95,borderBottom:"2px solid #e2e8f0",textAlign:"left"}}>TIME</th>
+              {days.map(d=>(
+                <th key={d} style={{padding:"8px 6px",fontWeight:700,fontSize:11,textAlign:"center",borderBottom:"2px solid #e2e8f0",
+                  color:d===today?"#6366f1":"#475569",background:d===today?"#eef2ff":"transparent"}}>
+                  {d.slice(0,3).toUpperCase()}
+                  {d===today&&<div style={{fontSize:9,color:"#6366f1",fontWeight:600}}>TODAY</div>}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {slots.map((slot,si)=>(
+              <tr key={slot} style={{borderBottom:"1px solid #f1f5f9",background:si%2===0?"#fff":"#fafbff"}}>
+                <td style={{padding:"7px 10px",fontSize:11,fontWeight:600,color:"#64748b",whiteSpace:"nowrap"}}>{slot}</td>
+                {days.map(d=>{
+                  const cell=(tt[d]||[])[si]||"—";
+                  if(cell==="BREAK") return <td key={d} style={{padding:"6px",textAlign:"center",background:"#fef9c3",fontSize:10,fontWeight:600,color:"#92400e"}}>BREAK</td>;
+                  if(cell==="—") return <td key={d} style={{padding:"6px",textAlign:"center",color:"#cbd5e1",background:d===today?"#f5f6ff":"transparent"}}>—</td>;
+                  const [code,room]=cell.split("·");
+                  const c=cc[code]||"#6366f1";
+                  return (
+                    <td key={d} style={{padding:"4px 5px",background:d===today?"#eef2ff":"transparent"}}>
+                      <div style={{background:c+"15",border:`1px solid ${c}30`,borderLeft:`3px solid ${c}`,borderRadius:4,padding:"4px 5px"}}>
+                        <div style={{fontWeight:700,fontSize:11,color:c}}>{code}</div>
+                        <div style={{fontSize:9,color:"#475569"}}>{cn[code]}</div>
+                        <div style={{fontSize:9,color:"#94a3b8"}}>{room}</div>
+                      </div>
+                    </td>
+                  );
+                })}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        <div style={{display:"flex",gap:12,marginTop:12,flexWrap:"wrap"}}>
+          {Object.entries(cc).map(([code,c])=>(
+            <div key={code} style={{display:"flex",alignItems:"center",gap:5,fontSize:11}}>
+              <div style={{width:10,height:10,borderRadius:2,background:c}}/>
+              <span style={{color:"#64748b"}}>{code} — {cn[code]}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function FacultySubjectsView() {
   const [sel, setSel] = useState(null);
-  const [modal, setModal] = useState(null); // {to, toAll, subjectName}
+  const [modal, setModal] = useState(null);
+  const [activeTab, setActiveTab] = useState("students");
   const [inbox, setInbox] = useState([
     {from:"Riya Patel",roll:"22CS001",subj:"Query about Assignment #4",msg:"Ma'am, can you clarify the ER diagram requirements?",time:"Jun 8, 9:42 AM",read:false},
     {from:"Amit Kumar",roll:"22CS005",subj:"Lab file submission",msg:"Sir, I submitted the lab file. Please check.",time:"Jun 7, 2:15 PM",read:true},
     {from:"Priya Nair",roll:"22CS012",subj:"Leave for Jun 10",msg:"Sir, I will be absent on Jun 10 due to medical reasons.",time:"Jun 6, 11:00 AM",read:false},
   ]);
-  const [activeTab, setActiveTab] = useState("students");
+
+  // Attendance state: {subjectCode: {roll: {date: "P"|"A"|"L"}}}
+  const classDates = ["Jun 3","Jun 5","Jun 7","Jun 10","Jun 12","Jun 14","Jun 17","Jun 19"];
+  const [attData, setAttData] = useState({
+    "CS301":{
+      "22CS001":{"Jun 3":"P","Jun 5":"P","Jun 7":"P","Jun 10":"A","Jun 12":"P","Jun 14":"P","Jun 17":"P","Jun 19":"P"},
+      "22CS002":{"Jun 3":"P","Jun 5":"A","Jun 7":"P","Jun 10":"P","Jun 12":"P","Jun 14":"A","Jun 17":"P","Jun 19":"P"},
+      "22CS003":{"Jun 3":"P","Jun 5":"P","Jun 7":"A","Jun 10":"P","Jun 12":"A","Jun 14":"P","Jun 17":"P","Jun 19":"A"},
+      "22CS004":{"Jun 3":"A","Jun 5":"A","Jun 7":"P","Jun 10":"A","Jun 12":"P","Jun 14":"A","Jun 17":"A","Jun 19":"P"},
+    },
+    "CS302":{
+      "22CS005":{"Jun 3":"P","Jun 5":"P","Jun 7":"P","Jun 10":"P","Jun 12":"A","Jun 14":"P","Jun 17":"P","Jun 19":"P"},
+      "22CS006":{"Jun 3":"P","Jun 5":"P","Jun 7":"P","Jun 10":"P","Jun 12":"P","Jun 14":"P","Jun 17":"A","Jun 19":"P"},
+      "22CS007":{"Jun 3":"P","Jun 5":"A","Jun 7":"A","Jun 10":"P","Jun 12":"P","Jun 14":"A","Jun 17":"P","Jun 19":"P"},
+    },
+  });
+
+  // Marks state: {subjectCode: {roll: {component: marks}}}
+  const [marksData, setMarksData] = useState({
+    "CS301":{
+      "22CS001":{mid1:18,mid2:17,assignment:19,practical:0,total:0},
+      "22CS002":{mid1:15,mid2:16,assignment:17,practical:0,total:0},
+      "22CS003":{mid1:14,mid2:13,assignment:15,practical:0,total:0},
+      "22CS004":{mid1:10,mid2:11,assignment:12,practical:0,total:0},
+    },
+    "CS302":{
+      "22CS005":{mid1:17,mid2:16,assignment:18,practical:0,total:0},
+      "22CS006":{mid1:19,mid2:18,assignment:20,practical:0,total:0},
+      "22CS007":{mid1:13,mid2:14,assignment:15,practical:0,total:0},
+    },
+  });
 
   const subjectData = {
-    "CS301": [
-      {roll:"22CS001",name:"Riya Patel",email:"riya@iter.in",project:"EEG Cognitive Load",attendance:"90%",grade:"A+"},
-      {roll:"22CS002",name:"Aryan Mishra",email:"aryan@iter.in",project:"—",attendance:"82%",grade:"A"},
-      {roll:"22CS003",name:"Sneha Patil",email:"sneha@iter.in",project:"—",attendance:"76%",grade:"B+"},
-      {roll:"22CS004",name:"Rohan Das",email:"rohan@iter.in",project:"—",attendance:"65%",grade:"B"},
+    "CS301":[
+      {roll:"22CS001",name:"Riya Patel",email:"riya@iter.in",project:"EEG Cognitive Load"},
+      {roll:"22CS002",name:"Aryan Mishra",email:"aryan@iter.in",project:"—"},
+      {roll:"22CS003",name:"Sneha Patil",email:"sneha@iter.in",project:"—"},
+      {roll:"22CS004",name:"Rohan Das",email:"rohan@iter.in",project:"—"},
     ],
-    "CS301L": [
-      {roll:"22CS011",name:"Priya Nair",email:"priya@iter.in",project:"ML on Medical Data",attendance:"95%",grade:"O"},
-      {roll:"22CS012",name:"Kiran Joshi",email:"kiran@iter.in",project:"—",attendance:"88%",grade:"A+"},
+    "CS301L":[
+      {roll:"22CS011",name:"Priya Nair",email:"priya@iter.in",project:"ML on Medical Data"},
+      {roll:"22CS012",name:"Kiran Joshi",email:"kiran@iter.in",project:"—"},
     ],
-    "CS302": [
-      {roll:"22CS005",name:"Amit Kumar",email:"amit@iter.in",project:"IoT Home Automation",attendance:"78%",grade:"A"},
-      {roll:"22CS006",name:"Neha Sharma",email:"neha@iter.in",project:"—",attendance:"85%",grade:"A+"},
-      {roll:"22CS007",name:"Vikram Rao",email:"vikram@iter.in",project:"—",attendance:"70%",grade:"B+"},
+    "CS302":[
+      {roll:"22CS005",name:"Amit Kumar",email:"amit@iter.in",project:"IoT Home Automation"},
+      {roll:"22CS006",name:"Neha Sharma",email:"neha@iter.in",project:"—"},
+      {roll:"22CS007",name:"Vikram Rao",email:"vikram@iter.in",project:"—"},
     ],
-    "CS499": [
-      {roll:"22CS021",name:"Deepak Nanda",email:"deepak@iter.in",project:"Blockchain Voting",attendance:"92%",grade:"O"},
-      {roll:"22CS022",name:"Ananya Mohanty",email:"ananya@iter.in",project:"AR Navigation",attendance:"88%",grade:"A+"},
+    "CS499":[
+      {roll:"22CS021",name:"Deepak Nanda",email:"deepak@iter.in",project:"Blockchain Voting"},
+      {roll:"22CS022",name:"Ananya Mohanty",email:"ananya@iter.in",project:"AR Navigation"},
     ],
   };
 
@@ -1001,17 +1102,42 @@ function FacultySubjectsView() {
     {code:"CS499",name:"Final Year Project",class:"CSE 7A",type:"Project"},
   ];
 
-  const students = sel ? (subjectData[sel.code] || []) : [];
+  const students = sel ? (subjectData[sel.code]||[]) : [];
   const unread = inbox.filter(m=>!m.read).length;
+  const typeColor = {Theory:"#6366f1",Lab:"#f59e0b",Project:"#10b981"};
 
-  const typeColor = {Theory:"#6366f1", Lab:"#f59e0b", Project:"#10b981"};
+  // Attendance helpers
+  const toggleAtt = (code,roll,date) => {
+    const cycle = {"P":"A","A":"L","L":"P"};
+    setAttData(prev=>({...prev,[code]:{...prev[code],[roll]:{...(prev[code]?.[roll]||{}),[date]:cycle[prev[code]?.[roll]?.[date]||"P"]||"P"}}}));
+  };
+  const getAttPct = (code,roll) => {
+    const d = attData[code]?.[roll]||{};
+    const vals = Object.values(d);
+    if(!vals.length) return 0;
+    return Math.round(vals.filter(v=>v==="P").length/vals.length*100);
+  };
+
+  // Marks helpers
+  const maxMarks = {mid1:20,mid2:20,assignment:20,practical:20};
+  const updateMark = (code,roll,comp,val) => {
+    const num = Math.min(maxMarks[comp], Math.max(0, parseInt(val)||0));
+    setMarksData(prev=>{
+      const updated = {...(prev[code]?.[roll]||{}), [comp]:num};
+      const total = updated.mid1+updated.mid2+updated.assignment+updated.practical;
+      return {...prev,[code]:{...prev[code],[roll]:{...updated,total}}};
+    });
+  };
+  const getGrade = (t) => t>=72?"O":t>=64?"A+":t>=56?"A":t>=48?"B+":t>=40?"B":t>=32?"C":"F";
+
+  const attStatusColor = s => s==="P"?{bg:"#dcfce7",c:"#16a34a"}:s==="A"?{bg:"#fee2e2",c:"#dc2626"}:{bg:"#fef9c3",c:"#ca8a04"};
 
   return (
     <>
       {modal && <MessageModal to={modal.to} toAll={modal.toAll} subject={modal.subjectName} onClose={()=>setModal(null)}/>}
+      <div style={{display:"grid",gridTemplateColumns:"210px 1fr",gap:14}}>
 
-      <div style={{display:"grid",gridTemplateColumns:"220px 1fr",gap:14}}>
-        {/* Left: subject list */}
+        {/* Subject List */}
         <div>
           <div style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:12,overflow:"hidden"}}>
             <div style={{background:"linear-gradient(135deg,#6366f1,#8b5cf6)",padding:"12px 14px",color:"#fff",fontWeight:700,fontSize:13}}>My Subjects</div>
@@ -1019,140 +1145,242 @@ function FacultySubjectsView() {
               <div key={s.code} onClick={()=>{setSel(s);setActiveTab("students");}}
                 style={{padding:"12px 14px",borderBottom:"1px solid #f1f5f9",cursor:"pointer",
                   background:sel?.code===s.code?"#eef2ff":"#fff",
-                  borderLeft:sel?.code===s.code?"4px solid #6366f1":"4px solid transparent",transition:"all .15s"}}>
+                  borderLeft:sel?.code===s.code?"4px solid #6366f1":"4px solid transparent"}}>
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:3}}>
                   <span style={{fontWeight:700,fontSize:13,color:"#6366f1"}}>{s.code}</span>
-                  <span style={{fontSize:10,fontWeight:700,padding:"1px 6px",borderRadius:20,background:(typeColor[s.type]||"#6366f1")+"20",color:typeColor[s.type]||"#6366f1"}}>{s.type}</span>
+                  <span style={{fontSize:10,fontWeight:700,padding:"1px 6px",borderRadius:20,background:(typeColor[s.type]||"#6366f1")+"20",color:typeColor[s.type]}}>{s.type}</span>
                 </div>
                 <div style={{fontSize:12,color:"#334155",fontWeight:500,lineHeight:1.3}}>{s.name}</div>
                 <div style={{fontSize:11,color:"#94a3b8",marginTop:2}}>{s.class} · {(subjectData[s.code]||[]).length} students</div>
               </div>
             ))}
           </div>
-
-          {/* Inbox summary */}
+          {/* Inbox */}
           <div style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:12,overflow:"hidden",marginTop:14}}>
             <div style={{background:"linear-gradient(135deg,#6366f1,#8b5cf6)",padding:"12px 14px",color:"#fff",fontWeight:700,fontSize:13,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-              <span>Student Inbox</span>
-              {unread>0&&<span style={{background:"#ef4444",borderRadius:20,fontSize:11,padding:"1px 8px",fontWeight:700}}>{unread} new</span>}
+              <span>Inbox</span>
+              {unread>0&&<span style={{background:"#ef4444",borderRadius:20,fontSize:11,padding:"1px 8px",fontWeight:700}}>{unread}</span>}
             </div>
             {inbox.map((m,i)=>(
               <div key={i} onClick={()=>setInbox(prev=>prev.map((x,j)=>j===i?{...x,read:true}:x))}
-                style={{padding:"10px 14px",borderBottom:"1px solid #f1f5f9",cursor:"pointer",background:m.read?"#fff":"#f0f4ff"}}>
-                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                style={{padding:"9px 12px",borderBottom:"1px solid #f1f5f9",cursor:"pointer",background:m.read?"#fff":"#f0f4ff"}}>
+                <div style={{display:"flex",justifyContent:"space-between"}}>
                   <span style={{fontWeight:m.read?500:700,fontSize:12,color:"#334155"}}>{m.from}</span>
-                  {!m.read&&<span style={{width:8,height:8,borderRadius:"50%",background:"#6366f1",display:"inline-block"}}/>}
+                  {!m.read&&<span style={{width:7,height:7,borderRadius:"50%",background:"#6366f1",display:"inline-block",marginTop:4}}/>}
                 </div>
-                <div style={{fontSize:12,color:"#6366f1",fontWeight:600,marginTop:1}}>{m.subj}</div>
-                <div style={{fontSize:11,color:"#94a3b8",marginTop:1,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{m.msg}</div>
-                <div style={{fontSize:10,color:"#cbd5e1",marginTop:2}}>{m.time}</div>
+                <div style={{fontSize:11,color:"#6366f1",fontWeight:600}}>{m.subj}</div>
+                <div style={{fontSize:10,color:"#cbd5e1"}}>{m.time}</div>
               </div>
             ))}
           </div>
         </div>
 
-        {/* Right: students + messaging */}
+        {/* Right panel */}
         <div>
           {!sel ? (
             <div style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:12,padding:"60px 0",textAlign:"center"}}>
               <div style={{fontSize:40,marginBottom:12}}>📚</div>
               <div style={{fontWeight:700,fontSize:16,color:"#0f172a",marginBottom:6}}>Select a Subject</div>
-              <div style={{color:"#94a3b8",fontSize:13}}>Click any subject on the left to view your students</div>
+              <div style={{color:"#94a3b8",fontSize:13}}>Click a subject on the left to manage students</div>
             </div>
           ) : (
             <div style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:12,overflow:"hidden"}}>
-              {/* Subject header */}
+              {/* Header */}
               <div style={{background:"linear-gradient(135deg,#6366f1,#8b5cf6)",padding:"14px 18px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
                 <div>
                   <div style={{color:"#fff",fontWeight:700,fontSize:15}}>{sel.name}</div>
                   <div style={{color:"rgba(255,255,255,0.8)",fontSize:12}}>{sel.code} · {sel.class} · {students.length} students</div>
                 </div>
                 <button onClick={()=>setModal({toAll:true,subjectName:sel.name})}
-                  style={{padding:"8px 16px",background:"rgba(255,255,255,0.2)",border:"1px solid rgba(255,255,255,0.4)",borderRadius:8,color:"#fff",fontWeight:600,cursor:"pointer",fontSize:13,display:"flex",alignItems:"center",gap:6}}>
-                  📢 Message All Students
+                  style={{padding:"7px 14px",background:"rgba(255,255,255,0.2)",border:"1px solid rgba(255,255,255,0.4)",borderRadius:8,color:"#fff",fontWeight:600,cursor:"pointer",fontSize:12}}>
+                  📢 Message All
                 </button>
               </div>
 
               {/* Tabs */}
               <div style={{display:"flex",borderBottom:"1px solid #e2e8f0",background:"#f8fafc"}}>
-                {["students","inbox"].map(t=>(
+                {[["students","👥 Students"],["attendance","📋 Attendance"],["marks","📊 Marks"],["inbox","📩 Inbox"]].map(([t,l])=>(
                   <button key={t} onClick={()=>setActiveTab(t)}
-                    style={{padding:"10px 20px",border:"none",background:"transparent",cursor:"pointer",fontSize:13,fontWeight:activeTab===t?700:500,
+                    style={{padding:"10px 16px",border:"none",background:"transparent",cursor:"pointer",fontSize:12,fontWeight:activeTab===t?700:500,
                       color:activeTab===t?"#6366f1":"#64748b",borderBottom:activeTab===t?"2px solid #6366f1":"2px solid transparent"}}>
-                    {t==="students"?"👥 Students":`📩 Inbox ${unread>0?`(${unread} unread)`:""}`}
+                    {l}{t==="inbox"&&unread>0?` (${unread})`:""}
                   </button>
                 ))}
               </div>
 
+              {/* Students tab */}
               {activeTab==="students" && (
-                <div style={{padding:0}}>
-                  <table style={{width:"100%",borderCollapse:"collapse",fontSize:13}}>
-                    <thead>
-                      <tr style={{background:"#f8fafc"}}>
-                        {["Roll No.","Name","Email","Project / Group","Attendance","Grade","Message"].map(h=>(
-                          <th key={h} style={{padding:"10px 14px",textAlign:"left",fontWeight:600,color:"#475569",fontSize:12,borderBottom:"1px solid #e2e8f0"}}>{h}</th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {students.map((s,i)=>(
+                <table style={{width:"100%",borderCollapse:"collapse",fontSize:13}}>
+                  <thead>
+                    <tr style={{background:"#f8fafc"}}>
+                      {["Roll No.","Name","Email","Project","Attendance","Message"].map(h=>(
+                        <th key={h} style={{padding:"10px 14px",textAlign:"left",fontWeight:600,color:"#475569",fontSize:12,borderBottom:"1px solid #e2e8f0"}}>{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {students.map((s,i)=>{
+                      const pct = getAttPct(sel.code,s.roll);
+                      return (
                         <tr key={s.roll} style={{borderBottom:"1px solid #f1f5f9",background:i%2===0?"#fff":"#fafbff"}}>
                           <td style={{padding:"11px 14px",color:"#6366f1",fontWeight:700}}>{s.roll}</td>
                           <td style={{padding:"11px 14px",color:"#0f172a",fontWeight:600}}>
                             <div style={{display:"flex",alignItems:"center",gap:8}}>
-                              <div style={{width:28,height:28,borderRadius:"50%",background:"linear-gradient(135deg,#6366f1,#8b5cf6)",display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",fontSize:12,fontWeight:700,flexShrink:0}}>
-                                {s.name[0]}
-                              </div>
+                              <div style={{width:28,height:28,borderRadius:"50%",background:"linear-gradient(135deg,#6366f1,#8b5cf6)",display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",fontSize:12,fontWeight:700,flexShrink:0}}>{s.name[0]}</div>
                               {s.name}
                             </div>
                           </td>
                           <td style={{padding:"11px 14px",color:"#64748b",fontSize:12}}>{s.email}</td>
                           <td style={{padding:"11px 14px",color:"#64748b",fontSize:12}}>{s.project}</td>
                           <td style={{padding:"11px 14px"}}>
-                            <span style={{fontWeight:700,color:parseInt(s.attendance)>=75?"#10b981":"#ef4444",fontSize:13}}>{s.attendance}</span>
-                          </td>
-                          <td style={{padding:"11px 14px"}}>
-                            <span style={{padding:"2px 8px",borderRadius:6,background:"#eef2ff",color:"#6366f1",fontSize:12,fontWeight:700}}>{s.grade}</span>
+                            <span style={{fontWeight:700,color:pct>=75?"#10b981":pct>=65?"#f59e0b":"#ef4444"}}>{pct}%</span>
                           </td>
                           <td style={{padding:"11px 14px"}}>
                             <button onClick={()=>setModal({to:s,toAll:false,subjectName:sel.name})}
-                              style={{padding:"6px 14px",background:"linear-gradient(135deg,#6366f1,#8b5cf6)",color:"#fff",border:"none",borderRadius:7,cursor:"pointer",fontSize:12,fontWeight:600,display:"flex",alignItems:"center",gap:5}}>
+                              style={{padding:"5px 12px",background:"linear-gradient(135deg,#6366f1,#8b5cf6)",color:"#fff",border:"none",borderRadius:7,cursor:"pointer",fontSize:11,fontWeight:600}}>
                               ✉ Message
                             </button>
                           </td>
                         </tr>
-                      ))}
+                      );
+                    })}
+                  </tbody>
+                </table>
+              )}
+
+              {/* Attendance tab */}
+              {activeTab==="attendance" && (
+                <div style={{padding:16,overflowX:"auto"}}>
+                  <div style={{display:"flex",gap:16,marginBottom:12,alignItems:"center",flexWrap:"wrap"}}>
+                    <div style={{fontSize:12,color:"#64748b"}}>Click a cell to cycle: <span style={{background:"#dcfce7",color:"#16a34a",padding:"1px 7px",borderRadius:4,fontWeight:700,marginRight:4}}>P</span>Present → <span style={{background:"#fee2e2",color:"#dc2626",padding:"1px 7px",borderRadius:4,fontWeight:700,marginRight:4}}>A</span>Absent → <span style={{background:"#fef9c3",color:"#ca8a04",padding:"1px 7px",borderRadius:4,fontWeight:700}}>L</span>Leave</div>
+                  </div>
+                  <table style={{borderCollapse:"collapse",fontSize:12,width:"100%"}}>
+                    <thead>
+                      <tr style={{background:"#f8fafc"}}>
+                        <th style={{padding:"8px 12px",textAlign:"left",fontWeight:600,color:"#475569",borderBottom:"2px solid #e2e8f0",minWidth:130}}>Student</th>
+                        {classDates.map(d=>(
+                          <th key={d} style={{padding:"8px 8px",textAlign:"center",fontWeight:600,color:"#475569",borderBottom:"2px solid #e2e8f0",minWidth:54,fontSize:11}}>{d}</th>
+                        ))}
+                        <th style={{padding:"8px 10px",textAlign:"center",fontWeight:600,color:"#475569",borderBottom:"2px solid #e2e8f0"}}>%</th>
+                        <th style={{padding:"8px 10px",textAlign:"center",fontWeight:600,color:"#475569",borderBottom:"2px solid #e2e8f0"}}>Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {students.map((s,i)=>{
+                        const pct = getAttPct(sel.code,s.roll);
+                        return (
+                          <tr key={s.roll} style={{borderBottom:"1px solid #f1f5f9",background:i%2===0?"#fff":"#fafbff"}}>
+                            <td style={{padding:"8px 12px"}}>
+                              <div style={{fontWeight:600,fontSize:12,color:"#0f172a"}}>{s.name}</div>
+                              <div style={{fontSize:10,color:"#94a3b8"}}>{s.roll}</div>
+                            </td>
+                            {classDates.map(d=>{
+                              const status = attData[sel.code]?.[s.roll]?.[d]||"P";
+                              const sc = attStatusColor(status);
+                              return (
+                                <td key={d} style={{padding:"6px 4px",textAlign:"center"}}>
+                                  <div onClick={()=>toggleAtt(sel.code,s.roll,d)}
+                                    style={{display:"inline-flex",alignItems:"center",justifyContent:"center",width:32,height:26,borderRadius:5,cursor:"pointer",fontWeight:700,fontSize:11,background:sc.bg,color:sc.c,userSelect:"none",transition:"all .1s"}}>
+                                    {status}
+                                  </div>
+                                </td>
+                              );
+                            })}
+                            <td style={{padding:"8px 10px",textAlign:"center",fontWeight:700,color:pct>=75?"#10b981":pct>=65?"#f59e0b":"#ef4444"}}>{pct}%</td>
+                            <td style={{padding:"8px 10px",textAlign:"center"}}>
+                              <span style={{padding:"2px 8px",borderRadius:6,fontSize:11,fontWeight:700,
+                                background:pct>=75?"#dcfce7":pct>=65?"#fef9c3":"#fee2e2",
+                                color:pct>=75?"#16a34a":pct>=65?"#ca8a04":"#dc2626"}}>
+                                {pct>=75?"Safe":pct>=65?"Warning":"Short"}
+                              </span>
+                            </td>
+                          </tr>
+                        );
+                      })}
                     </tbody>
                   </table>
+                  <div style={{marginTop:12,display:"flex",justifyContent:"flex-end"}}>
+                    <button style={{padding:"8px 20px",background:"linear-gradient(135deg,#6366f1,#8b5cf6)",color:"#fff",border:"none",borderRadius:8,fontWeight:600,cursor:"pointer",fontSize:13}}>
+                      💾 Save Attendance
+                    </button>
+                  </div>
                 </div>
               )}
 
+              {/* Marks tab */}
+              {activeTab==="marks" && (
+                <div style={{padding:16,overflowX:"auto"}}>
+                  <div style={{fontSize:12,color:"#64748b",marginBottom:12}}>Click any marks cell to edit. Max — Mid 1: 20, Mid 2: 20, Assignment: 20, Practical: 20 | Total: 80</div>
+                  <table style={{borderCollapse:"collapse",fontSize:12,width:"100%"}}>
+                    <thead>
+                      <tr style={{background:"#f8fafc"}}>
+                        <th style={{padding:"9px 12px",textAlign:"left",fontWeight:600,color:"#475569",borderBottom:"2px solid #e2e8f0",minWidth:130}}>Student</th>
+                        {[["Mid 1","/20"],["Mid 2","/20"],["Assignment","/20"],["Practical","/20"],["Total","/80"],["Grade",""]].map(([h,sub])=>(
+                          <th key={h} style={{padding:"9px 10px",textAlign:"center",fontWeight:600,color:"#475569",borderBottom:"2px solid #e2e8f0",minWidth:80}}>
+                            {h}<span style={{color:"#94a3b8",fontWeight:400,fontSize:10}}>{sub}</span>
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {students.map((s,i)=>{
+                        const m = marksData[sel.code]?.[s.roll]||{mid1:0,mid2:0,assignment:0,practical:0,total:0};
+                        const total = m.mid1+m.mid2+m.assignment+m.practical;
+                        const grade = getGrade(total);
+                        const gradeColor = grade==="O"||grade==="A+"?"#10b981":grade==="A"||grade==="B+"?"#6366f1":grade==="B"||grade==="C"?"#f59e0b":"#ef4444";
+                        return (
+                          <tr key={s.roll} style={{borderBottom:"1px solid #f1f5f9",background:i%2===0?"#fff":"#fafbff"}}>
+                            <td style={{padding:"8px 12px"}}>
+                              <div style={{fontWeight:600,fontSize:12,color:"#0f172a"}}>{s.name}</div>
+                              <div style={{fontSize:10,color:"#94a3b8"}}>{s.roll}</div>
+                            </td>
+                            {["mid1","mid2","assignment","practical"].map(comp=>(
+                              <td key={comp} style={{padding:"6px 8px",textAlign:"center"}}>
+                                <input type="number" min="0" max={maxMarks[comp]}
+                                  value={m[comp]}
+                                  onChange={e=>updateMark(sel.code,s.roll,comp,e.target.value)}
+                                  style={{width:48,padding:"5px 6px",border:"1px solid #e2e8f0",borderRadius:6,textAlign:"center",fontSize:13,fontWeight:600,color:"#334155",outline:"none",fontFamily:"inherit"}}/>
+                              </td>
+                            ))}
+                            <td style={{padding:"8px 10px",textAlign:"center",fontWeight:800,fontSize:14,color:"#0f172a"}}>{total}</td>
+                            <td style={{padding:"8px 10px",textAlign:"center"}}>
+                              <span style={{padding:"3px 10px",borderRadius:6,fontWeight:800,fontSize:13,background:gradeColor+"20",color:gradeColor}}>{grade}</span>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                  <div style={{marginTop:12,display:"flex",justifyContent:"flex-end"}}>
+                    <button style={{padding:"8px 20px",background:"linear-gradient(135deg,#6366f1,#8b5cf6)",color:"#fff",border:"none",borderRadius:8,fontWeight:600,cursor:"pointer",fontSize:13}}>
+                      💾 Save Marks
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Inbox tab */}
               {activeTab==="inbox" && (
                 <div style={{padding:14}}>
-                  {inbox.length===0&&<div style={{textAlign:"center",color:"#94a3b8",padding:40}}>No messages yet</div>}
                   {inbox.map((m,i)=>(
                     <div key={i} onClick={()=>setInbox(prev=>prev.map((x,j)=>j===i?{...x,read:true}:x))}
-                      style={{padding:"14px 16px",border:"1px solid",borderColor:m.read?"#e2e8f0":"#c7d2fe",borderRadius:10,marginBottom:10,background:m.read?"#fff":"#f0f4ff",cursor:"pointer",transition:"all .15s"}}>
+                      style={{padding:"12px 14px",border:"1px solid",borderColor:m.read?"#e2e8f0":"#c7d2fe",borderRadius:10,marginBottom:10,background:m.read?"#fff":"#f0f4ff",cursor:"pointer"}}>
                       <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:4}}>
                         <div style={{display:"flex",alignItems:"center",gap:8}}>
-                          <div style={{width:32,height:32,borderRadius:"50%",background:"linear-gradient(135deg,#6366f1,#8b5cf6)",display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",fontSize:13,fontWeight:700}}>
-                            {m.from[0]}
-                          </div>
+                          <div style={{width:30,height:30,borderRadius:"50%",background:"linear-gradient(135deg,#6366f1,#8b5cf6)",display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",fontSize:12,fontWeight:700}}>{m.from[0]}</div>
                           <div>
                             <div style={{fontWeight:700,fontSize:13,color:"#0f172a"}}>{m.from}</div>
                             <div style={{fontSize:11,color:"#94a3b8"}}>{m.roll} · {m.time}</div>
                           </div>
                         </div>
-                        <div style={{display:"flex",gap:6,alignItems:"center"}}>
+                        <div style={{display:"flex",gap:6}}>
                           {!m.read&&<span style={{background:"#6366f1",color:"#fff",fontSize:10,padding:"2px 8px",borderRadius:20,fontWeight:700}}>NEW</span>}
                           <button onClick={e=>{e.stopPropagation();setModal({to:{name:m.from,email:m.roll+"@iter.in"},toAll:false,subjectName:sel.name});}}
-                            style={{padding:"4px 12px",background:"linear-gradient(135deg,#6366f1,#8b5cf6)",color:"#fff",border:"none",borderRadius:6,cursor:"pointer",fontSize:11,fontWeight:600}}>
-                            Reply
-                          </button>
+                            style={{padding:"4px 10px",background:"linear-gradient(135deg,#6366f1,#8b5cf6)",color:"#fff",border:"none",borderRadius:6,cursor:"pointer",fontSize:11,fontWeight:600}}>Reply</button>
                         </div>
                       </div>
-                      <div style={{fontWeight:600,fontSize:13,color:"#334155",marginBottom:3}}>{m.subj}</div>
-                      <div style={{fontSize:12,color:"#64748b",lineHeight:1.6}}>{m.msg}</div>
+                      <div style={{fontWeight:600,fontSize:13,color:"#334155",marginBottom:2}}>{m.subj}</div>
+                      <div style={{fontSize:12,color:"#64748b"}}>{m.msg}</div>
                     </div>
                   ))}
                 </div>
@@ -1164,6 +1392,7 @@ function FacultySubjectsView() {
     </>
   );
 }
+
 
 // ─── Evaluation View ──────────────────────────────────────────────────────────
 function EvaluationView() {
@@ -1347,7 +1576,7 @@ export default function App() {
 
   const studentViews = {
     dashboard:<StudentDashboard user={auth}/>, attendance:<AttendanceView/>,
-    exam:<ExamView/>, fee:<FeeView/>, assignments:<AssignmentsView/>, notices:<NoticesView/>,
+    exam:<ExamView/>, fee:<FeeView/>, assignments:<AssignmentsView/>, notices:<NoticesView/>, timetable:<StudentTimetable/>,
   };
   const facultyViews = {
     dashboard:<FacultyDashboard user={auth}/>, subjects:<FacultySubjectsView/>,
@@ -1396,7 +1625,7 @@ export default function App() {
           <div style={{borderTop:"1px solid #444",marginTop:8,padding:"10px 10px 0"}}>
             <div style={{fontSize:11,color:"#888",fontWeight:700,marginBottom:6,letterSpacing:0.5}}>QUICK LINKS</div>
             {(role==="student"
-              ?[["Dashboard","dashboard"],["Attendance","attendance"],["Examination","exam"],["Fee Payment","fee"],["Assignments","assignments"],["Notices","notices"]]
+              ?[["Dashboard","dashboard"],["Timetable","timetable"],["Attendance","attendance"],["Examination","exam"],["Fee Payment","fee"],["Assignments","assignments"],["Notices","notices"]]
               :[["Dashboard","dashboard"],["Subjects","subjects"],["Lab","lab"],["Attendance","attendance"],["Evaluation","evaluation"],["Research","research"],["Duty","duty"],["Notices","notices"]]
             ).map(([label,key])=>(
               <div key={key} onClick={()=>setActive(key)}
