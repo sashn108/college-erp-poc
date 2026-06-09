@@ -1303,7 +1303,7 @@ export default function App() {
   };
   const facultyViews = {
     dashboard:<FacultyDashboard user={auth}/>, subjects:<FacultySubjectsView/>,
-    lab:<LabView/>, evaluation:<EvaluationView/>, research:<ResearchView/>,
+    lab:<LabView/>, attendance:<AttendanceView/>, evaluation:<EvaluationView/>, research:<ResearchView/>,
     duty:<DutyView/>, notices:<NoticesView/>,
   };
   const views = role==="student" ? studentViews : facultyViews;
