@@ -363,6 +363,65 @@ function FacultyDashboard({ user }) {
 
 // ─── Attendance View ──────────────────────────────────────────────────────────
 function AttendanceView() {
+  const [tab, setTab] = useState("attendance");
+  const [showApply, setShowApply] = useState(false);
+  const [form, setForm] = useState({ type:"Casual Leave", from:"", to:"", sendTo:"HOD", reason:"" });
+  const [submitted, setSubmitted] = useState(false);
+
+  // Leave balance — approved leaves auto-deduct from total
+  const [leaveBalance, setLeaveBalance] = useState([
+    { type:"Casual Leave",      icon:"🏖️", total:12, used:3,  color:"#6366f1" },
+    { type:"Medical Leave",     icon:"🏥", total:10, used:2,  color:"#10b981" },
+    { type:"Academic Leave",    icon:"📚", total:6,  used:1,  color:"#f59e0b" },
+    { type:"Emergency Leave",   icon:"🚨", total:4,  used:0,  color:"#ef4444" },
+    { type:"Duty Leave",        icon:"🎓", total:5,  used:1,  color:"#8b5cf6" },
+  ]);
+
+  const [leaves, setLeaves] = useState([
+    {
+      id:"L001", type:"Casual Leave", from:"May 20", to:"May 22", days:3,
+      reason:"Family function", sendTo:"HOD",
+      stages:[
+        {label:"Applied",    done:true,  date:"May 18"},
+        {label:"HOD Review", done:true,  date:"May 19"},
+        {label:"Approved",   done:true,  date:"May 19"},
+      ],
+      status:"Approved", deducted:true,
+    },
+    {
+      id:"L002", type:"Medical Leave", from:"Jun 1", to:"Jun 2", days:2,
+      reason:"Fever and rest", sendTo:"HOD",
+      stages:[
+        {label:"Applied",    done:true,  date:"May 31"},
+        {label:"HOD Review", done:true,  date:"Jun 1"},
+        {label:"Dean Review",done:false, date:"—"},
+        {label:"Approved",   done:false, date:"—"},
+      ],
+      status:"Pending — Dean Review", deducted:false,
+    },
+    {
+      id:"L003", type:"Academic Leave", from:"Apr 10", to:"Apr 11", days:2,
+      reason:"Conference at IIT Bhubaneswar", sendTo:"Dean Academic",
+      stages:[
+        {label:"Applied",         done:true,  date:"Apr 8"},
+        {label:"HOD Review",      done:true,  date:"Apr 9"},
+        {label:"Dean Academic",   done:true,  date:"Apr 9"},
+        {label:"Rejected",        done:true,  date:"Apr 10", reject:true},
+      ],
+      status:"Rejected", deducted:false,
+    },
+    {
+      id:"L004", type:"Duty Leave", from:"Jun 15", to:"Jun 15", days:1,
+      reason:"GATE mock test invigilation at NIT Rourkela", sendTo:"HOD",
+      stages:[
+        {label:"Applied",    done:true,  date:"Jun 12"},
+        {label:"HOD Review", done:false, date:"—"},
+        {label:"Approved",   done:false, date:"—"},
+      ],
+      status:"Pending — HOD Review", deducted:false,
+    },
+  ]);
+
   const subjects = [
     {code:"CS301",name:"Database Management Systems",total:40,present:36,faculty:"Dr. A. Sharma"},
     {code:"CS302",name:"Operating Systems",total:42,present:31,faculty:"Prof. S. Das"},
@@ -370,45 +429,293 @@ function AttendanceView() {
     {code:"CS304",name:"Theory of Computation",total:35,present:23,faculty:"Dr. K. Rath"},
     {code:"CS305",name:"Software Engineering",total:40,present:32,faculty:"Prof. M. Behera"},
   ];
+
+  const recipients = [
+    { value:"HOD",           label:"HOD",                desc:"Head of Department, CSE" },
+    { value:"Dean Academic", label:"Dean Academic",       desc:"Dean of Academic Affairs" },
+    { value:"Dean Students", label:"Dean Students",       desc:"Dean of Student Welfare" },
+    { value:"Principal",     label:"Principal / Director",desc:"ITER Principal" },
+  ];
+
+  const leaveTypes = ["Casual Leave","Medical Leave","Academic Leave","Emergency Leave","Duty Leave"];
+
+  const getDays = (from, to) => {
+    if(!from||!to) return 0;
+    const d = (new Date(to) - new Date(from)) / (1000*60*60*24) + 1;
+    return d > 0 ? d : 0;
+  };
+
+  const handleSubmit = () => {
+    if(!form.from||!form.to||!form.reason.trim()) return;
+    const days = getDays(form.from, form.to);
+    const newLeave = {
+      id: "L00"+(leaves.length+1),
+      type: form.type,
+      from: new Date(form.from).toLocaleDateString("en-GB",{day:"numeric",month:"short"}),
+      to:   new Date(form.to).toLocaleDateString("en-GB",{day:"numeric",month:"short"}),
+      days,
+      reason: form.reason,
+      sendTo: form.sendTo,
+      stages: [
+        {label:"Applied",           done:true,  date:new Date().toLocaleDateString("en-GB",{day:"numeric",month:"short"})},
+        {label:`${form.sendTo} Review`, done:false, date:"—"},
+        ...(form.sendTo!=="HOD"?[]:[]),
+        {label:"Approved",          done:false, date:"—"},
+      ],
+      status:`Pending — ${form.sendTo} Review`,
+      deducted:false,
+    };
+    setLeaves(prev=>[newLeave,...prev]);
+    setSubmitted(true);
+    setTimeout(()=>{ setSubmitted(false); setShowApply(false); setForm({type:"Casual Leave",from:"",to:"",sendTo:"HOD",reason:""}); },2000);
+  };
+
+  const statusColor = s => {
+    if(s==="Approved") return {bg:"#dcfce7",c:"#16a34a"};
+    if(s==="Rejected") return {bg:"#fee2e2",c:"#dc2626"};
+    return {bg:"#fef9c3",c:"#ca8a04"};
+  };
+
+  const pendingCount = leaves.filter(l=>!l.status.includes("Approved")&&!l.status.includes("Rejected")).length;
+
   return (
-    <Widget title="Attendance and Leave">
-      <table style={{width:"100%",borderCollapse:"collapse",fontSize:13}}>
-        <thead>
-          <tr style={{background:"#6366f1",color:"#fff"}}>
-            {["Code","Subject","Faculty","Present","Total","Attendance","Status"].map(h=>(
-              <th key={h} style={{padding:"8px 10px",textAlign:"left",fontSize:12}}>{h}</th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {subjects.map((s,i)=>{
-            const pct=Math.round(s.present/s.total*100);
-            return (
-              <tr key={s.code} style={{borderBottom:"1px solid #eee",background:i%2===0?"#f9f9f9":"#fff"}}>
-                <td style={{padding:"9px 10px",color:"#6366f1",fontWeight:700}}>{s.code}</td>
-                <td style={{padding:"9px 10px",color:"#333",fontWeight:500}}>{s.name}</td>
-                <td style={{padding:"9px 10px",color:"#555"}}>{s.faculty}</td>
-                <td style={{padding:"9px 10px",textAlign:"center"}}>{s.present}</td>
-                <td style={{padding:"9px 10px",textAlign:"center"}}>{s.total}</td>
-                <td style={{padding:"9px 10px"}}>
-                  <div style={{display:"flex",alignItems:"center",gap:8}}>
-                    <div style={{width:60,height:6,background:"#eee",borderRadius:3}}>
-                      <div style={{width:pct+"%",height:"100%",background:pct>=75?"#27ae60":"#e74c3c",borderRadius:3}}/>
-                    </div>
-                    <span style={{fontWeight:700,color:pct>=75?"#27ae60":"#e74c3c"}}>{pct}%</span>
-                  </div>
-                </td>
-                <td style={{padding:"9px 10px"}}>
-                  <span style={{padding:"2px 8px",borderRadius:2,background:pct>=75?"#e8f8f0":"#fdf0f0",color:pct>=75?"#27ae60":"#e74c3c",fontSize:11,fontWeight:700}}>
-                    {pct>=75?"Safe":"Short"}
-                  </span>
-                </td>
+    <div>
+      {/* Leave Balance Cards */}
+      <div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:12,marginBottom:16}}>
+        {leaveBalance.map(lb=>{
+          const remaining = lb.total - lb.used;
+          const pct = Math.round((lb.used/lb.total)*100);
+          return (
+            <div key={lb.type} style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:12,padding:"14px 12px",borderTop:`4px solid ${lb.color}`}}>
+              <div style={{fontSize:22,marginBottom:4}}>{lb.icon}</div>
+              <div style={{fontSize:11,fontWeight:700,color:"#64748b",marginBottom:2}}>{lb.type}</div>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",marginBottom:6}}>
+                <span style={{fontSize:22,fontWeight:800,color:lb.color}}>{remaining}</span>
+                <span style={{fontSize:11,color:"#94a3b8"}}>/ {lb.total}</span>
+              </div>
+              <div style={{height:5,background:"#f1f5f9",borderRadius:3,marginBottom:4}}>
+                <div style={{width:pct+"%",height:"100%",background:lb.color,borderRadius:3}}/>
+              </div>
+              <div style={{fontSize:10,color:"#94a3b8"}}>{lb.used} used · {remaining} left</div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Tabs + Apply button */}
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
+        <div style={{display:"flex",gap:4,background:"#f1f5f9",borderRadius:8,padding:3}}>
+          {[["attendance","📋 Attendance"],["leave","📝 Leave Applications"]].map(([t,l])=>(
+            <button key={t} onClick={()=>setTab(t)} style={{padding:"7px 16px",border:"none",borderRadius:6,cursor:"pointer",fontSize:13,fontWeight:600,
+              background:tab===t?"linear-gradient(135deg,#6366f1,#8b5cf6)":"transparent",color:tab===t?"#fff":"#64748b"}}>
+              {l} {t==="leave"&&pendingCount>0&&<span style={{background:"#ef4444",color:"#fff",borderRadius:20,fontSize:10,padding:"1px 6px",marginLeft:4}}>{pendingCount}</span>}
+            </button>
+          ))}
+        </div>
+        {tab==="leave"&&(
+          <button onClick={()=>setShowApply(true)}
+            style={{padding:"9px 18px",background:"linear-gradient(135deg,#6366f1,#8b5cf6)",color:"#fff",border:"none",borderRadius:8,fontWeight:600,cursor:"pointer",fontSize:13,display:"flex",alignItems:"center",gap:6}}>
+            + Apply for Leave
+          </button>
+        )}
+      </div>
+
+      {/* Attendance Table */}
+      {tab==="attendance"&&(
+        <div style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:12,overflow:"hidden"}}>
+          <div style={{background:"linear-gradient(135deg,#6366f1,#8b5cf6)",padding:"12px 16px",color:"#fff",fontWeight:700,fontSize:13}}>
+            Subject-wise Attendance — Spring 2025-26
+          </div>
+          <table style={{width:"100%",borderCollapse:"collapse",fontSize:13}}>
+            <thead>
+              <tr style={{background:"#f8fafc"}}>
+                {["Code","Subject","Faculty","Present","Total","Attendance","Status"].map(h=>(
+                  <th key={h} style={{padding:"10px 14px",textAlign:"left",fontWeight:600,color:"#475569",fontSize:12,borderBottom:"1px solid #e2e8f0"}}>{h}</th>
+                ))}
               </tr>
+            </thead>
+            <tbody>
+              {subjects.map((s,i)=>{
+                const pct=Math.round(s.present/s.total*100);
+                return (
+                  <tr key={s.code} style={{borderBottom:"1px solid #f1f5f9",background:i%2===0?"#fff":"#fafbff"}}>
+                    <td style={{padding:"11px 14px",color:"#6366f1",fontWeight:700}}>{s.code}</td>
+                    <td style={{padding:"11px 14px",color:"#0f172a",fontWeight:500}}>{s.name}</td>
+                    <td style={{padding:"11px 14px",color:"#64748b"}}>{s.faculty}</td>
+                    <td style={{padding:"11px 14px",textAlign:"center",fontWeight:600,color:"#334155"}}>{s.present}</td>
+                    <td style={{padding:"11px 14px",textAlign:"center",color:"#64748b"}}>{s.total}</td>
+                    <td style={{padding:"11px 14px"}}>
+                      <div style={{display:"flex",alignItems:"center",gap:8}}>
+                        <div style={{width:64,height:6,background:"#f1f5f9",borderRadius:3}}>
+                          <div style={{width:pct+"%",height:"100%",background:pct>=75?"#10b981":pct>=65?"#f59e0b":"#ef4444",borderRadius:3}}/>
+                        </div>
+                        <span style={{fontWeight:700,color:pct>=75?"#10b981":pct>=65?"#f59e0b":"#ef4444",fontSize:13}}>{pct}%</span>
+                      </div>
+                    </td>
+                    <td style={{padding:"11px 14px"}}>
+                      <span style={{padding:"3px 10px",borderRadius:6,fontSize:11,fontWeight:700,
+                        background:pct>=75?"#dcfce7":pct>=65?"#fef9c3":"#fee2e2",
+                        color:pct>=75?"#16a34a":pct>=65?"#ca8a04":"#dc2626"}}>
+                        {pct>=75?"Safe":pct>=65?"Warning":"Shortage"}
+                      </span>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* Leave Applications */}
+      {tab==="leave"&&(
+        <div style={{display:"flex",flexDirection:"column",gap:14}}>
+          {leaves.map(l=>{
+            const sc = statusColor(l.status);
+            return (
+              <div key={l.id} style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:12,overflow:"hidden"}}>
+                {/* Leave header */}
+                <div style={{padding:"14px 18px",display:"flex",justifyContent:"space-between",alignItems:"flex-start",borderBottom:"1px solid #f1f5f9"}}>
+                  <div style={{display:"flex",gap:14,alignItems:"flex-start"}}>
+                    <div style={{width:44,height:44,borderRadius:10,background:"#eef2ff",display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,flexShrink:0}}>
+                      {leaveBalance.find(lb=>lb.type===l.type)?.icon||"📋"}
+                    </div>
+                    <div>
+                      <div style={{display:"flex",gap:8,alignItems:"center",marginBottom:3}}>
+                        <span style={{fontWeight:700,fontSize:14,color:"#0f172a"}}>{l.type}</span>
+                        <span style={{padding:"2px 8px",borderRadius:6,fontSize:11,fontWeight:700,background:sc.bg,color:sc.c}}>{l.status}</span>
+                        {l.deducted&&<span style={{padding:"2px 8px",borderRadius:6,fontSize:11,fontWeight:700,background:"#dcfce7",color:"#16a34a"}}>✓ Deducted from balance</span>}
+                      </div>
+                      <div style={{fontSize:12,color:"#64748b"}}>
+                        📅 {l.from} → {l.to} &nbsp;·&nbsp; <strong>{l.days} day{l.days>1?"s":""}</strong> &nbsp;·&nbsp;
+                        Sent to: <span style={{fontWeight:600,color:"#6366f1"}}>{l.sendTo}</span>
+                      </div>
+                      <div style={{fontSize:12,color:"#94a3b8",marginTop:3}}>Reason: {l.reason}</div>
+                    </div>
+                  </div>
+                  <span style={{fontSize:12,color:"#94a3b8",fontWeight:500,flexShrink:0}}>{l.id}</span>
+                </div>
+
+                {/* Stage tracker */}
+                <div style={{padding:"14px 18px",background:"#fafbff"}}>
+                  <div style={{fontSize:11,fontWeight:700,color:"#94a3b8",marginBottom:10,letterSpacing:0.5}}>APPROVAL PROGRESS</div>
+                  <div style={{display:"flex",alignItems:"center",gap:0}}>
+                    {l.stages.map((st,si)=>(
+                      <div key={si} style={{display:"flex",alignItems:"center",flex:si<l.stages.length-1?1:"initial"}}>
+                        {/* Node */}
+                        <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:4,minWidth:80}}>
+                          <div style={{width:32,height:32,borderRadius:"50%",display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,fontWeight:700,flexShrink:0,
+                            background:st.reject?"#fee2e2":st.done?"linear-gradient(135deg,#6366f1,#8b5cf6)":"#f1f5f9",
+                            color:st.reject?"#dc2626":st.done?"#fff":"#94a3b8",
+                            border:st.done||st.reject?"none":"2px dashed #cbd5e1"}}>
+                            {st.reject?"✕":st.done?"✓":si+1}
+                          </div>
+                          <div style={{fontSize:10,fontWeight:600,color:st.done?(st.reject?"#dc2626":"#6366f1"):"#94a3b8",textAlign:"center",lineHeight:1.2,maxWidth:70}}>{st.label}</div>
+                          <div style={{fontSize:9,color:"#cbd5e1"}}>{st.date}</div>
+                        </div>
+                        {/* Connector line */}
+                        {si<l.stages.length-1&&(
+                          <div style={{flex:1,height:2,background:l.stages[si+1].done?"linear-gradient(90deg,#6366f1,#8b5cf6)":"#e2e8f0",margin:"0 2px",marginBottom:28}}/>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
             );
           })}
-        </tbody>
-      </table>
-    </Widget>
+        </div>
+      )}
+
+      {/* Apply Leave Modal */}
+      {showApply&&(
+        <div style={{position:"fixed",inset:0,background:"rgba(15,23,42,0.6)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center"}} onClick={()=>setShowApply(false)}>
+          <div style={{background:"#fff",borderRadius:14,width:540,boxShadow:"0 20px 60px rgba(0,0,0,0.25)",overflow:"hidden"}} onClick={e=>e.stopPropagation()}>
+            <div style={{background:"linear-gradient(135deg,#6366f1,#8b5cf6)",padding:"16px 20px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+              <div style={{color:"#fff",fontWeight:700,fontSize:15}}>📝 Apply for Leave</div>
+              <button onClick={()=>setShowApply(false)} style={{background:"rgba(255,255,255,0.2)",border:"none",borderRadius:6,color:"#fff",width:28,height:28,cursor:"pointer",fontSize:16}}>✕</button>
+            </div>
+
+            {submitted?(
+              <div style={{padding:"48px 24px",textAlign:"center"}}>
+                <div style={{fontSize:52,marginBottom:12}}>✅</div>
+                <div style={{fontSize:18,fontWeight:700,color:"#0f172a",marginBottom:6}}>Leave Application Submitted!</div>
+                <div style={{fontSize:13,color:"#64748b"}}>Your application has been sent to <strong>{form.sendTo}</strong> for review.</div>
+              </div>
+            ):(
+              <div style={{padding:"20px 24px"}}>
+                {/* Leave type + recipient row */}
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14,marginBottom:14}}>
+                  <div>
+                    <label style={{fontSize:12,fontWeight:600,color:"#475569",display:"block",marginBottom:5}}>LEAVE TYPE</label>
+                    <select value={form.type} onChange={e=>setForm(f=>({...f,type:e.target.value}))}
+                      style={{width:"100%",padding:"9px 12px",border:"1px solid #e2e8f0",borderRadius:8,fontSize:13,outline:"none",color:"#334155",background:"#fff",fontFamily:"inherit"}}>
+                      {leaveTypes.map(t=><option key={t}>{t}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label style={{fontSize:12,fontWeight:600,color:"#475569",display:"block",marginBottom:5}}>SEND APPLICATION TO</label>
+                    <select value={form.sendTo} onChange={e=>setForm(f=>({...f,sendTo:e.target.value}))}
+                      style={{width:"100%",padding:"9px 12px",border:"1px solid #e2e8f0",borderRadius:8,fontSize:13,outline:"none",color:"#334155",background:"#fff",fontFamily:"inherit"}}>
+                      {recipients.map(r=><option key={r.value} value={r.value}>{r.label}</option>)}
+                    </select>
+                  </div>
+                </div>
+
+                {/* Recipient info */}
+                <div style={{background:"#eef2ff",borderRadius:8,padding:"9px 14px",marginBottom:14,fontSize:12,color:"#4338ca",display:"flex",gap:8,alignItems:"center"}}>
+                  <span>📌</span>
+                  <span><strong>{form.sendTo}</strong> — {recipients.find(r=>r.value===form.sendTo)?.desc}</span>
+                </div>
+
+                {/* Date row */}
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 80px",gap:12,marginBottom:14,alignItems:"end"}}>
+                  {[["FROM DATE","from"],["TO DATE","to"]].map(([lbl,key])=>(
+                    <div key={key}>
+                      <label style={{fontSize:12,fontWeight:600,color:"#475569",display:"block",marginBottom:5}}>{lbl}</label>
+                      <input type="date" value={form[key]} onChange={e=>setForm(f=>({...f,[key]:e.target.value}))}
+                        style={{width:"100%",boxSizing:"border-box",padding:"9px 10px",border:"1px solid #e2e8f0",borderRadius:8,fontSize:13,outline:"none",color:"#334155",fontFamily:"inherit"}}/>
+                    </div>
+                  ))}
+                  <div style={{background:"#f1f5f9",borderRadius:8,padding:"10px 8px",textAlign:"center"}}>
+                    <div style={{fontSize:18,fontWeight:800,color:"#6366f1"}}>{getDays(form.from,form.to)||"—"}</div>
+                    <div style={{fontSize:10,color:"#94a3b8",fontWeight:600}}>DAYS</div>
+                  </div>
+                </div>
+
+                {/* Leave balance warning */}
+                {form.type&&(()=>{
+                  const lb = leaveBalance.find(l=>l.type===form.type);
+                  const rem = lb ? lb.total - lb.used : 0;
+                  const days = getDays(form.from,form.to);
+                  if(days>rem) return (
+                    <div style={{background:"#fee2e2",borderRadius:8,padding:"9px 14px",marginBottom:14,fontSize:12,color:"#dc2626",display:"flex",gap:6,alignItems:"center"}}>
+                      ⚠️ You only have <strong>{rem} {form.type}</strong> remaining. Applying for {days} days may be rejected.
+                    </div>
+                  );
+                  return null;
+                })()}
+
+                {/* Reason */}
+                <div style={{marginBottom:18}}>
+                  <label style={{fontSize:12,fontWeight:600,color:"#475569",display:"block",marginBottom:5}}>REASON FOR LEAVE</label>
+                  <textarea rows={3} value={form.reason} onChange={e=>setForm(f=>({...f,reason:e.target.value}))} placeholder="Briefly explain the reason..."
+                    style={{width:"100%",boxSizing:"border-box",padding:"9px 12px",border:"1px solid #e2e8f0",borderRadius:8,fontSize:13,outline:"none",resize:"none",fontFamily:"inherit",color:"#334155"}}/>
+                </div>
+
+                <div style={{display:"flex",justifyContent:"flex-end",gap:10}}>
+                  <button onClick={()=>setShowApply(false)} style={{padding:"9px 20px",background:"#f1f5f9",border:"none",borderRadius:8,fontWeight:600,cursor:"pointer",fontSize:13,color:"#475569"}}>Cancel</button>
+                  <button onClick={handleSubmit} disabled={!form.from||!form.to||!form.reason.trim()}
+                    style={{padding:"9px 22px",background:(!form.from||!form.to||!form.reason.trim())?"#c7d2fe":"linear-gradient(135deg,#6366f1,#8b5cf6)",color:"#fff",border:"none",borderRadius:8,fontWeight:600,cursor:(!form.from||!form.to||!form.reason.trim())?"not-allowed":"pointer",fontSize:13}}>
+                    Submit to {form.sendTo} →
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
 
