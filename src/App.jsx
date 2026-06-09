@@ -86,18 +86,18 @@ function Login({ onLogin }) {
 }
 
 // ─── Top Header ───────────────────────────────────────────────────────────────
-function Header({ user, role, onLogout, academicOpen, setAcademicOpen }) {
+function Header({ user, role, onLogout, academicOpen, setAcademicOpen, setActive }) {
   const now = new Date();
   const dateStr = now.toLocaleDateString("en-GB",{weekday:"short",day:"numeric",month:"short",year:"numeric"});
   const timeStr = now.toLocaleTimeString("en-GB",{hour:"2-digit",minute:"2-digit"});
 
   const studentMenuItems = [
-    ["Student Information","user"],["Registration","reg"],["Attendance and Leave","attendance"],
-    ["Feedback / Assessment","feedback"],["Examination","exam"],["Fee Payment","fee"],
-    ["Hostel Management","hostel"],["Thesis Submission","thesis"],["Assignments","assignments"],
-    ["Research Scholars' Week","research"],["SAC Election","sac"],["Student Project management","project"],
-    ["Dissertation Template","dissertation"],["Scholarships","scholarship"],
-    ["Account Settings","settings"],["Other Services","other"],["Career Development Centre","career"],
+    ["Student Information","dashboard"],["Registration","dashboard"],["Attendance and Leave","attendance"],
+    ["Feedback / Assessment","dashboard"],["Examination","exam"],["Fee Payment","fee"],
+    ["Hostel Management","fee"],["Thesis Submission","dashboard"],["Assignments","assignments"],
+    ["Research Scholars' Week","dashboard"],["SAC Election","dashboard"],["Student Project management","dashboard"],
+    ["Dissertation Template","dashboard"],["Scholarships","fee"],
+    ["Account Settings","dashboard"],["Other Services","dashboard"],["Career Development Centre","dashboard"],
   ];
   const facultyMenuItems = [
     ["Dashboard","dashboard"],["Subjects & Students","subjects"],["Lab Management","lab"],
@@ -137,9 +137,9 @@ function Header({ user, role, onLogout, academicOpen, setAcademicOpen }) {
       {academicOpen && (
         <div style={{position:"absolute",top:56,left:0,right:0,background:"#fff",borderBottom:"2px solid #ddd",boxShadow:"0 4px 12px rgba(0,0,0,0.1)",padding:"18px 32px",zIndex:200}}>
           <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:"12px 24px"}}>
-            {menuItems.map(([label])=>(
+            {menuItems.map(([label, key])=>(
               <div key={label} style={{display:"flex",alignItems:"center",gap:8,padding:"6px 0",borderBottom:"1px solid #f5f5f5",cursor:"pointer",fontSize:13,color:"#333",fontWeight:500}}
-                onClick={()=>setAcademicOpen(false)}>
+                onClick={()=>{ setActive(key); setAcademicOpen(false); }}>
                 <span style={{color:"#6366f1",fontSize:15}}>●</span> {label}
               </div>
             ))}
@@ -1327,7 +1327,8 @@ export default function App() {
     <div style={{minHeight:"100vh",background:"#f0f0f0",fontFamily:"'Segoe UI',sans-serif"}} onClick={handleMain}>
       <Header user={auth} role={role} onLogout={()=>{setAuth(null);setRole(null);}}
         academicOpen={academicOpen}
-        setAcademicOpen={setAcademicOpen}/>
+        setAcademicOpen={setAcademicOpen}
+        setActive={setActive}/>
 
       {/* Sub-header breadcrumb */}
       <div style={{background:"#6366f1",color:"#fff",padding:"6px 20px",fontSize:12,display:"flex",gap:8,alignItems:"center"}}>
