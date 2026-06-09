@@ -31,7 +31,7 @@ function MiniCalendar() {
           ? <div key={"e"+i}/>
           : <div key={d} style={{
               fontSize:12,padding:"4px 0",borderRadius:4,cursor:"pointer",
-              background: isToday(d) ? "#8b1a1a" : events.includes(d) ? "#5a1a1a" : "transparent",
+              background: isToday(d) ? "#6366f1" : events.includes(d) ? "#4338ca" : "transparent",
               color: isToday(d) ? "#fff" : events.includes(d) ? "#ff9999" : "#ccc",
               fontWeight: isToday(d) ? 700 : 400
             }}>{d}</div>
@@ -55,13 +55,13 @@ function Login({ onLogin }) {
     <div style={{minHeight:"100vh",background:"#1a1a2e",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"'Segoe UI',sans-serif"}}>
       <div style={{background:"#fff",borderRadius:4,padding:"40px 36px",width:380,boxShadow:"0 4px 24px rgba(0,0,0,0.3)"}}>
         <div style={{textAlign:"center",marginBottom:28}}>
-          <div style={{fontSize:28,fontWeight:900,color:"#8b1a1a",letterSpacing:1}}>ITER ERP</div>
+          <div style={{fontSize:28,fontWeight:900,color:"#6366f1",letterSpacing:1}}>ITER ERP</div>
           <div style={{fontSize:12,color:"#888",marginTop:2}}>Siksha 'O' Anusandhan University</div>
         </div>
         <div style={{display:"flex",background:"#f5f5f5",borderRadius:4,marginBottom:20,padding:3}}>
           {["student","faculty"].map(r=>(
             <button key={r} onClick={()=>{setRole(r);setErr("");}} style={{flex:1,padding:"8px",border:"none",borderRadius:3,cursor:"pointer",fontSize:13,fontWeight:600,
-              background:role===r?"#8b1a1a":"transparent",color:role===r?"#fff":"#555"}}>
+              background:role===r?"#6366f1":"transparent",color:role===r?"#fff":"#555"}}>
               {r==="student"?"Student":"Faculty"}
             </button>
           ))}
@@ -74,7 +74,7 @@ function Login({ onLogin }) {
             style={{width:"100%",boxSizing:"border-box",padding:"10px 12px",border:"1px solid #ddd",borderRadius:3,fontSize:14,marginBottom:12,outline:"none",fontFamily:"inherit"}}/>
         ))}
         {err&&<div style={{color:"#c0392b",fontSize:13,marginBottom:10,padding:"7px 10px",background:"#fdf0f0",borderRadius:3}}>{err}</div>}
-        <button onClick={handle} style={{width:"100%",padding:"11px",background:"#8b1a1a",border:"none",borderRadius:3,color:"#fff",fontSize:14,fontWeight:600,cursor:"pointer"}}>
+        <button onClick={handle} style={{width:"100%",padding:"11px",background:"linear-gradient(135deg,#6366f1,#8b5cf6)",border:"none",borderRadius:3,color:"#fff",fontSize:14,fontWeight:600,cursor:"pointer"}}>
           Sign In
         </button>
         <div style={{color:"#aaa",fontSize:11,textAlign:"center",marginTop:16}}>
@@ -109,10 +109,10 @@ function Header({ user, role, onLogout, academicOpen, setAcademicOpen }) {
   return (
     <div style={{position:"relative",zIndex:100}}>
       {/* Top bar */}
-      <div style={{background:"#fff",borderBottom:"3px solid #8b1a1a",display:"flex",alignItems:"center",padding:"0 16px",height:56,gap:16,fontFamily:"'Segoe UI',sans-serif"}}>
+      <div style={{background:"#fff",borderBottom:"3px solid #6366f1",display:"flex",alignItems:"center",padding:"0 16px",height:56,gap:16,fontFamily:"'Segoe UI',sans-serif"}}>
         {/* Logo */}
         <div style={{display:"flex",alignItems:"center",gap:6,minWidth:140}}>
-          <div style={{fontFamily:"Georgia,serif",fontWeight:900,fontSize:22,color:"#8b1a1a",fontStyle:"italic",letterSpacing:1}}>ITER</div>
+          <div style={{fontFamily:"Georgia,serif",fontWeight:900,fontSize:22,color:"#6366f1",fontStyle:"italic",letterSpacing:1}}>ITER</div>
           <div style={{fontSize:9,color:"#888",lineHeight:1.2}}>SOA<br/>University</div>
         </div>
         {/* Hamburger */}
@@ -121,13 +121,13 @@ function Header({ user, role, onLogout, academicOpen, setAcademicOpen }) {
         <div style={{position:"relative"}}>
           <button onClick={()=>setAcademicOpen(o=>!o)}
             style={{background:"none",border:"none",cursor:"pointer",fontSize:14,fontWeight:600,color:"#333",display:"flex",alignItems:"center",gap:4,padding:"6px 10px"}}>
-            Academic <span style={{fontSize:10,color:"#8b1a1a"}}>▼</span>
+            Academic <span style={{fontSize:10,color:"#6366f1"}}>▼</span>
           </button>
         </div>
         <div style={{flex:1}}/>
         {/* Right side */}
         <div style={{fontSize:13,color:"#555",fontWeight:500}}>{dateStr} &nbsp; {timeStr}</div>
-        <div style={{width:34,height:34,borderRadius:"50%",background:"#8b1a1a",display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",fontWeight:700,fontSize:14,cursor:"pointer"}}
+        <div style={{width:34,height:34,borderRadius:"50%",background:"#6366f1",display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",fontWeight:700,fontSize:14,cursor:"pointer"}}
           title="Logout" onClick={onLogout}>
           {user.name[0]}
         </div>
@@ -140,7 +140,7 @@ function Header({ user, role, onLogout, academicOpen, setAcademicOpen }) {
             {menuItems.map(([label])=>(
               <div key={label} style={{display:"flex",alignItems:"center",gap:8,padding:"6px 0",borderBottom:"1px solid #f5f5f5",cursor:"pointer",fontSize:13,color:"#333",fontWeight:500}}
                 onClick={()=>setAcademicOpen(false)}>
-                <span style={{color:"#8b1a1a",fontSize:15}}>●</span> {label}
+                <span style={{color:"#6366f1",fontSize:15}}>●</span> {label}
               </div>
             ))}
           </div>
@@ -154,7 +154,7 @@ function Header({ user, role, onLogout, academicOpen, setAcademicOpen }) {
 function Widget({ title, children, style={} }) {
   return (
     <div style={{background:"#fff",border:"1px solid #e0e0e0",borderRadius:2,overflow:"hidden",...style}}>
-      <div style={{background:"#8b1a1a",color:"#fff",padding:"8px 14px",fontSize:13,fontWeight:700}}>{title}</div>
+      <div style={{background:"#6366f1",color:"#fff",padding:"8px 14px",fontSize:13,fontWeight:700}}>{title}</div>
       <div style={{padding:14}}>{children}</div>
     </div>
   );
@@ -203,7 +203,7 @@ function StudentDashboard({ user }) {
       <Widget title="External Circulars">
         <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
           <thead>
-            <tr style={{background:"#2c3e7a",color:"#fff"}}>
+            <tr style={{background:"#6366f1",color:"#fff"}}>
               <th style={{padding:"6px 8px",textAlign:"left",width:24}}>#</th>
               <th style={{padding:"6px 8px",textAlign:"left"}}>Circular Title</th>
               <th style={{padding:"6px 8px",width:50}}>Details</th>
@@ -214,7 +214,7 @@ function StudentDashboard({ user }) {
               <tr key={i} style={{borderBottom:"1px solid #eee",background:i%2===0?"#f9f9f9":"#fff"}}>
                 <td style={{padding:"6px 8px",color:"#555"}}>{i+1}</td>
                 <td style={{padding:"6px 8px",color:"#333"}}>{c}</td>
-                <td style={{padding:"6px 8px",textAlign:"center"}}><span style={{color:"#8b1a1a",cursor:"pointer",fontSize:16}}>📄</span></td>
+                <td style={{padding:"6px 8px",textAlign:"center"}}><span style={{color:"#6366f1",cursor:"pointer",fontSize:16}}>📄</span></td>
               </tr>
             ))}
           </tbody>
@@ -230,7 +230,7 @@ function StudentDashboard({ user }) {
       <Widget title="Important Dates">
         <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
           <thead>
-            <tr style={{background:"#2c3e7a",color:"#fff"}}>
+            <tr style={{background:"#6366f1",color:"#fff"}}>
               <th style={{padding:"5px 8px",textAlign:"left"}}>Event</th>
               <th style={{padding:"5px 8px",textAlign:"right",whiteSpace:"nowrap"}}>Last Date</th>
             </tr>
@@ -252,8 +252,8 @@ function StudentDashboard({ user }) {
 // ─── Faculty Dashboard ────────────────────────────────────────────────────────
 function FacultyDashboard({ user }) {
   const stats = [
-    { label:"Total Students Enrolled", value:"4,872", icon:"🎓", color:"#2c3e7a" },
-    { label:"Total Faculty", value:"312", icon:"👨‍🏫", color:"#8b1a1a" },
+    { label:"Total Students Enrolled", value:"4,872", icon:"🎓", color:"#6366f1" },
+    { label:"Total Faculty", value:"312", icon:"👨‍🏫", color:"#6366f1" },
     { label:"Publications", value:"1,248", icon:"📄", color:"#1a6b2a" },
     { label:"Patents Filed", value:"87", icon:"💡", color:"#7a5c1a" },
   ];
@@ -281,7 +281,7 @@ function FacultyDashboard({ user }) {
   return (
     <div>
       {/* Welcome banner */}
-      <div style={{background:"linear-gradient(135deg,#8b1a1a,#c0392b)",color:"#fff",borderRadius:3,padding:"14px 20px",marginBottom:16,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+      <div style={{background:"linear-gradient(135deg,#6366f1,#c0392b)",color:"#fff",borderRadius:3,padding:"14px 20px",marginBottom:16,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
         <div>
           <div style={{fontSize:18,fontWeight:700}}>Welcome, {user.name}</div>
           <div style={{fontSize:13,opacity:0.85}}>{user.designation} · Department of {user.dept}</div>
@@ -312,7 +312,7 @@ function FacultyDashboard({ user }) {
                 <div style={{fontSize:13,fontWeight:600,color:"#333"}}>{b.name}</div>
                 <div style={{fontSize:11,color:"#888"}}>Dept. of {b.dept}</div>
               </div>
-              <div style={{fontSize:12,fontWeight:700,color:"#8b1a1a",whiteSpace:"nowrap",marginLeft:8}}>{b.date}</div>
+              <div style={{fontSize:12,fontWeight:700,color:"#6366f1",whiteSpace:"nowrap",marginLeft:8}}>{b.date}</div>
             </div>
           ))}
         </Widget>
@@ -321,7 +321,7 @@ function FacultyDashboard({ user }) {
         <Widget title="External Circulars">
           <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
             <thead>
-              <tr style={{background:"#2c3e7a",color:"#fff"}}>
+              <tr style={{background:"#6366f1",color:"#fff"}}>
                 <th style={{padding:"5px 6px",width:20}}>#</th>
                 <th style={{padding:"5px 6px",textAlign:"left"}}>Circular Title</th>
               </tr>
@@ -341,7 +341,7 @@ function FacultyDashboard({ user }) {
         <Widget title="Important Dates">
           <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
             <thead>
-              <tr style={{background:"#2c3e7a",color:"#fff"}}>
+              <tr style={{background:"#6366f1",color:"#fff"}}>
                 <th style={{padding:"5px 8px",textAlign:"left"}}>Event</th>
                 <th style={{padding:"5px 8px",textAlign:"right"}}>Date</th>
               </tr>
@@ -374,7 +374,7 @@ function AttendanceView() {
     <Widget title="Attendance and Leave">
       <table style={{width:"100%",borderCollapse:"collapse",fontSize:13}}>
         <thead>
-          <tr style={{background:"#2c3e7a",color:"#fff"}}>
+          <tr style={{background:"#6366f1",color:"#fff"}}>
             {["Code","Subject","Faculty","Present","Total","Attendance","Status"].map(h=>(
               <th key={h} style={{padding:"8px 10px",textAlign:"left",fontSize:12}}>{h}</th>
             ))}
@@ -385,7 +385,7 @@ function AttendanceView() {
             const pct=Math.round(s.present/s.total*100);
             return (
               <tr key={s.code} style={{borderBottom:"1px solid #eee",background:i%2===0?"#f9f9f9":"#fff"}}>
-                <td style={{padding:"9px 10px",color:"#8b1a1a",fontWeight:700}}>{s.code}</td>
+                <td style={{padding:"9px 10px",color:"#6366f1",fontWeight:700}}>{s.code}</td>
                 <td style={{padding:"9px 10px",color:"#333",fontWeight:500}}>{s.name}</td>
                 <td style={{padding:"9px 10px",color:"#555"}}>{s.faculty}</td>
                 <td style={{padding:"9px 10px",textAlign:"center"}}>{s.present}</td>
@@ -425,15 +425,15 @@ function ExamView() {
     <Widget title="Examination">
       <div style={{display:"flex",gap:8,marginBottom:14}}>
         {["schedule","results"].map(t=>(
-          <button key={t} onClick={()=>setTab(t)} style={{padding:"6px 16px",border:"1px solid #8b1a1a",borderRadius:2,cursor:"pointer",fontSize:12,fontWeight:600,
-            background:tab===t?"#8b1a1a":"#fff",color:tab===t?"#fff":"#8b1a1a"}}>
+          <button key={t} onClick={()=>setTab(t)} style={{padding:"6px 16px",border:"1px solid #6366f1",borderRadius:2,cursor:"pointer",fontSize:12,fontWeight:600,
+            background:tab===t?"#6366f1":"#fff",color:tab===t?"#fff":"#6366f1"}}>
             {t==="schedule"?"Exam Schedule":"Results"}
           </button>
         ))}
       </div>
       <table style={{width:"100%",borderCollapse:"collapse",fontSize:13}}>
         <thead>
-          <tr style={{background:"#2c3e7a",color:"#fff"}}>
+          <tr style={{background:"#6366f1",color:"#fff"}}>
             {(tab==="schedule"?["Date","Code","Subject","Time","Room"]:["Semester","SGPA","CGPA","Result"]).map(h=>(
               <th key={h} style={{padding:"7px 10px",textAlign:"left",fontSize:12}}>{h}</th>
             ))}
@@ -442,7 +442,7 @@ function ExamView() {
         <tbody>
           {tab==="schedule"&&schedule.map((e,i)=>(
             <tr key={i} style={{borderBottom:"1px solid #eee",background:i%2===0?"#f9f9f9":"#fff"}}>
-              <td style={{padding:"8px 10px",fontWeight:700,color:"#8b1a1a"}}>{e.date}</td>
+              <td style={{padding:"8px 10px",fontWeight:700,color:"#6366f1"}}>{e.date}</td>
               <td style={{padding:"8px 10px",color:"#555"}}>{e.code}</td>
               <td style={{padding:"8px 10px",color:"#333",fontWeight:500}}>{e.subject}</td>
               <td style={{padding:"8px 10px",color:"#555"}}>{e.time}</td>
@@ -454,7 +454,7 @@ function ExamView() {
           ].map(([sem,sgpa,cgpa,res],i)=>(
             <tr key={i} style={{borderBottom:"1px solid #eee",background:i%2===0?"#f9f9f9":"#fff"}}>
               <td style={{padding:"8px 10px",color:"#333",fontWeight:500}}>{sem}</td>
-              <td style={{padding:"8px 10px",fontWeight:700,color:"#2c3e7a"}}>{sgpa}</td>
+              <td style={{padding:"8px 10px",fontWeight:700,color:"#6366f1"}}>{sgpa}</td>
               <td style={{padding:"8px 10px",fontWeight:700,color:"#1a6b2a"}}>{cgpa}</td>
               <td style={{padding:"8px 10px"}}><span style={{padding:"2px 10px",background:"#e8f8f0",color:"#27ae60",borderRadius:2,fontSize:11,fontWeight:700}}>{res}</span></td>
             </tr>
@@ -507,7 +507,7 @@ function AssignmentsView() {
     <Widget title="Assignments">
       <table style={{width:"100%",borderCollapse:"collapse",fontSize:13}}>
         <thead>
-          <tr style={{background:"#2c3e7a",color:"#fff"}}>
+          <tr style={{background:"#6366f1",color:"#fff"}}>
             {["Subject","Title","Due","Max Marks","Status","Action"].map(h=>(
               <th key={h} style={{padding:"7px 10px",textAlign:"left",fontSize:12}}>{h}</th>
             ))}
@@ -516,17 +516,17 @@ function AssignmentsView() {
         <tbody>
           {data.map((a,i)=>(
             <tr key={i} style={{borderBottom:"1px solid #eee",background:i%2===0?"#f9f9f9":"#fff"}}>
-              <td style={{padding:"9px 10px",color:"#8b1a1a",fontWeight:700}}>{a.sub}</td>
+              <td style={{padding:"9px 10px",color:"#6366f1",fontWeight:700}}>{a.sub}</td>
               <td style={{padding:"9px 10px",color:"#333",fontWeight:500}}>{a.title}</td>
               <td style={{padding:"9px 10px",color:"#555"}}>{a.due}</td>
               <td style={{padding:"9px 10px",textAlign:"center"}}>{a.marks}</td>
               <td style={{padding:"9px 10px"}}>
                 <span style={{padding:"2px 8px",borderRadius:2,fontSize:11,fontWeight:700,
                   background:a.status==="Submitted"?"#e8f0ff":a.status==="Evaluated"?"#e8f8f0":"#fff8e1",
-                  color:a.status==="Submitted"?"#2c3e7a":a.status==="Evaluated"?"#27ae60":"#f39c12"}}>{a.status}</span>
+                  color:a.status==="Submitted"?"#6366f1":a.status==="Evaluated"?"#27ae60":"#f39c12"}}>{a.status}</span>
               </td>
               <td style={{padding:"9px 10px"}}>
-                {a.status==="Pending"&&<button style={{padding:"4px 12px",background:"#8b1a1a",color:"#fff",border:"none",borderRadius:2,cursor:"pointer",fontSize:11,fontWeight:600}}>Upload</button>}
+                {a.status==="Pending"&&<button style={{padding:"4px 12px",background:"#6366f1",color:"#fff",border:"none",borderRadius:2,cursor:"pointer",fontSize:11,fontWeight:600}}>Upload</button>}
                 {a.status==="Evaluated"&&<span style={{fontWeight:700,color:"#27ae60"}}>{a.score}/{a.marks}</span>}
               </td>
             </tr>
@@ -537,56 +537,276 @@ function AssignmentsView() {
   );
 }
 
+// ─── Message Modal ────────────────────────────────────────────────────────────
+function MessageModal({ to, toAll, subject: subjectName, onClose }) {
+  const [msg, setMsg] = useState("");
+  const [subj, setSubj] = useState(toAll ? `[${subjectName}] Announcement` : "");
+  const [sent, setSent] = useState(false);
+  const [sending, setSending] = useState(false);
+
+  const handleSend = () => {
+    if (!msg.trim() || !subj.trim()) return;
+    setSending(true);
+    setTimeout(() => { setSending(false); setSent(true); }, 1200);
+  };
+
+  return (
+    <div style={{position:"fixed",inset:0,background:"rgba(15,23,42,0.6)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center"}} onClick={onClose}>
+      <div style={{background:"#fff",borderRadius:12,width:520,boxShadow:"0 20px 60px rgba(0,0,0,0.3)",overflow:"hidden"}} onClick={e=>e.stopPropagation()}>
+        {/* Modal Header */}
+        <div style={{background:"linear-gradient(135deg,#6366f1,#8b5cf6)",padding:"16px 20px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+          <div>
+            <div style={{color:"#fff",fontWeight:700,fontSize:15}}>
+              {toAll ? `📢 Message All Students` : `✉ Message Student`}
+            </div>
+            <div style={{color:"rgba(255,255,255,0.8)",fontSize:12,marginTop:2}}>
+              To: {toAll ? `All students in ${subjectName}` : to.name} {!toAll && <span style={{opacity:0.7}}>({to.email})</span>}
+            </div>
+          </div>
+          <button onClick={onClose} style={{background:"rgba(255,255,255,0.2)",border:"none",borderRadius:6,color:"#fff",width:28,height:28,cursor:"pointer",fontSize:16,display:"flex",alignItems:"center",justifyContent:"center"}}>✕</button>
+        </div>
+
+        {sent ? (
+          <div style={{padding:"48px 24px",textAlign:"center"}}>
+            <div style={{fontSize:52,marginBottom:12}}>✅</div>
+            <div style={{fontSize:18,fontWeight:700,color:"#0f172a",marginBottom:6}}>Message Sent Successfully!</div>
+            <div style={{fontSize:13,color:"#64748b",marginBottom:20}}>
+              {toAll ? `Your message has been delivered to all students in ${subjectName}.` : `Your message has been delivered to ${to.name}.`}
+            </div>
+            <div style={{background:"#f8fafc",border:"1px solid #e2e8f0",borderRadius:8,padding:"12px 16px",textAlign:"left",marginBottom:20}}>
+              <div style={{fontSize:12,color:"#94a3b8",marginBottom:4}}>Message preview:</div>
+              <div style={{fontSize:13,color:"#334155",fontWeight:600}}>{subj}</div>
+              <div style={{fontSize:12,color:"#64748b",marginTop:4,lineHeight:1.6}}>{msg}</div>
+            </div>
+            <button onClick={onClose} style={{padding:"9px 28px",background:"linear-gradient(135deg,#6366f1,#8b5cf6)",color:"#fff",border:"none",borderRadius:8,fontWeight:600,cursor:"pointer",fontSize:14}}>Close</button>
+          </div>
+        ) : (
+          <div style={{padding:"20px 24px"}}>
+            <div style={{marginBottom:14}}>
+              <label style={{fontSize:12,fontWeight:600,color:"#475569",display:"block",marginBottom:5}}>SUBJECT</label>
+              <input value={subj} onChange={e=>setSubj(e.target.value)} placeholder="Enter subject line..."
+                style={{width:"100%",boxSizing:"border-box",padding:"9px 12px",border:"1px solid #e2e8f0",borderRadius:8,fontSize:13,outline:"none",fontFamily:"inherit",color:"#334155"}}/>
+            </div>
+            <div style={{marginBottom:16}}>
+              <label style={{fontSize:12,fontWeight:600,color:"#475569",display:"block",marginBottom:5}}>MESSAGE</label>
+              <textarea value={msg} onChange={e=>setMsg(e.target.value)} rows={5} placeholder="Type your message here..."
+                style={{width:"100%",boxSizing:"border-box",padding:"9px 12px",border:"1px solid #e2e8f0",borderRadius:8,fontSize:13,outline:"none",resize:"vertical",fontFamily:"inherit",color:"#334155"}}/>
+            </div>
+            <div style={{display:"flex",justifyContent:"flex-end",gap:10}}>
+              <button onClick={onClose} style={{padding:"9px 20px",background:"#f1f5f9",border:"none",borderRadius:8,fontWeight:600,cursor:"pointer",fontSize:13,color:"#475569"}}>Cancel</button>
+              <button onClick={handleSend} disabled={!msg.trim()||!subj.trim()||sending}
+                style={{padding:"9px 24px",background:(!msg.trim()||!subj.trim())?"#c7d2fe":"linear-gradient(135deg,#6366f1,#8b5cf6)",color:"#fff",border:"none",borderRadius:8,fontWeight:600,cursor:(!msg.trim()||!subj.trim())?"not-allowed":"pointer",fontSize:13,display:"flex",alignItems:"center",gap:8}}>
+                {sending ? "Sending..." : "Send Message ✉"}
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ─── Faculty Subjects View ────────────────────────────────────────────────────
 function FacultySubjectsView() {
-  const [sel,setSel]=useState(null);
-  const subjects=[
-    {code:"CS301",name:"Database Management Systems",class:"CSE 5A",students:52},
-    {code:"CS301L",name:"DBMS Lab",class:"CSE 5B",students:48},
-    {code:"CS302",name:"Operating Systems",class:"CSE 5C",students:50},
-    {code:"CS499",name:"Final Year Project",class:"CSE 7A",students:36},
+  const [sel, setSel] = useState(null);
+  const [modal, setModal] = useState(null); // {to, toAll, subjectName}
+  const [inbox, setInbox] = useState([
+    {from:"Riya Patel",roll:"22CS001",subj:"Query about Assignment #4",msg:"Ma'am, can you clarify the ER diagram requirements?",time:"Jun 8, 9:42 AM",read:false},
+    {from:"Amit Kumar",roll:"22CS005",subj:"Lab file submission",msg:"Sir, I submitted the lab file. Please check.",time:"Jun 7, 2:15 PM",read:true},
+    {from:"Priya Nair",roll:"22CS012",subj:"Leave for Jun 10",msg:"Sir, I will be absent on Jun 10 due to medical reasons.",time:"Jun 6, 11:00 AM",read:false},
+  ]);
+  const [activeTab, setActiveTab] = useState("students");
+
+  const subjectData = {
+    "CS301": [
+      {roll:"22CS001",name:"Riya Patel",email:"riya@iter.in",project:"EEG Cognitive Load",attendance:"90%",grade:"A+"},
+      {roll:"22CS002",name:"Aryan Mishra",email:"aryan@iter.in",project:"—",attendance:"82%",grade:"A"},
+      {roll:"22CS003",name:"Sneha Patil",email:"sneha@iter.in",project:"—",attendance:"76%",grade:"B+"},
+      {roll:"22CS004",name:"Rohan Das",email:"rohan@iter.in",project:"—",attendance:"65%",grade:"B"},
+    ],
+    "CS301L": [
+      {roll:"22CS011",name:"Priya Nair",email:"priya@iter.in",project:"ML on Medical Data",attendance:"95%",grade:"O"},
+      {roll:"22CS012",name:"Kiran Joshi",email:"kiran@iter.in",project:"—",attendance:"88%",grade:"A+"},
+    ],
+    "CS302": [
+      {roll:"22CS005",name:"Amit Kumar",email:"amit@iter.in",project:"IoT Home Automation",attendance:"78%",grade:"A"},
+      {roll:"22CS006",name:"Neha Sharma",email:"neha@iter.in",project:"—",attendance:"85%",grade:"A+"},
+      {roll:"22CS007",name:"Vikram Rao",email:"vikram@iter.in",project:"—",attendance:"70%",grade:"B+"},
+    ],
+    "CS499": [
+      {roll:"22CS021",name:"Deepak Nanda",email:"deepak@iter.in",project:"Blockchain Voting",attendance:"92%",grade:"O"},
+      {roll:"22CS022",name:"Ananya Mohanty",email:"ananya@iter.in",project:"AR Navigation",attendance:"88%",grade:"A+"},
+    ],
+  };
+
+  const subjects = [
+    {code:"CS301",name:"Database Management Systems",class:"CSE 5A",type:"Theory"},
+    {code:"CS301L",name:"DBMS Lab",class:"CSE 5B",type:"Lab"},
+    {code:"CS302",name:"Operating Systems",class:"CSE 5C",type:"Theory"},
+    {code:"CS499",name:"Final Year Project",class:"CSE 7A",type:"Project"},
   ];
-  const students=[
-    {roll:"22CS001",name:"Riya Patel",email:"riya@iter.in",project:"EEG Cognitive Load"},
-    {roll:"22CS005",name:"Amit Kumar",email:"amit@iter.in",project:"IoT Home Automation"},
-    {roll:"22CS012",name:"Priya Nair",email:"priya@iter.in",project:"ML on Medical Data"},
-  ];
+
+  const students = sel ? (subjectData[sel.code] || []) : [];
+  const unread = inbox.filter(m=>!m.read).length;
+
+  const typeColor = {Theory:"#6366f1", Lab:"#f59e0b", Project:"#10b981"};
+
   return (
-    <div style={{display:"grid",gridTemplateColumns:"1fr 1.6fr",gap:14}}>
-      <Widget title="Assigned Subjects">
-        {subjects.map(s=>(
-          <div key={s.code} onClick={()=>setSel(s)} style={{padding:"10px",borderBottom:"1px solid #f0f0f0",cursor:"pointer",background:sel?.code===s.code?"#fdf0f0":"#fff",borderLeft:sel?.code===s.code?"3px solid #8b1a1a":"3px solid transparent"}}>
-            <div style={{fontWeight:700,fontSize:13,color:"#8b1a1a"}}>{s.code}</div>
-            <div style={{fontSize:13,color:"#333",fontWeight:500}}>{s.name}</div>
-            <div style={{fontSize:12,color:"#888"}}>{s.class} · {s.students} students</div>
+    <>
+      {modal && <MessageModal to={modal.to} toAll={modal.toAll} subject={modal.subjectName} onClose={()=>setModal(null)}/>}
+
+      <div style={{display:"grid",gridTemplateColumns:"220px 1fr",gap:14}}>
+        {/* Left: subject list */}
+        <div>
+          <div style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:12,overflow:"hidden"}}>
+            <div style={{background:"linear-gradient(135deg,#6366f1,#8b5cf6)",padding:"12px 14px",color:"#fff",fontWeight:700,fontSize:13}}>My Subjects</div>
+            {subjects.map(s=>(
+              <div key={s.code} onClick={()=>{setSel(s);setActiveTab("students");}}
+                style={{padding:"12px 14px",borderBottom:"1px solid #f1f5f9",cursor:"pointer",
+                  background:sel?.code===s.code?"#eef2ff":"#fff",
+                  borderLeft:sel?.code===s.code?"4px solid #6366f1":"4px solid transparent",transition:"all .15s"}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:3}}>
+                  <span style={{fontWeight:700,fontSize:13,color:"#6366f1"}}>{s.code}</span>
+                  <span style={{fontSize:10,fontWeight:700,padding:"1px 6px",borderRadius:20,background:(typeColor[s.type]||"#6366f1")+"20",color:typeColor[s.type]||"#6366f1"}}>{s.type}</span>
+                </div>
+                <div style={{fontSize:12,color:"#334155",fontWeight:500,lineHeight:1.3}}>{s.name}</div>
+                <div style={{fontSize:11,color:"#94a3b8",marginTop:2}}>{s.class} · {(subjectData[s.code]||[]).length} students</div>
+              </div>
+            ))}
           </div>
-        ))}
-      </Widget>
-      <Widget title={sel?`Students — ${sel.name}`:"Select a subject"}>
-        {!sel&&<div style={{color:"#aaa",textAlign:"center",padding:20,fontSize:13}}>Click a subject to view students</div>}
-        {sel&&(
-          <>
-            <div style={{marginBottom:10,display:"flex",justifyContent:"flex-end"}}>
-              <button style={{padding:"5px 14px",background:"#8b1a1a",color:"#fff",border:"none",borderRadius:2,cursor:"pointer",fontSize:12,fontWeight:600}}>✉ Mail All Students</button>
+
+          {/* Inbox summary */}
+          <div style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:12,overflow:"hidden",marginTop:14}}>
+            <div style={{background:"linear-gradient(135deg,#6366f1,#8b5cf6)",padding:"12px 14px",color:"#fff",fontWeight:700,fontSize:13,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+              <span>Student Inbox</span>
+              {unread>0&&<span style={{background:"#ef4444",borderRadius:20,fontSize:11,padding:"1px 8px",fontWeight:700}}>{unread} new</span>}
             </div>
-            <table style={{width:"100%",borderCollapse:"collapse",fontSize:13}}>
-              <thead><tr style={{background:"#2c3e7a",color:"#fff"}}>
-                {["Roll No.","Name","Email","Project","Mail"].map(h=><th key={h} style={{padding:"7px 10px",textAlign:"left",fontSize:12}}>{h}</th>)}
-              </tr></thead>
-              <tbody>{students.map((s,i)=>(
-                <tr key={s.roll} style={{borderBottom:"1px solid #eee",background:i%2===0?"#f9f9f9":"#fff"}}>
-                  <td style={{padding:"8px 10px",color:"#8b1a1a",fontWeight:700}}>{s.roll}</td>
-                  <td style={{padding:"8px 10px",color:"#333",fontWeight:500}}>{s.name}</td>
-                  <td style={{padding:"8px 10px",color:"#555",fontSize:12}}>{s.email}</td>
-                  <td style={{padding:"8px 10px",color:"#555",fontSize:12}}>{s.project}</td>
-                  <td style={{padding:"8px 10px"}}><button style={{padding:"3px 10px",background:"#f5f5f5",border:"1px solid #ddd",borderRadius:2,cursor:"pointer",fontSize:11}}>✉</button></td>
-                </tr>
-              ))}</tbody>
-            </table>
-          </>
-        )}
-      </Widget>
-    </div>
+            {inbox.map((m,i)=>(
+              <div key={i} onClick={()=>setInbox(prev=>prev.map((x,j)=>j===i?{...x,read:true}:x))}
+                style={{padding:"10px 14px",borderBottom:"1px solid #f1f5f9",cursor:"pointer",background:m.read?"#fff":"#f0f4ff"}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                  <span style={{fontWeight:m.read?500:700,fontSize:12,color:"#334155"}}>{m.from}</span>
+                  {!m.read&&<span style={{width:8,height:8,borderRadius:"50%",background:"#6366f1",display:"inline-block"}}/>}
+                </div>
+                <div style={{fontSize:12,color:"#6366f1",fontWeight:600,marginTop:1}}>{m.subj}</div>
+                <div style={{fontSize:11,color:"#94a3b8",marginTop:1,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{m.msg}</div>
+                <div style={{fontSize:10,color:"#cbd5e1",marginTop:2}}>{m.time}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Right: students + messaging */}
+        <div>
+          {!sel ? (
+            <div style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:12,padding:"60px 0",textAlign:"center"}}>
+              <div style={{fontSize:40,marginBottom:12}}>📚</div>
+              <div style={{fontWeight:700,fontSize:16,color:"#0f172a",marginBottom:6}}>Select a Subject</div>
+              <div style={{color:"#94a3b8",fontSize:13}}>Click any subject on the left to view your students</div>
+            </div>
+          ) : (
+            <div style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:12,overflow:"hidden"}}>
+              {/* Subject header */}
+              <div style={{background:"linear-gradient(135deg,#6366f1,#8b5cf6)",padding:"14px 18px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                <div>
+                  <div style={{color:"#fff",fontWeight:700,fontSize:15}}>{sel.name}</div>
+                  <div style={{color:"rgba(255,255,255,0.8)",fontSize:12}}>{sel.code} · {sel.class} · {students.length} students</div>
+                </div>
+                <button onClick={()=>setModal({toAll:true,subjectName:sel.name})}
+                  style={{padding:"8px 16px",background:"rgba(255,255,255,0.2)",border:"1px solid rgba(255,255,255,0.4)",borderRadius:8,color:"#fff",fontWeight:600,cursor:"pointer",fontSize:13,display:"flex",alignItems:"center",gap:6}}>
+                  📢 Message All Students
+                </button>
+              </div>
+
+              {/* Tabs */}
+              <div style={{display:"flex",borderBottom:"1px solid #e2e8f0",background:"#f8fafc"}}>
+                {["students","inbox"].map(t=>(
+                  <button key={t} onClick={()=>setActiveTab(t)}
+                    style={{padding:"10px 20px",border:"none",background:"transparent",cursor:"pointer",fontSize:13,fontWeight:activeTab===t?700:500,
+                      color:activeTab===t?"#6366f1":"#64748b",borderBottom:activeTab===t?"2px solid #6366f1":"2px solid transparent"}}>
+                    {t==="students"?"👥 Students":`📩 Inbox ${unread>0?`(${unread} unread)`:""}`}
+                  </button>
+                ))}
+              </div>
+
+              {activeTab==="students" && (
+                <div style={{padding:0}}>
+                  <table style={{width:"100%",borderCollapse:"collapse",fontSize:13}}>
+                    <thead>
+                      <tr style={{background:"#f8fafc"}}>
+                        {["Roll No.","Name","Email","Project / Group","Attendance","Grade","Message"].map(h=>(
+                          <th key={h} style={{padding:"10px 14px",textAlign:"left",fontWeight:600,color:"#475569",fontSize:12,borderBottom:"1px solid #e2e8f0"}}>{h}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {students.map((s,i)=>(
+                        <tr key={s.roll} style={{borderBottom:"1px solid #f1f5f9",background:i%2===0?"#fff":"#fafbff"}}>
+                          <td style={{padding:"11px 14px",color:"#6366f1",fontWeight:700}}>{s.roll}</td>
+                          <td style={{padding:"11px 14px",color:"#0f172a",fontWeight:600}}>
+                            <div style={{display:"flex",alignItems:"center",gap:8}}>
+                              <div style={{width:28,height:28,borderRadius:"50%",background:"linear-gradient(135deg,#6366f1,#8b5cf6)",display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",fontSize:12,fontWeight:700,flexShrink:0}}>
+                                {s.name[0]}
+                              </div>
+                              {s.name}
+                            </div>
+                          </td>
+                          <td style={{padding:"11px 14px",color:"#64748b",fontSize:12}}>{s.email}</td>
+                          <td style={{padding:"11px 14px",color:"#64748b",fontSize:12}}>{s.project}</td>
+                          <td style={{padding:"11px 14px"}}>
+                            <span style={{fontWeight:700,color:parseInt(s.attendance)>=75?"#10b981":"#ef4444",fontSize:13}}>{s.attendance}</span>
+                          </td>
+                          <td style={{padding:"11px 14px"}}>
+                            <span style={{padding:"2px 8px",borderRadius:6,background:"#eef2ff",color:"#6366f1",fontSize:12,fontWeight:700}}>{s.grade}</span>
+                          </td>
+                          <td style={{padding:"11px 14px"}}>
+                            <button onClick={()=>setModal({to:s,toAll:false,subjectName:sel.name})}
+                              style={{padding:"6px 14px",background:"linear-gradient(135deg,#6366f1,#8b5cf6)",color:"#fff",border:"none",borderRadius:7,cursor:"pointer",fontSize:12,fontWeight:600,display:"flex",alignItems:"center",gap:5}}>
+                              ✉ Message
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+
+              {activeTab==="inbox" && (
+                <div style={{padding:14}}>
+                  {inbox.length===0&&<div style={{textAlign:"center",color:"#94a3b8",padding:40}}>No messages yet</div>}
+                  {inbox.map((m,i)=>(
+                    <div key={i} onClick={()=>setInbox(prev=>prev.map((x,j)=>j===i?{...x,read:true}:x))}
+                      style={{padding:"14px 16px",border:"1px solid",borderColor:m.read?"#e2e8f0":"#c7d2fe",borderRadius:10,marginBottom:10,background:m.read?"#fff":"#f0f4ff",cursor:"pointer",transition:"all .15s"}}>
+                      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:4}}>
+                        <div style={{display:"flex",alignItems:"center",gap:8}}>
+                          <div style={{width:32,height:32,borderRadius:"50%",background:"linear-gradient(135deg,#6366f1,#8b5cf6)",display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",fontSize:13,fontWeight:700}}>
+                            {m.from[0]}
+                          </div>
+                          <div>
+                            <div style={{fontWeight:700,fontSize:13,color:"#0f172a"}}>{m.from}</div>
+                            <div style={{fontSize:11,color:"#94a3b8"}}>{m.roll} · {m.time}</div>
+                          </div>
+                        </div>
+                        <div style={{display:"flex",gap:6,alignItems:"center"}}>
+                          {!m.read&&<span style={{background:"#6366f1",color:"#fff",fontSize:10,padding:"2px 8px",borderRadius:20,fontWeight:700}}>NEW</span>}
+                          <button onClick={e=>{e.stopPropagation();setModal({to:{name:m.from,email:m.roll+"@iter.in"},toAll:false,subjectName:sel.name});}}
+                            style={{padding:"4px 12px",background:"linear-gradient(135deg,#6366f1,#8b5cf6)",color:"#fff",border:"none",borderRadius:6,cursor:"pointer",fontSize:11,fontWeight:600}}>
+                            Reply
+                          </button>
+                        </div>
+                      </div>
+                      <div style={{fontWeight:600,fontSize:13,color:"#334155",marginBottom:3}}>{m.subj}</div>
+                      <div style={{fontSize:12,color:"#64748b",lineHeight:1.6}}>{m.msg}</div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+    </>
   );
 }
 
@@ -600,13 +820,13 @@ function EvaluationView() {
   return (
     <Widget title="Assignment / Project Evaluation">
       <table style={{width:"100%",borderCollapse:"collapse",fontSize:13}}>
-        <thead><tr style={{background:"#2c3e7a",color:"#fff"}}>
+        <thead><tr style={{background:"#6366f1",color:"#fff"}}>
           {["Student","Subject","Type","Title","Submitted","Max","Status","Action"].map(h=><th key={h} style={{padding:"7px 10px",textAlign:"left",fontSize:12}}>{h}</th>)}
         </tr></thead>
         <tbody>{items.map((e,i)=>(
           <tr key={i} style={{borderBottom:"1px solid #eee",background:i%2===0?"#f9f9f9":"#fff"}}>
             <td style={{padding:"9px 10px",color:"#333",fontWeight:500}}>{e.student}</td>
-            <td style={{padding:"9px 10px",color:"#8b1a1a",fontWeight:700}}>{e.subject}</td>
+            <td style={{padding:"9px 10px",color:"#6366f1",fontWeight:700}}>{e.subject}</td>
             <td style={{padding:"9px 10px",color:"#555"}}>{e.type}</td>
             <td style={{padding:"9px 10px",color:"#333"}}>{e.title}</td>
             <td style={{padding:"9px 10px",color:"#888"}}>{e.submitted}</td>
@@ -615,7 +835,7 @@ function EvaluationView() {
               <span style={{padding:"2px 8px",borderRadius:2,fontSize:11,fontWeight:700,background:e.status==="Graded"?"#e8f8f0":"#fff8e1",color:e.status==="Graded"?"#27ae60":"#f39c12"}}>{e.status}</span>
             </td>
             <td style={{padding:"9px 10px"}}>
-              {e.status==="Pending"?<button style={{padding:"4px 12px",background:"#8b1a1a",color:"#fff",border:"none",borderRadius:2,cursor:"pointer",fontSize:11,fontWeight:600}}>Grade</button>
+              {e.status==="Pending"?<button style={{padding:"4px 12px",background:"#6366f1",color:"#fff",border:"none",borderRadius:2,cursor:"pointer",fontSize:11,fontWeight:600}}>Grade</button>
               :<span style={{fontWeight:700,color:"#27ae60"}}>{e.given}/{e.maxMarks}</span>}
             </td>
           </tr>
@@ -640,20 +860,20 @@ function ResearchView() {
             <div style={{flex:1}}>
               <div style={{display:"flex",gap:8,alignItems:"center",marginBottom:3}}>
                 <span style={{fontWeight:700,fontSize:14,color:"#333"}}>{s.name}</span>
-                <span style={{padding:"1px 7px",background:"#e8f0ff",color:"#2c3e7a",borderRadius:2,fontSize:11,fontWeight:700}}>{s.roll}</span>
+                <span style={{padding:"1px 7px",background:"#e8f0ff",color:"#6366f1",borderRadius:2,fontSize:11,fontWeight:700}}>{s.roll}</span>
                 <span style={{padding:"1px 7px",background:"#f5f5f5",color:"#555",borderRadius:2,fontSize:11}}>{s.stage}</span>
               </div>
               <div style={{fontSize:12,color:"#555",marginBottom:8}}>📖 {s.topic}</div>
               <div style={{display:"flex",alignItems:"center",gap:10}}>
                 <div style={{flex:1,height:7,background:"#eee",borderRadius:3}}>
-                  <div style={{width:s.progress+"%",height:"100%",background:"#8b1a1a",borderRadius:3}}/>
+                  <div style={{width:s.progress+"%",height:"100%",background:"#6366f1",borderRadius:3}}/>
                 </div>
-                <span style={{fontWeight:700,color:"#8b1a1a",fontSize:13}}>{s.progress}%</span>
+                <span style={{fontWeight:700,color:"#6366f1",fontSize:13}}>{s.progress}%</span>
               </div>
               <div style={{fontSize:11,color:"#888",marginTop:4}}>Next: {s.next} · Papers: {s.papers}</div>
             </div>
             <div style={{display:"flex",gap:6,marginLeft:12}}>
-              <button style={{padding:"5px 12px",background:"#8b1a1a",color:"#fff",border:"none",borderRadius:2,cursor:"pointer",fontSize:11,fontWeight:600}}>✉ Mail</button>
+              <button style={{padding:"5px 12px",background:"#6366f1",color:"#fff",border:"none",borderRadius:2,cursor:"pointer",fontSize:11,fontWeight:600}}>✉ Mail</button>
               <button style={{padding:"5px 12px",background:"#fff",color:"#333",border:"1px solid #ddd",borderRadius:2,cursor:"pointer",fontSize:11}}>View</button>
             </div>
           </div>
@@ -673,12 +893,12 @@ function DutyView() {
   return (
     <Widget title="Exam and Other Duty Management">
       <table style={{width:"100%",borderCollapse:"collapse",fontSize:13}}>
-        <thead><tr style={{background:"#2c3e7a",color:"#fff"}}>
+        <thead><tr style={{background:"#6366f1",color:"#fff"}}>
           {["Date","Time","Duty Type","Venue","Exam","Status"].map(h=><th key={h} style={{padding:"7px 10px",textAlign:"left",fontSize:12}}>{h}</th>)}
         </tr></thead>
         <tbody>{duties.map((d,i)=>(
           <tr key={i} style={{borderBottom:"1px solid #eee",background:i%2===0?"#f9f9f9":"#fff"}}>
-            <td style={{padding:"9px 10px",fontWeight:700,color:"#8b1a1a"}}>{d.date}</td>
+            <td style={{padding:"9px 10px",fontWeight:700,color:"#6366f1"}}>{d.date}</td>
             <td style={{padding:"9px 10px",color:"#555"}}>{d.time}</td>
             <td style={{padding:"9px 10px",color:"#333",fontWeight:500}}>{d.type}</td>
             <td style={{padding:"9px 10px",color:"#555"}}>{d.room}</td>
@@ -706,17 +926,17 @@ function LabView() {
   return (
     <Widget title="Laboratory Class Management — DBMS Lab (CS301L)">
       <table style={{width:"100%",borderCollapse:"collapse",fontSize:13}}>
-        <thead><tr style={{background:"#2c3e7a",color:"#fff"}}>
+        <thead><tr style={{background:"#6366f1",color:"#fff"}}>
           {["#","Topic","Date","Files Submitted","Status"].map(h=><th key={h} style={{padding:"7px 10px",textAlign:"left",fontSize:12}}>{h}</th>)}
         </tr></thead>
         <tbody>{sessions.map((s,i)=>(
           <tr key={i} style={{borderBottom:"1px solid #eee",background:i%2===0?"#f9f9f9":"#fff"}}>
-            <td style={{padding:"9px 10px",color:"#8b1a1a",fontWeight:700}}>{s.no}</td>
+            <td style={{padding:"9px 10px",color:"#6366f1",fontWeight:700}}>{s.no}</td>
             <td style={{padding:"9px 10px",color:"#333",fontWeight:500}}>{s.topic}</td>
             <td style={{padding:"9px 10px",color:"#555"}}>{s.date}</td>
             <td style={{padding:"9px 10px",textAlign:"center",color:"#333"}}>{s.submitted}{s.submitted!=="—"?"/48":""}</td>
             <td style={{padding:"9px 10px"}}>
-              <span style={{padding:"2px 8px",borderRadius:2,fontSize:11,fontWeight:700,background:s.status==="Done"?"#e8f8f0":"#e8f0ff",color:s.status==="Done"?"#27ae60":"#2c3e7a"}}>{s.status}</span>
+              <span style={{padding:"2px 8px",borderRadius:2,fontSize:11,fontWeight:700,background:s.status==="Done"?"#e8f8f0":"#e8f0ff",color:s.status==="Done"?"#27ae60":"#6366f1"}}>{s.status}</span>
             </td>
           </tr>
         ))}</tbody>
@@ -740,7 +960,7 @@ function NoticesView() {
         {notices.map((n,i)=>(
           <div key={i} onClick={()=>setOpen(i===open?null:i)} style={{padding:"10px 0",borderBottom:"1px solid #f0f0f0",cursor:"pointer",background:open===i?"#fdf7f7":"transparent"}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-              <div style={{fontWeight:open===i?700:500,fontSize:13,color:open===i?"#8b1a1a":"#333"}}>{n.title}</div>
+              <div style={{fontWeight:open===i?700:500,fontSize:13,color:open===i?"#6366f1":"#333"}}>{n.title}</div>
               <span style={{padding:"1px 7px",background:"#f5f5f5",borderRadius:2,fontSize:11,color:"#555",marginLeft:8,whiteSpace:"nowrap"}}>{n.cat}</span>
             </div>
             <div style={{fontSize:11,color:"#aaa",marginTop:2}}>{n.date}</div>
@@ -803,7 +1023,7 @@ export default function App() {
         setAcademicOpen={setAcademicOpen}/>
 
       {/* Sub-header breadcrumb */}
-      <div style={{background:"#2c3e7a",color:"#fff",padding:"6px 20px",fontSize:12,display:"flex",gap:8,alignItems:"center"}}>
+      <div style={{background:"#6366f1",color:"#fff",padding:"6px 20px",fontSize:12,display:"flex",gap:8,alignItems:"center"}}>
         <span style={{opacity:0.7}}>Home</span>
         <span style={{opacity:0.5}}>›</span>
         <span style={{fontWeight:600}}>
@@ -825,7 +1045,7 @@ export default function App() {
             ).map(([label,key])=>(
               <div key={key} onClick={()=>setActive(key)}
                 style={{padding:"7px 8px",borderRadius:2,cursor:"pointer",fontSize:12,marginBottom:2,
-                  background:active===key?"#8b1a1a":"transparent",
+                  background:active===key?"#6366f1":"transparent",
                   color:active===key?"#fff":"#bbb",fontWeight:active===key?600:400}}>
                 {label}
               </div>
