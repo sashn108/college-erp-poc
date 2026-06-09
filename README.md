@@ -74,4 +74,4 @@ npm run build
 
 ---
 
-*Built as a PoC to present to ITER college administration.*
+*Built as a PoC to present to XYZ college administration.*
