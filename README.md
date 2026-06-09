@@ -1,6 +1,6 @@
 # 🎓 Campus ERP — Proof of Concept
 
-A modern, role-based College ERP system built with React + Vite. Designed as a PoC for ITER · Siksha 'O' Anusandhan University.
+A modern, role-based College ERP system built with React + Vite. Designed as a PoC for colleges.
 
 🔗 **Live Demo:** [sashn108.github.io/college-erp-poc](https://sashn108.github.io/college-erp-poc/)
 
