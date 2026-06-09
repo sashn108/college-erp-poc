@@ -257,14 +257,7 @@ function FacultyDashboard({ user }) {
     { label:"Publications", value:"1,248", icon:"📄", color:"#1a6b2a" },
     { label:"Patents Filed", value:"87", icon:"💡", color:"#7a5c1a" },
   ];
-  const birthdays = [
-    { name:"Dr. Ramesh Kumar Panda", dept:"CSE", date:"Jun 9" },
-    { name:"Prof. Sunita Das", dept:"ECE", date:"Jun 11" },
-    { name:"Dr. Manoj Behera", dept:"MECH", date:"Jun 14" },
-    { name:"Prof. Anita Mohanty", dept:"CIVIL", date:"Jun 17" },
-    { name:"Dr. Bikash Sahoo", dept:"EEE", date:"Jun 20" },
-    { name:"Prof. Lipika Nanda", dept:"CSE", date:"Jun 22" },
-  ];
+  const birthdays = [];
   const circulars = [
     "AICTE Faculty Development Programme — Registration Open till Jun 20",
     "PhD Viva-Voce Schedule — June 2026 batch published",
@@ -303,18 +296,73 @@ function FacultyDashboard({ user }) {
         ))}
       </div>
 
-      <div style={{display:"grid",gridTemplateColumns:"1.2fr 1fr 1fr",gap:14}}>
-        {/* Birthdays */}
-        <Widget title="🎂 Faculty Birthdays This Month">
-          {birthdays.map((b,i)=>(
-            <div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 0",borderBottom:"1px solid #f0f0f0"}}>
-              <div>
-                <div style={{fontSize:13,fontWeight:600,color:"#333"}}>{b.name}</div>
-                <div style={{fontSize:11,color:"#888"}}>Dept. of {b.dept}</div>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14}}>
+        {/* Timetable */}
+        <Widget title="📅 Weekly Timetable" style={{gridColumn:"1/-1"}}>
+          {(()=>{
+            const days=["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+            const slots=["9:00–10:00","10:00–11:00","11:00–12:00","12:00–1:00","1:00–2:00","2:00–3:00","3:00–4:00","4:00–5:00"];
+            const today=["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"][new Date().getDay()];
+            const timetable={
+              "Monday":    ["CS301·LH-101·CSE5A","CS301·LH-101·CSE5A","—","CS302·LH-102·CSE5C","BREAK","—","CS301L·DBLab·CSE5B","CS301L·DBLab·CSE5B"],
+              "Tuesday":   ["—","CS302·LH-102·CSE5C","CS302·LH-102·CSE5C","—","BREAK","CS499·FR-01·CSE7A","CS499·FR-01·CSE7A","—"],
+              "Wednesday": ["CS301·LH-101·CSE5A","CS301·LH-101·CSE5A","—","CS302·LH-102·CSE5C","BREAK","—","—","CS499·FR-01·CSE7A"],
+              "Thursday":  ["—","CS302·LH-102·CSE5C","—","CS301·LH-101·CSE5A","BREAK","CS301L·DBLab·CSE5B","CS301L·DBLab·CSE5B","—"],
+              "Friday":    ["CS302·LH-102·CSE5C","—","CS301·LH-101·CSE5A","—","BREAK","CS499·FR-01·CSE7A","—","—"],
+              "Saturday":  ["—","CS301L·DBLab·CSE5B","CS301L·DBLab·CSE5B","—","BREAK","—","—","—"],
+            };
+            const codeColor={"CS301":"#6366f1","CS302":"#10b981","CS301L":"#f59e0b","CS499":"#8b5cf6"};
+            return (
+              <div style={{overflowX:"auto"}}>
+                <table style={{width:"100%",borderCollapse:"collapse",fontSize:12,minWidth:700}}>
+                  <thead>
+                    <tr style={{background:"#f8fafc"}}>
+                      <th style={{padding:"8px 10px",textAlign:"left",fontWeight:700,color:"#475569",fontSize:11,width:90,borderBottom:"2px solid #e2e8f0"}}>TIME</th>
+                      {days.map(d=>(
+                        <th key={d} style={{padding:"8px 8px",fontWeight:700,fontSize:11,textAlign:"center",borderBottom:"2px solid #e2e8f0",
+                          color:d===today?"#6366f1":"#475569",
+                          background:d===today?"#eef2ff":"transparent"}}>
+                          {d.slice(0,3).toUpperCase()}
+                          {d===today&&<div style={{fontSize:9,fontWeight:600,color:"#6366f1"}}>TODAY</div>}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {slots.map((slot,si)=>(
+                      <tr key={slot} style={{borderBottom:"1px solid #f1f5f9",background:si%2===0?"#fff":"#fafbff"}}>
+                        <td style={{padding:"7px 10px",fontSize:11,fontWeight:600,color:"#64748b",whiteSpace:"nowrap"}}>{slot}</td>
+                        {days.map(d=>{
+                          const cell=(timetable[d]||[])[si]||"—";
+                          if(cell==="BREAK") return <td key={d} style={{padding:"7px 8px",textAlign:"center",background:"#fef9c3",fontSize:10,fontWeight:600,color:"#92400e"}}>BREAK</td>;
+                          if(cell==="—") return <td key={d} style={{padding:"7px 8px",textAlign:"center",color:"#cbd5e1",fontSize:12,background:d===today?"#f5f6ff":"transparent"}}>—</td>;
+                          const [code,room,cls]=cell.split("·");
+                          const c=codeColor[code]||"#6366f1";
+                          return (
+                            <td key={d} style={{padding:"5px 6px",background:d===today?"#eef2ff":"transparent"}}>
+                              <div style={{background:c+"15",border:`1px solid ${c}30`,borderLeft:`3px solid ${c}`,borderRadius:4,padding:"4px 6px"}}>
+                                <div style={{fontWeight:700,fontSize:11,color:c}}>{code}</div>
+                                <div style={{fontSize:10,color:"#475569"}}>{room}</div>
+                                <div style={{fontSize:9,color:"#94a3b8"}}>{cls}</div>
+                              </div>
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                <div style={{display:"flex",gap:16,marginTop:12,flexWrap:"wrap"}}>
+                  {Object.entries(codeColor).map(([code,c])=>(
+                    <div key={code} style={{display:"flex",alignItems:"center",gap:5,fontSize:11}}>
+                      <div style={{width:10,height:10,borderRadius:2,background:c}}/>
+                      <span style={{color:"#64748b",fontWeight:500}}>{code} — {{CS301:"Database Mgmt Sys",CS302:"Operating Systems",CS301L:"DBMS Lab","CS499":"Final Year Project"}[code]}</span>
+                    </div>
+                  ))}
+                </div>
               </div>
-              <div style={{fontSize:12,fontWeight:700,color:"#6366f1",whiteSpace:"nowrap",marginLeft:8}}>{b.date}</div>
-            </div>
-          ))}
+            );
+          })()}
         </Widget>
 
         {/* Circulars */}
@@ -350,7 +398,7 @@ function FacultyDashboard({ user }) {
               {importantDates.map(([evt,dt],i)=>(
                 <tr key={i} style={{borderBottom:"1px solid #eee",background:i%2===0?"#f9f9f9":"#fff"}}>
                   <td style={{padding:"5px 8px",color:"#333",fontSize:11}}>{evt}</td>
-                  <td style={{padding:"5px 8px",color:"#c0392b",fontWeight:600,textAlign:"right",whiteSpace:"nowrap",fontSize:11}}>{dt}</td>
+                  <td style={{padding:"5px 8px",color:"#6366f1",fontWeight:600,textAlign:"right",whiteSpace:"nowrap",fontSize:11}}>{dt}</td>
                 </tr>
               ))}
             </tbody>
@@ -1343,13 +1391,13 @@ export default function App() {
 
       <div style={{display:"flex",alignItems:"flex-start"}}>
         {/* Left sidebar — Calendar */}
-        <div style={{width:200,flexShrink:0,background:"#2d2d2d",minHeight:"calc(100vh - 90px)",paddingTop:4}}>
+        <div style={{width:200,flexShrink:0,background:"#2d2d2d",minHeight:"calc(100vh - 90px)",paddingTop:4,overflowY:"auto"}}>
           <MiniCalendar/>
           <div style={{borderTop:"1px solid #444",marginTop:8,padding:"10px 10px 0"}}>
             <div style={{fontSize:11,color:"#888",fontWeight:700,marginBottom:6,letterSpacing:0.5}}>QUICK LINKS</div>
             {(role==="student"
               ?[["Dashboard","dashboard"],["Attendance","attendance"],["Examination","exam"],["Fee Payment","fee"],["Assignments","assignments"],["Notices","notices"]]
-              :[["Dashboard","dashboard"],["Subjects","subjects"],["Lab","lab"],["Evaluation","evaluation"],["Research","research"],["Duty","duty"],["Notices","notices"]]
+              :[["Dashboard","dashboard"],["Subjects","subjects"],["Lab","lab"],["Attendance","attendance"],["Evaluation","evaluation"],["Research","research"],["Duty","duty"],["Notices","notices"]]
             ).map(([label,key])=>(
               <div key={key} onClick={()=>setActive(key)}
                 style={{padding:"7px 8px",borderRadius:2,cursor:"pointer",fontSize:12,marginBottom:2,
@@ -1359,6 +1407,28 @@ export default function App() {
               </div>
             ))}
           </div>
+          {/* Faculty birthdays in sidebar */}
+          {role==="faculty"&&(
+            <div style={{borderTop:"1px solid #444",marginTop:10,padding:"10px 10px 0"}}>
+              <div style={{fontSize:11,color:"#888",fontWeight:700,marginBottom:8,letterSpacing:0.5}}>🎂 BIRTHDAYS THIS MONTH</div>
+              {[
+                {name:"Dr. Ramesh Panda",dept:"CSE",date:"Jun 9"},
+                {name:"Prof. Sunita Das",dept:"ECE",date:"Jun 11"},
+                {name:"Dr. Manoj Behera",dept:"MECH",date:"Jun 14"},
+                {name:"Prof. Anita Mohanty",dept:"CIVIL",date:"Jun 17"},
+                {name:"Dr. Bikash Sahoo",dept:"EEE",date:"Jun 20"},
+                {name:"Prof. Lipika Nanda",dept:"CSE",date:"Jun 22"},
+              ].map((b,i)=>(
+                <div key={i} style={{padding:"7px 6px",borderBottom:"1px solid #3a3a3a",display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
+                  <div>
+                    <div style={{fontSize:11,fontWeight:600,color:"#e2e8f0",lineHeight:1.3}}>{b.name}</div>
+                    <div style={{fontSize:10,color:"#666"}}>{b.dept}</div>
+                  </div>
+                  <div style={{fontSize:10,fontWeight:700,color:"#818cf8",whiteSpace:"nowrap",marginLeft:4}}>{b.date}</div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Main content */}
