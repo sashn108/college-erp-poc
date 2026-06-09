@@ -1,41 +1,134 @@
 import { useState } from "react";
 
+// ─── Odisha Holidays 2026 ─────────────────────────────────────────────────────
+const ODISHA_HOLIDAYS = {
+  "2026-01-01":"New Year's Day",
+  "2026-01-06":"Idul Fitr (Eid)",
+  "2026-01-14":"Makar Sankranti",
+  "2026-01-26":"Republic Day",
+  "2026-02-11":"Maha Shivaratri",
+  "2026-02-19":"Birth Anniv. of Shivaji",
+  "2026-03-01":"Dol Purnima / Holi",
+  "2026-03-02":"Holi (2nd Day)",
+  "2026-03-22":"Ugadi / Gudi Padwa",
+  "2026-03-30":"Ram Navami",
+  "2026-04-01":"Utkal Diwas (Odisha Day)",
+  "2026-04-02":"Mahavir Jayanti",
+  "2026-04-03":"Good Friday",
+  "2026-04-14":"Ambedkar Jayanti / Vishu",
+  "2026-05-01":"May Day (Labour Day)",
+  "2026-05-16":"Buddha Purnima",
+  "2026-06-10":"Rath Yatra",
+  "2026-07-27":"Bakrid (Eid ul-Adha)",
+  "2026-08-15":"Independence Day",
+  "2026-08-22":"Janmashtami",
+  "2026-08-25":"Muharram",
+  "2026-09-04":"Nuakhai",
+  "2026-09-07":"Ganesh Chaturthi",
+  "2026-09-23":"Kumar Purnima",
+  "2026-10-02":"Gandhi Jayanti",
+  "2026-10-20":"Dussehra (Vijaya Dashami)",
+  "2026-10-28":"Diwali (Lakshmi Puja)",
+  "2026-10-29":"Diwali (2nd Day)",
+  "2026-10-30":"Kali Puja",
+  "2026-11-04":"Bhai Dwitiya",
+  "2026-11-05":"Chhat Puja",
+  "2026-11-19":"Guru Nanak Jayanti",
+  "2026-12-25":"Christmas Day",
+};
+
 // ─── Mini Calendar ────────────────────────────────────────────────────────────
 function MiniCalendar() {
   const today = new Date();
   const [cur, setCur] = useState(new Date(today.getFullYear(), today.getMonth(), 1));
+  const [tooltip, setTooltip] = useState(null); // {day, x, y, text}
   const year = cur.getFullYear(), month = cur.getMonth();
   const days = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
   const monthName = cur.toLocaleString("default",{month:"long"});
-  const firstDay = new Date(year, month, 1).getDay(); // 0=Sun
+  const firstDay = new Date(year, month, 1).getDay();
   const offset = firstDay === 0 ? 6 : firstDay - 1;
   const daysInMonth = new Date(year, month+1, 0).getDate();
-  const prevMonth = () => setCur(new Date(year, month-1, 1));
-  const nextMonth = () => setCur(new Date(year, month+1, 1));
+  // Clamp navigation: Jan 2026 – Aug 2026
+  const minDate = new Date(2026, 0, 1);
+  const maxDate = new Date(2026, 7, 1);
+  const prevMonth = () => { const n=new Date(year,month-1,1); if(n>=minDate) setCur(n); };
+  const nextMonth = () => { const n=new Date(year,month+1,1); if(n<=maxDate) setCur(n); };
   const cells = [];
   for(let i=0;i<offset;i++) cells.push(null);
   for(let i=1;i<=daysInMonth;i++) cells.push(i);
-  // highlight: today, and some "event" days
-  const events = [13,14,20,21,26];
-  const isToday = (d) => d === today.getDate() && month === today.getMonth() && year === today.getFullYear();
+
+  const isToday = (d) => d===today.getDate() && month===today.getMonth() && year===today.getFullYear();
+  const isSunday = (d) => new Date(year,month,d).getDay()===0;
+  const isSaturday = (d) => new Date(year,month,d).getDay()===6;
+  const getHoliday = (d) => {
+    const key = `${year}-${String(month+1).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
+    return ODISHA_HOLIDAYS[key]||null;
+  };
+
   return (
-    <div style={{padding:"12px 10px"}}>
+    <div style={{padding:"12px 10px",position:"relative"}}>
+      {/* Header */}
       <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8}}>
-        <button onClick={prevMonth} style={{background:"none",border:"none",cursor:"pointer",color:"#aaa",fontSize:16}}>‹</button>
-        <span style={{fontWeight:700,fontSize:14,color:"#fff"}}>{monthName} {year}</span>
-        <button onClick={nextMonth} style={{background:"none",border:"none",cursor:"pointer",color:"#aaa",fontSize:16}}>›</button>
+        <button onClick={prevMonth} style={{background:"none",border:"none",cursor:"pointer",color:"#aaa",fontSize:16,lineHeight:1}}>‹</button>
+        <span style={{fontWeight:700,fontSize:13,color:"#fff"}}>{monthName} {year}</span>
+        <button onClick={nextMonth} style={{background:"none",border:"none",cursor:"pointer",color:"#aaa",fontSize:16,lineHeight:1}}>›</button>
       </div>
-      <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:2,textAlign:"center"}}>
-        {days.map(d=><div key={d} style={{fontSize:10,color:"#888",padding:"3px 0",fontWeight:600}}>{d}</div>)}
-        {cells.map((d,i)=> d===null
-          ? <div key={"e"+i}/>
-          : <div key={d} style={{
-              fontSize:12,padding:"4px 0",borderRadius:4,cursor:"pointer",
-              background: isToday(d) ? "#6366f1" : events.includes(d) ? "#4338ca" : "transparent",
-              color: isToday(d) ? "#fff" : events.includes(d) ? "#ff9999" : "#ccc",
-              fontWeight: isToday(d) ? 700 : 400
-            }}>{d}</div>
-        )}
+
+      {/* Day headers */}
+      <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:2,textAlign:"center",marginBottom:2}}>
+        {days.map(d=><div key={d} style={{fontSize:9,color:"#666",padding:"2px 0",fontWeight:700}}>{d}</div>)}
+      </div>
+
+      {/* Date cells */}
+      <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:2,textAlign:"center",position:"relative"}}>
+        {cells.map((d,i)=>{
+          if(d===null) return <div key={"e"+i}/>;
+          const holiday = getHoliday(d);
+          const isH = !!holiday;
+          const isSun = isSunday(d);
+          const isSat = isSaturday(d);
+          const isT = isToday(d);
+          const isWeekend = isSun||isSat;
+          return (
+            <div key={d}
+              onMouseEnter={e=>{
+                if(isH||isWeekend) setTooltip({day:d, text: isH ? holiday : isSun?"Sunday (Holiday)":"Saturday"});
+              }}
+              onMouseLeave={()=>setTooltip(null)}
+              style={{
+                fontSize:11,padding:"4px 0",borderRadius:4,cursor: isH?"help":"default",
+                position:"relative",
+                background: isT?"#6366f1": isH?"#dc2626": isSun?"#3a2020": isSat?"#1e2a3a":"transparent",
+                color: isT?"#fff": isH?"#fff": isSun?"#f87171": isSat?"#93c5fd":"#ccc",
+                fontWeight: isT||isH?700:400,
+                outline: isH?"1px solid #ef444460":"none",
+                transition:"background .15s",
+              }}>
+              {d}
+              {isH&&<div style={{width:4,height:4,borderRadius:"50%",background:"#fca5a5",margin:"1px auto 0",display:"block"}}/>}
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Tooltip */}
+      {tooltip&&(
+        <div style={{background:"#1e293b",border:"1px solid #6366f1",borderRadius:6,padding:"5px 10px",fontSize:11,color:"#e2e8f0",marginTop:8,textAlign:"center",fontWeight:600,lineHeight:1.4}}>
+          🗓 {tooltip.text}
+        </div>
+      )}
+
+      {/* Legend */}
+      <div style={{marginTop:10,display:"flex",gap:10,flexWrap:"wrap",justifyContent:"center"}}>
+        <div style={{display:"flex",alignItems:"center",gap:4,fontSize:9,color:"#888"}}>
+          <div style={{width:8,height:8,borderRadius:2,background:"#dc2626"}}/> Holiday
+        </div>
+        <div style={{display:"flex",alignItems:"center",gap:4,fontSize:9,color:"#888"}}>
+          <div style={{width:8,height:8,borderRadius:2,background:"#6366f1"}}/> Today
+        </div>
+        <div style={{display:"flex",alignItems:"center",gap:4,fontSize:9,color:"#888"}}>
+          <div style={{width:8,height:8,borderRadius:2,background:"#3a2020"}}/> Sunday
+        </div>
       </div>
     </div>
   );
