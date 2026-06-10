@@ -1308,49 +1308,20 @@ function QuestionPapers() {
     <div>
       {/* Filters */}
       <div style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:12,padding:"14px 16px",marginBottom:14}}>
-        <div style={{display:"flex",gap:16,flexWrap:"wrap",alignItems:"flex-start"}}>
-          {/* Department */}
-          <div>
-            <div style={{fontSize:11,fontWeight:700,color:"#94a3b8",marginBottom:6,letterSpacing:0.5}}>DEPARTMENT</div>
-            <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
-              {depts.map(d=>(
-                <button key={d} onClick={()=>setSelDept(d)}
-                  style={{padding:"5px 14px",borderRadius:8,border:"none",cursor:"pointer",fontSize:12,fontWeight:600,
-                    background:selDept===d?"linear-gradient(135deg,#6366f1,#8b5cf6)":"#f1f5f9",
-                    color:selDept===d?"#fff":"#475569"}}>
-                  {d}
-                </button>
-              ))}
+        <div style={{display:"flex",gap:12,flexWrap:"wrap",alignItems:"flex-end"}}>
+          {[
+            {label:"DEPARTMENT", val:selDept, set:setSelDept, opts:depts.map(d=>({val:d,label:d}))},
+            {label:"SEMESTER",   val:selSem,  set:setSelSem,  opts:[{val:"All",label:"All Semesters"},...sems.map(s=>({val:s,label:"Semester "+s}))]},
+            {label:"YEAR",       val:selYear, set:setSelYear, opts:[{val:"All",label:"All Years"},...years.map(y=>({val:y,label:y}))]},
+          ].map(({label,val,set,opts})=>(
+            <div key={label}>
+              <div style={{fontSize:11,fontWeight:700,color:"#94a3b8",marginBottom:5,letterSpacing:0.5}}>{label}</div>
+              <select value={val} onChange={e=>set(e.target.value)}
+                style={{padding:"9px 32px 9px 12px",border:"1px solid #e2e8f0",borderRadius:8,fontSize:13,fontWeight:600,color:"#334155",background:"#fff",outline:"none",cursor:"pointer",fontFamily:"inherit",appearance:"auto",minWidth:160}}>
+                {opts.map(o=><option key={o.val} value={o.val}>{o.label}</option>)}
+              </select>
             </div>
-          </div>
-          {/* Semester */}
-          <div>
-            <div style={{fontSize:11,fontWeight:700,color:"#94a3b8",marginBottom:6,letterSpacing:0.5}}>SEMESTER</div>
-            <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
-              {["All",...sems].map(s=>(
-                <button key={s} onClick={()=>setSelSem(s)}
-                  style={{padding:"5px 12px",borderRadius:8,border:"none",cursor:"pointer",fontSize:12,fontWeight:600,
-                    background:selSem===s?"#6366f1":"#f1f5f9",
-                    color:selSem===s?"#fff":"#475569"}}>
-                  {s==="All"?"All":"Sem "+s}
-                </button>
-              ))}
-            </div>
-          </div>
-          {/* Year */}
-          <div>
-            <div style={{fontSize:11,fontWeight:700,color:"#94a3b8",marginBottom:6,letterSpacing:0.5}}>YEAR</div>
-            <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
-              {["All",...years].map(y=>(
-                <button key={y} onClick={()=>setSelYear(y)}
-                  style={{padding:"5px 12px",borderRadius:8,border:"none",cursor:"pointer",fontSize:12,fontWeight:600,
-                    background:selYear===y?"#6366f1":"#f1f5f9",
-                    color:selYear===y?"#fff":"#475569"}}>
-                  {y}
-                </button>
-              ))}
-            </div>
-          </div>
+          ))}
         </div>
       </div>
 
