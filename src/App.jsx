@@ -2158,84 +2158,906 @@ export default function App() {
 
   if(!auth) return <Login onLogin={(r,u)=>{setRole(r);setAuth(u);setActive("dashboard");}}/>;
 
-  // Close dropdown when clicking outside
-  const handleMain = () => { if(academicOpen) setAcademicOpen(false); };
+// ─── HALL TICKET ─────────────────────────────────────────────────────────────
+function HallTicket({ user }) {
+  const [printed, setPrinted] = useState(false);
+  const exams = [
+    {date:"Jun 18",day:"Thu",code:"CS301",name:"Database Management Systems",time:"10:00 AM – 1:00 PM",room:"201-A",seat:"A-14"},
+    {date:"Jun 20",day:"Sat",code:"CS302",name:"Operating Systems",time:"10:00 AM – 1:00 PM",room:"202-B",seat:"B-07"},
+    {date:"Jun 22",day:"Mon",code:"CS303",name:"Computer Networks",time:"2:00 PM – 5:00 PM",room:"201-A",seat:"A-14"},
+    {date:"Jun 25",day:"Thu",code:"CS304",name:"Theory of Computation",time:"10:00 AM – 1:00 PM",room:"203-C",seat:"C-21"},
+    {date:"Jun 27",day:"Sat",code:"CS305",name:"Software Engineering",time:"2:00 PM – 5:00 PM",room:"201-A",seat:"A-14"},
+    {date:"Jun 30",day:"Tue",code:"CS301L",name:"DBMS Lab Practical",time:"10:00 AM – 1:00 PM",room:"DB Lab",seat:"DB-05"},
+  ];
+  return (
+    <div>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
+        <div style={{fontSize:14,color:"#64748b"}}>Your hall ticket for End Semester Exam — June 2026</div>
+        <button onClick={()=>{setPrinted(true);setTimeout(()=>setPrinted(false),3000);}}
+          style={{padding:"9px 20px",background:"linear-gradient(135deg,#6366f1,#8b5cf6)",color:"#fff",border:"none",borderRadius:8,fontWeight:600,cursor:"pointer",fontSize:13}}>
+          🖨 Download / Print
+        </button>
+      </div>
+      {printed&&<div style={{background:"#dcfce7",border:"1px solid #86efac",borderRadius:8,padding:"10px 14px",marginBottom:12,fontSize:13,color:"#16a34a",fontWeight:600}}>✅ Hall Ticket downloaded as PDF!</div>}
 
-  const studentViews = {
-    dashboard:<StudentDashboard user={auth}/>, attendance:<AttendanceView/>,
-    exam:<ExamView/>, fee:<FeeView/>, assignments:<AssignmentsView/>, notices:<NoticesView/>, timetable:<StudentTimetable/>, papers:<QuestionPapers/>,
-  };
-  const facultyViews = {
-    dashboard:<FacultyDashboard user={auth}/>, subjects:<FacultySubjectsView/>,
-    lab:<LabView/>, attendance:<AttendanceView/>, evaluation:<EvaluationView/>, research:<ResearchView/>,
-    duty:<DutyView/>, notices:<NoticesView/>,
-  };
-  const views = role==="student" ? studentViews : facultyViews;
+      <div style={{background:"#fff",border:"2px solid #6366f1",borderRadius:12,overflow:"hidden"}}>
+        {/* Header */}
+        <div style={{background:"linear-gradient(135deg,#6366f1,#8b5cf6)",padding:"16px 24px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+          <div>
+            <div style={{color:"#fff",fontWeight:900,fontSize:18,letterSpacing:0.5}}>ITER — SOA University</div>
+            <div style={{color:"rgba(255,255,255,0.8)",fontSize:13}}>End Semester Examination — June 2026</div>
+            <div style={{color:"rgba(255,255,255,0.7)",fontSize:12,marginTop:2}}>HALL TICKET / ADMIT CARD</div>
+          </div>
+          <div style={{width:60,height:60,borderRadius:10,background:"rgba(255,255,255,0.2)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:28}}>🎓</div>
+        </div>
 
-  // Map Academic menu items to view keys
-  const menuToView = {
-    "Attendance and Leave":"attendance","Examination":"exam","Fee Payment":"fee",
-    "Assignments":"assignments","Notices and Announcements":"notices",
-    "Subjects & Students":"subjects","Lab Management":"lab",
-    "Evaluation":"evaluation","Research Scholars":"research","Exam & Duty":"duty",
-    "Dashboard":"dashboard","Student Information":"dashboard","Registration":"dashboard",
-    "Hostel Management":"dashboard","Thesis Submission":"dashboard",
-    "Research Scholars' Week":"research","SAC Election":"dashboard",
-    "Student Project management":"dashboard","Dissertation Template":"dashboard",
-    "Scholarships":"fee","Account Settings":"dashboard",
-    "Other Services":"dashboard","Career Development Centre":"dashboard",
-    "Feedback / Assessment":"dashboard",
+        {/* Student info */}
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:0,borderBottom:"2px solid #e2e8f0"}}>
+          {[
+            ["Student Name", user.name],
+            ["Roll Number", user.roll||"520CS2008"],
+            ["Department", "Computer Science & Engineering"],
+            ["Programme", "B.Tech (CSE)"],
+            ["Semester", "5th Semester (Odd)"],
+            ["Academic Year", "2025-26"],
+          ].map(([l,v],i)=>(
+            <div key={i} style={{padding:"10px 16px",borderRight:i%3!==2?"1px solid #f1f5f9":"none",borderBottom:"1px solid #f1f5f9",background:i%2===0?"#fafbff":"#fff"}}>
+              <div style={{fontSize:10,fontWeight:700,color:"#94a3b8",marginBottom:2}}>{l}</div>
+              <div style={{fontSize:13,fontWeight:700,color:"#0f172a"}}>{v}</div>
+            </div>
+          ))}
+        </div>
+
+        {/* Exam schedule */}
+        <div style={{padding:"0 0 16px"}}>
+          <div style={{padding:"10px 16px",background:"#f8fafc",fontWeight:700,fontSize:12,color:"#475569",borderBottom:"1px solid #e2e8f0"}}>
+            EXAMINATION SCHEDULE
+          </div>
+          <table style={{width:"100%",borderCollapse:"collapse",fontSize:13}}>
+            <thead>
+              <tr style={{background:"#eef2ff"}}>
+                {["Date","Day","Code","Subject","Time","Room","Seat No."].map(h=>(
+                  <th key={h} style={{padding:"8px 12px",textAlign:"left",fontWeight:600,color:"#475569",fontSize:12}}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {exams.map((e,i)=>(
+                <tr key={i} style={{borderBottom:"1px solid #f1f5f9",background:i%2===0?"#fff":"#fafbff"}}>
+                  <td style={{padding:"9px 12px",fontWeight:700,color:"#6366f1"}}>{e.date}</td>
+                  <td style={{padding:"9px 12px",color:"#64748b"}}>{e.day}</td>
+                  <td style={{padding:"9px 12px",fontWeight:600,color:"#334155"}}>{e.code}</td>
+                  <td style={{padding:"9px 12px",color:"#0f172a"}}>{e.name}</td>
+                  <td style={{padding:"9px 12px",color:"#64748b",whiteSpace:"nowrap"}}>{e.time}</td>
+                  <td style={{padding:"9px 12px",fontWeight:600,color:"#334155"}}>{e.room}</td>
+                  <td style={{padding:"9px 12px"}}><span style={{background:"#eef2ff",color:"#6366f1",padding:"2px 8px",borderRadius:6,fontWeight:700,fontSize:12}}>{e.seat}</span></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Instructions */}
+        <div style={{padding:"12px 16px",background:"#fef9c3",borderTop:"1px solid #fde68a"}}>
+          <div style={{fontWeight:700,fontSize:12,color:"#92400e",marginBottom:4}}>IMPORTANT INSTRUCTIONS</div>
+          <div style={{fontSize:11,color:"#78350f",lineHeight:1.8}}>
+            1. Carry this hall ticket to every examination. &nbsp;|&nbsp; 2. Reach the examination hall 15 minutes before the start time. &nbsp;|&nbsp;
+            3. Mobile phones and electronic devices are strictly prohibited. &nbsp;|&nbsp; 4. Carry a valid photo ID along with this hall ticket.
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── GRIEVANCE PORTAL ─────────────────────────────────────────────────────────
+function GrievancePortal() {
+  const [showForm, setShowForm] = useState(false);
+  const [form, setForm] = useState({type:"Academic",sendTo:"HOD",subject:"",desc:""});
+  const [submitted, setSubmitted] = useState(false);
+  const [grievances, setGrievances] = useState([
+    {id:"GR001",type:"Academic",subject:"Marks discrepancy in CS301 Mid-1",sendTo:"HOD",date:"Jun 3",status:"Resolved",stages:[{l:"Submitted",d:true},{l:"HOD Review",d:true},{l:"Resolved",d:true}],reply:"Marks have been corrected. Please check the portal."},
+    {id:"GR002",type:"Infrastructure",subject:"Projector not working in LH-101",sendTo:"Dean Academic",date:"Jun 7",status:"In Progress",stages:[{l:"Submitted",d:true},{l:"Dean Review",d:true},{l:"Action Taken",d:false}],reply:""},
+    {id:"GR003",type:"Hostel",subject:"Water supply issue in C Block",sendTo:"HOD",date:"Jun 9",status:"Pending",stages:[{l:"Submitted",d:true},{l:"HOD Review",d:false},{l:"Resolved",d:false}],reply:""},
+  ]);
+
+  const types = ["Academic","Examination","Infrastructure","Hostel","Financial","Other"];
+  const recipients = ["HOD","Dean Academic","Dean Students","Principal"];
+  const statusColor = s=>s==="Resolved"?{bg:"#dcfce7",c:"#16a34a"}:s==="In Progress"?{bg:"#fef9c3",c:"#ca8a04"}:{bg:"#fee2e2",c:"#dc2626"};
+
+  const handleSubmit = () => {
+    if(!form.subject.trim()||!form.desc.trim()) return;
+    setGrievances(prev=>[{
+      id:"GR00"+(prev.length+1), type:form.type, subject:form.subject, sendTo:form.sendTo,
+      date:"Jun 10", status:"Pending",
+      stages:[{l:"Submitted",d:true},{l:`${form.sendTo} Review`,d:false},{l:"Resolved",d:false}],
+      reply:"",
+    },...prev]);
+    setSubmitted(true);
+    setTimeout(()=>{setSubmitted(false);setShowForm(false);setForm({type:"Academic",sendTo:"HOD",subject:"",desc:""});},2000);
   };
 
   return (
-    <div style={{minHeight:"100vh",background:"#f0f0f0",fontFamily:"'Segoe UI',sans-serif"}} onClick={handleMain}>
-      <Header user={auth} role={role} onLogout={()=>{setAuth(null);setRole(null);}}
-        academicOpen={academicOpen}
-        setAcademicOpen={setAcademicOpen}
-        setActive={setActive}/>
+    <div>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
+        <div style={{fontSize:13,color:"#64748b"}}>Raise complaints or concerns to the appropriate authority</div>
+        <button onClick={()=>setShowForm(true)} style={{padding:"9px 18px",background:"linear-gradient(135deg,#6366f1,#8b5cf6)",color:"#fff",border:"none",borderRadius:8,fontWeight:600,cursor:"pointer",fontSize:13}}>
+          + New Grievance
+        </button>
+      </div>
 
-      {/* Sub-header breadcrumb */}
+      {/* Stats */}
+      <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:12,marginBottom:16}}>
+        {[["Total Raised","3","#6366f1"],["Resolved","1","#10b981"],["Pending","2","#f59e0b"]].map(([l,v,c])=>(
+          <div key={l} style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:10,padding:"14px",borderTop:`4px solid ${c}`,textAlign:"center"}}>
+            <div style={{fontSize:24,fontWeight:800,color:c}}>{v}</div>
+            <div style={{fontSize:12,color:"#64748b",fontWeight:600}}>{l}</div>
+          </div>
+        ))}
+      </div>
+
+      {grievances.map(g=>{
+        const sc=statusColor(g.status);
+        return (
+          <div key={g.id} style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:12,overflow:"hidden",marginBottom:12}}>
+            <div style={{padding:"12px 16px",display:"flex",justifyContent:"space-between",alignItems:"flex-start",borderBottom:"1px solid #f1f5f9"}}>
+              <div>
+                <div style={{display:"flex",gap:8,alignItems:"center",marginBottom:3}}>
+                  <span style={{fontWeight:700,fontSize:14,color:"#0f172a"}}>{g.subject}</span>
+                  <span style={{padding:"2px 8px",borderRadius:6,fontSize:11,fontWeight:700,background:"#eef2ff",color:"#6366f1"}}>{g.type}</span>
+                  <span style={{padding:"2px 8px",borderRadius:6,fontSize:11,fontWeight:700,background:sc.bg,color:sc.c}}>{g.status}</span>
+                </div>
+                <div style={{fontSize:12,color:"#94a3b8"}}>To: {g.sendTo} · {g.date} · {g.id}</div>
+              </div>
+            </div>
+            {/* Stage tracker */}
+            <div style={{padding:"12px 16px",background:"#fafbff"}}>
+              <div style={{display:"flex",alignItems:"center"}}>
+                {g.stages.map((st,si)=>(
+                  <div key={si} style={{display:"flex",alignItems:"center",flex:si<g.stages.length-1?1:"initial"}}>
+                    <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:3,minWidth:80}}>
+                      <div style={{width:28,height:28,borderRadius:"50%",display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:700,
+                        background:st.d?"linear-gradient(135deg,#6366f1,#8b5cf6)":"#f1f5f9",color:st.d?"#fff":"#94a3b8",border:st.d?"none":"2px dashed #cbd5e1"}}>
+                        {st.d?"✓":si+1}
+                      </div>
+                      <div style={{fontSize:10,fontWeight:600,color:st.d?"#6366f1":"#94a3b8",textAlign:"center"}}>{st.l}</div>
+                    </div>
+                    {si<g.stages.length-1&&<div style={{flex:1,height:2,background:g.stages[si+1].d?"#6366f1":"#e2e8f0",margin:"0 4px",marginBottom:16}}/>}
+                  </div>
+                ))}
+              </div>
+              {g.reply&&<div style={{marginTop:8,background:"#dcfce7",borderRadius:8,padding:"8px 12px",fontSize:12,color:"#166534"}}>💬 Response: {g.reply}</div>}
+            </div>
+          </div>
+        );
+      })}
+
+      {/* Modal */}
+      {showForm&&(
+        <div style={{position:"fixed",inset:0,background:"rgba(15,23,42,0.6)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center"}} onClick={()=>setShowForm(false)}>
+          <div style={{background:"#fff",borderRadius:14,width:500,boxShadow:"0 20px 60px rgba(0,0,0,0.25)",overflow:"hidden"}} onClick={e=>e.stopPropagation()}>
+            <div style={{background:"linear-gradient(135deg,#6366f1,#8b5cf6)",padding:"14px 18px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+              <div style={{color:"#fff",fontWeight:700,fontSize:15}}>📋 New Grievance</div>
+              <button onClick={()=>setShowForm(false)} style={{background:"rgba(255,255,255,0.2)",border:"none",borderRadius:6,color:"#fff",width:26,height:26,cursor:"pointer",fontSize:14}}>✕</button>
+            </div>
+            {submitted?<div style={{padding:"48px 24px",textAlign:"center"}}><div style={{fontSize:48}}>✅</div><div style={{fontWeight:700,fontSize:16,marginTop:10}}>Grievance Submitted!</div></div>:(
+              <div style={{padding:"18px 20px"}}>
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:12}}>
+                  {[["Type",form.type,v=>setForm(f=>({...f,type:v})),types],["Send To",form.sendTo,v=>setForm(f=>({...f,sendTo:v})),recipients]].map(([l,val,set,opts])=>(
+                    <div key={l}>
+                      <label style={{fontSize:11,fontWeight:700,color:"#475569",display:"block",marginBottom:4}}>{l.toUpperCase()}</label>
+                      <select value={val} onChange={e=>set(e.target.value)} style={{width:"100%",padding:"8px 10px",border:"1px solid #e2e8f0",borderRadius:8,fontSize:13,outline:"none",fontFamily:"inherit"}}>
+                        {opts.map(o=><option key={o}>{o}</option>)}
+                      </select>
+                    </div>
+                  ))}
+                </div>
+                <div style={{marginBottom:12}}>
+                  <label style={{fontSize:11,fontWeight:700,color:"#475569",display:"block",marginBottom:4}}>SUBJECT</label>
+                  <input value={form.subject} onChange={e=>setForm(f=>({...f,subject:e.target.value}))} placeholder="Brief subject of your grievance"
+                    style={{width:"100%",boxSizing:"border-box",padding:"9px 12px",border:"1px solid #e2e8f0",borderRadius:8,fontSize:13,outline:"none",fontFamily:"inherit"}}/>
+                </div>
+                <div style={{marginBottom:16}}>
+                  <label style={{fontSize:11,fontWeight:700,color:"#475569",display:"block",marginBottom:4}}>DESCRIPTION</label>
+                  <textarea rows={4} value={form.desc} onChange={e=>setForm(f=>({...f,desc:e.target.value}))} placeholder="Describe your grievance in detail..."
+                    style={{width:"100%",boxSizing:"border-box",padding:"9px 12px",border:"1px solid #e2e8f0",borderRadius:8,fontSize:13,outline:"none",resize:"none",fontFamily:"inherit"}}/>
+                </div>
+                <div style={{display:"flex",justifyContent:"flex-end",gap:10}}>
+                  <button onClick={()=>setShowForm(false)} style={{padding:"8px 18px",background:"#f1f5f9",border:"none",borderRadius:8,fontWeight:600,cursor:"pointer",fontSize:13,color:"#475569"}}>Cancel</button>
+                  <button onClick={handleSubmit} disabled={!form.subject.trim()||!form.desc.trim()}
+                    style={{padding:"8px 20px",background:"linear-gradient(135deg,#6366f1,#8b5cf6)",color:"#fff",border:"none",borderRadius:8,fontWeight:600,cursor:"pointer",fontSize:13}}>
+                    Submit →
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── LIBRARY ──────────────────────────────────────────────────────────────────
+function LibraryView() {
+  const [tab, setTab] = useState("borrowed");
+  const [search, setSearch] = useState("");
+  const borrowed = [
+    {id:"B001",title:"Operating Systems Concepts",author:"Silberschatz",issued:"May 15",due:"Jun 15",days:5,fine:0},
+    {id:"B002",title:"Computer Networks",author:"Tanenbaum",issued:"May 20",due:"Jun 20",days:0,fine:0},
+    {id:"B003",title:"Introduction to Algorithms",author:"CLRS",issued:"Apr 10",due:"May 10",days:31,fine:31},
+  ];
+  const catalog = [
+    {code:"CS",title:"Design Patterns",author:"Gang of Four",available:3,total:5},
+    {code:"CS",title:"Clean Code",author:"Robert C. Martin",available:1,total:3},
+    {code:"CS",title:"The Pragmatic Programmer",author:"Hunt & Thomas",available:0,total:2},
+    {code:"ML",title:"Pattern Recognition & ML",author:"Bishop",available:2,total:4},
+    {code:"ML",title:"Deep Learning",author:"Goodfellow et al.",available:1,total:3},
+    {code:"MATH",title:"Discrete Mathematics",author:"Rosen",available:4,total:6},
+    {code:"NET",title:"Data Communications & Networking",author:"Forouzan",available:2,total:5},
+  ].filter(b=>!search||b.title.toLowerCase().includes(search.toLowerCase())||b.author.toLowerCase().includes(search.toLowerCase()));
+
+  const totalFine = borrowed.reduce((a,b)=>a+b.fine,0);
+  return (
+    <div>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:12,marginBottom:16}}>
+        {[["Books Borrowed","3","#6366f1"],["Due Today","1","#f59e0b"],["Fine Due",`₹${totalFine}`,"#ef4444"]].map(([l,v,c])=>(
+          <div key={l} style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:10,padding:"14px",borderTop:`4px solid ${c}`,textAlign:"center"}}>
+            <div style={{fontSize:24,fontWeight:800,color:c}}>{v}</div>
+            <div style={{fontSize:12,color:"#64748b",fontWeight:600}}>{l}</div>
+          </div>
+        ))}
+      </div>
+      <div style={{display:"flex",gap:4,background:"#f1f5f9",borderRadius:8,padding:3,marginBottom:14,width:"fit-content"}}>
+        {[["borrowed","📚 Borrowed Books"],["catalog","🔍 Search Catalog"]].map(([t,l])=>(
+          <button key={t} onClick={()=>setTab(t)} style={{padding:"7px 16px",border:"none",borderRadius:6,cursor:"pointer",fontSize:12,fontWeight:600,
+            background:tab===t?"linear-gradient(135deg,#6366f1,#8b5cf6)":"transparent",color:tab===t?"#fff":"#64748b"}}>{l}</button>
+        ))}
+      </div>
+
+      {tab==="borrowed"&&(
+        <div style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:12,overflow:"hidden"}}>
+          <table style={{width:"100%",borderCollapse:"collapse",fontSize:13}}>
+            <thead><tr style={{background:"#f8fafc"}}>
+              {["Book","Author","Issued","Due Date","Days Overdue","Fine","Action"].map(h=>(
+                <th key={h} style={{padding:"10px 14px",textAlign:"left",fontWeight:600,color:"#475569",fontSize:12,borderBottom:"1px solid #e2e8f0"}}>{h}</th>
+              ))}
+            </tr></thead>
+            <tbody>{borrowed.map((b,i)=>(
+              <tr key={b.id} style={{borderBottom:"1px solid #f1f5f9",background:b.days>0?"#fff9f9":"#fff"}}>
+                <td style={{padding:"11px 14px",fontWeight:600,color:"#0f172a"}}>{b.title}</td>
+                <td style={{padding:"11px 14px",color:"#64748b"}}>{b.author}</td>
+                <td style={{padding:"11px 14px",color:"#64748b"}}>{b.issued}</td>
+                <td style={{padding:"11px 14px",fontWeight:600,color:b.days>0?"#ef4444":"#334155"}}>{b.due}</td>
+                <td style={{padding:"11px 14px",textAlign:"center",fontWeight:700,color:b.days>0?"#ef4444":"#10b981"}}>{b.days>0?b.days+" days":"On time"}</td>
+                <td style={{padding:"11px 14px",fontWeight:700,color:b.fine>0?"#ef4444":"#64748b"}}>{b.fine>0?`₹${b.fine}`:"—"}</td>
+                <td style={{padding:"11px 14px"}}>
+                  {b.fine>0?<button style={{padding:"4px 12px",background:"#ef4444",color:"#fff",border:"none",borderRadius:6,cursor:"pointer",fontSize:11,fontWeight:600}}>Pay ₹{b.fine}</button>
+                  :<button style={{padding:"4px 12px",background:"#f1f5f9",color:"#334155",border:"none",borderRadius:6,cursor:"pointer",fontSize:11,fontWeight:600}}>Renew</button>}
+                </td>
+              </tr>
+            ))}</tbody>
+          </table>
+        </div>
+      )}
+
+      {tab==="catalog"&&(
+        <div>
+          <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search by title or author..."
+            style={{width:"100%",boxSizing:"border-box",padding:"10px 14px",border:"1px solid #e2e8f0",borderRadius:10,fontSize:13,outline:"none",marginBottom:12,fontFamily:"inherit"}}/>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+            {catalog.map((b,i)=>(
+              <div key={i} style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:10,padding:"14px 16px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                <div>
+                  <div style={{fontWeight:600,fontSize:13,color:"#0f172a"}}>{b.title}</div>
+                  <div style={{fontSize:12,color:"#64748b",marginTop:2}}>{b.author}</div>
+                  <div style={{fontSize:11,color:"#94a3b8",marginTop:3}}>{b.available}/{b.total} copies available</div>
+                </div>
+                <button disabled={b.available===0} style={{padding:"6px 14px",background:b.available>0?"linear-gradient(135deg,#6366f1,#8b5cf6)":"#f1f5f9",color:b.available>0?"#fff":"#94a3b8",border:"none",borderRadius:8,cursor:b.available>0?"pointer":"not-allowed",fontSize:12,fontWeight:600,flexShrink:0,marginLeft:10}}>
+                  {b.available>0?"Reserve":"Unavailable"}
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── PLACEMENT CELL ───────────────────────────────────────────────────────────
+function PlacementView() {
+  const [tab, setTab] = useState("jobs");
+  const jobs = [
+    {id:"J001",company:"TCS",role:"Systems Engineer",ctc:"3.5 LPA",location:"Bhubaneswar",deadline:"Jun 20",eligible:"7.0 CGPA",status:"Applied",batch:"2026"},
+    {id:"J002",company:"Infosys",role:"Associate Engineer",ctc:"4.0 LPA",location:"Bangalore",deadline:"Jun 25",eligible:"6.5 CGPA",status:"Shortlisted",batch:"2026"},
+    {id:"J003",company:"Wipro",role:"Project Engineer",ctc:"3.5 LPA",location:"Pune",deadline:"Jun 18",eligible:"6.0 CGPA",status:"Not Applied",batch:"2026"},
+    {id:"J004",company:"Amazon",role:"SDE Intern",ctc:"60k/month",location:"Hyderabad",deadline:"Jul 5",eligible:"8.0 CGPA",status:"Not Applied",batch:"2026"},
+    {id:"J005",company:"Capgemini",role:"Analyst",ctc:"4.5 LPA",location:"Chennai",deadline:"Jul 10",eligible:"6.5 CGPA",status:"Not Applied",batch:"2026"},
+  ];
+  const interviews = [
+    {company:"Infosys",round:"Technical Round 1",date:"Jun 22",time:"10:00 AM",mode:"Online",venue:"zoom.us/j/123456",status:"Upcoming"},
+    {company:"TCS",round:"HR Round",date:"Jun 15",time:"2:00 PM",mode:"Offline",venue:"Placement Cell, Block A",status:"Completed"},
+  ];
+  const statusColor = s=>s==="Applied"?{bg:"#eef2ff",c:"#6366f1"}:s==="Shortlisted"?{bg:"#dcfce7",c:"#16a34a"}:s==="Selected"?{bg:"#dcfce7",c:"#16a34a"}:{bg:"#f1f5f9",c:"#64748b"};
+  return (
+    <div>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:12,marginBottom:16}}>
+        {[["Jobs Available","5","#6366f1"],["Applied","2","#f59e0b"],["Shortlisted","1","#10b981"],["Interviews","2","#8b5cf6"]].map(([l,v,c])=>(
+          <div key={l} style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:10,padding:"14px",borderTop:`4px solid ${c}`,textAlign:"center"}}>
+            <div style={{fontSize:24,fontWeight:800,color:c}}>{v}</div>
+            <div style={{fontSize:12,color:"#64748b",fontWeight:600}}>{l}</div>
+          </div>
+        ))}
+      </div>
+      <div style={{display:"flex",gap:4,background:"#f1f5f9",borderRadius:8,padding:3,marginBottom:14,width:"fit-content"}}>
+        {[["jobs","💼 Job Postings"],["interviews","📅 My Interviews"]].map(([t,l])=>(
+          <button key={t} onClick={()=>setTab(t)} style={{padding:"7px 16px",border:"none",borderRadius:6,cursor:"pointer",fontSize:12,fontWeight:600,
+            background:tab===t?"linear-gradient(135deg,#6366f1,#8b5cf6)":"transparent",color:tab===t?"#fff":"#64748b"}}>{l}</button>
+        ))}
+      </div>
+
+      {tab==="jobs"&&(
+        <div style={{display:"flex",flexDirection:"column",gap:10}}>
+          {jobs.map(j=>{
+            const sc=statusColor(j.status);
+            return (
+              <div key={j.id} style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:12,padding:"14px 18px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                <div style={{flex:1}}>
+                  <div style={{display:"flex",gap:10,alignItems:"center",marginBottom:4}}>
+                    <div style={{width:36,height:36,borderRadius:8,background:"linear-gradient(135deg,#6366f1,#8b5cf6)",display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",fontWeight:700,fontSize:12,flexShrink:0}}>{j.company[0]}</div>
+                    <div>
+                      <div style={{fontWeight:700,fontSize:14,color:"#0f172a"}}>{j.company} <span style={{fontSize:13,fontWeight:500,color:"#64748b"}}>— {j.role}</span></div>
+                      <div style={{fontSize:12,color:"#94a3b8"}}>📍 {j.location} &nbsp;·&nbsp; 💰 {j.ctc} &nbsp;·&nbsp; 🎓 Min CGPA: {j.eligible} &nbsp;·&nbsp; ⏰ Deadline: {j.deadline}</div>
+                    </div>
+                  </div>
+                </div>
+                <div style={{display:"flex",gap:10,alignItems:"center",flexShrink:0}}>
+                  <span style={{padding:"3px 10px",borderRadius:6,fontSize:12,fontWeight:700,background:sc.bg,color:sc.c}}>{j.status}</span>
+                  {j.status==="Not Applied"&&<button style={{padding:"6px 16px",background:"linear-gradient(135deg,#6366f1,#8b5cf6)",color:"#fff",border:"none",borderRadius:8,cursor:"pointer",fontSize:12,fontWeight:600}}>Apply</button>}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {tab==="interviews"&&(
+        <div style={{display:"flex",flexDirection:"column",gap:10}}>
+          {interviews.map((iv,i)=>(
+            <div key={i} style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:12,padding:"16px 18px"}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
+                <div>
+                  <div style={{fontWeight:700,fontSize:15,color:"#0f172a",marginBottom:4}}>{iv.company} — {iv.round}</div>
+                  <div style={{fontSize:12,color:"#64748b"}}>📅 {iv.date} &nbsp;·&nbsp; ⏰ {iv.time} &nbsp;·&nbsp; 📡 {iv.mode}</div>
+                  <div style={{fontSize:12,color:"#6366f1",marginTop:3,fontWeight:500}}>📍 {iv.venue}</div>
+                </div>
+                <span style={{padding:"3px 10px",borderRadius:6,fontSize:12,fontWeight:700,background:iv.status==="Upcoming"?"#fef9c3":"#dcfce7",color:iv.status==="Upcoming"?"#ca8a04":"#16a34a"}}>{iv.status}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── COURSE REGISTRATION ──────────────────────────────────────────────────────
+function CourseRegistration() {
+  const maxCredits = 24;
+  const [registered, setRegistered] = useState([
+    {code:"CS301",name:"Database Management Systems",credits:4,type:"Core",slot:"A"},
+    {code:"CS302",name:"Operating Systems",credits:4,type:"Core",slot:"B"},
+    {code:"CS303",name:"Computer Networks",credits:4,type:"Core",slot:"C"},
+    {code:"CS304",name:"Theory of Computation",credits:3,type:"Core",slot:"D"},
+    {code:"CS305",name:"Software Engineering",credits:3,type:"Core",slot:"E"},
+    {code:"CS301L",name:"DBMS Lab",credits:2,type:"Lab",slot:"F"},
+  ]);
+  const electives = [
+    {code:"CS306E",name:"Machine Learning",credits:3,type:"Elective",slot:"G",seats:5},
+    {code:"CS307E",name:"Cloud Computing",credits:3,type:"Elective",slot:"H",seats:12},
+    {code:"CS308E",name:"Cyber Security",credits:3,type:"Elective",slot:"I",seats:0},
+    {code:"CS309E",name:"Natural Language Processing",credits:3,type:"Elective",slot:"J",seats:8},
+    {code:"CS310E",name:"Blockchain Technology",credits:3,type:"Elective",slot:"K",seats:3},
+  ];
+  const usedCredits = registered.reduce((a,c)=>a+c.credits,0);
+  const typeColor = {Core:"#6366f1",Lab:"#f59e0b",Elective:"#10b981"};
+
+  const addElective = (e) => {
+    if(usedCredits+e.credits>maxCredits||e.seats===0) return;
+    if(!registered.find(r=>r.code===e.code)) setRegistered(prev=>[...prev,{...e,seats:undefined}]);
+  };
+  const remove = (code) => setRegistered(prev=>prev.filter(r=>r.code!==code||r.type==="Core"));
+
+  return (
+    <div>
+      {/* Credit meter */}
+      <div style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:12,padding:"14px 18px",marginBottom:14}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
+          <div style={{fontWeight:700,fontSize:14,color:"#0f172a"}}>Credit Load — Semester 5</div>
+          <span style={{fontWeight:800,fontSize:16,color:usedCredits>maxCredits?"#ef4444":"#6366f1"}}>{usedCredits} / {maxCredits}</span>
+        </div>
+        <div style={{height:10,background:"#f1f5f9",borderRadius:5}}>
+          <div style={{width:Math.min(100,usedCredits/maxCredits*100)+"%",height:"100%",background:usedCredits>maxCredits?"#ef4444":"linear-gradient(90deg,#6366f1,#8b5cf6)",borderRadius:5,transition:"width .3s"}}/>
+        </div>
+        {usedCredits>maxCredits&&<div style={{color:"#ef4444",fontSize:12,marginTop:4,fontWeight:600}}>⚠️ Credit limit exceeded!</div>}
+      </div>
+
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14}}>
+        {/* Registered */}
+        <div style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:12,overflow:"hidden"}}>
+          <div style={{background:"linear-gradient(135deg,#6366f1,#8b5cf6)",padding:"11px 14px",color:"#fff",fontWeight:700,fontSize:13}}>Registered Courses ({registered.length})</div>
+          {registered.map(c=>(
+            <div key={c.code} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"10px 14px",borderBottom:"1px solid #f1f5f9"}}>
+              <div>
+                <div style={{fontWeight:600,fontSize:13,color:"#0f172a"}}>{c.code} — {c.name}</div>
+                <div style={{fontSize:11,color:"#94a3b8"}}>Slot {c.slot} &nbsp;·&nbsp; {c.credits} credits &nbsp;·&nbsp; <span style={{color:typeColor[c.type],fontWeight:600}}>{c.type}</span></div>
+              </div>
+              {c.type!=="Core"&&<button onClick={()=>remove(c.code)} style={{padding:"3px 10px",background:"#fee2e2",color:"#dc2626",border:"none",borderRadius:6,cursor:"pointer",fontSize:11,fontWeight:600}}>Drop</button>}
+            </div>
+          ))}
+        </div>
+
+        {/* Available electives */}
+        <div style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:12,overflow:"hidden"}}>
+          <div style={{background:"linear-gradient(135deg,#10b981,#059669)",padding:"11px 14px",color:"#fff",fontWeight:700,fontSize:13}}>Available Electives</div>
+          {electives.map(e=>{
+            const alreadyAdded = !!registered.find(r=>r.code===e.code);
+            return (
+              <div key={e.code} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"10px 14px",borderBottom:"1px solid #f1f5f9",background:alreadyAdded?"#f0fdf4":"#fff"}}>
+                <div>
+                  <div style={{fontWeight:600,fontSize:13,color:"#0f172a"}}>{e.code} — {e.name}</div>
+                  <div style={{fontSize:11,color:"#94a3b8"}}>Slot {e.slot} &nbsp;·&nbsp; {e.credits} credits &nbsp;·&nbsp;
+                    <span style={{color:e.seats>0?"#10b981":"#ef4444",fontWeight:600}}>{e.seats>0?`${e.seats} seats`:"Full"}</span>
+                  </div>
+                </div>
+                <button onClick={()=>addElective(e)} disabled={alreadyAdded||e.seats===0||usedCredits+e.credits>maxCredits}
+                  style={{padding:"4px 12px",background:alreadyAdded?"#dcfce7":e.seats===0?"#f1f5f9":"linear-gradient(135deg,#6366f1,#8b5cf6)",
+                    color:alreadyAdded?"#16a34a":e.seats===0?"#94a3b8":"#fff",border:"none",borderRadius:6,cursor:alreadyAdded||e.seats===0?"default":"pointer",fontSize:11,fontWeight:600}}>
+                  {alreadyAdded?"Added ✓":e.seats===0?"Full":"Add"}
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── CO/PO ATTAINMENT ─────────────────────────────────────────────────────────
+function COPOView() {
+  const [selSubj, setSelSubj] = useState("CS301");
+  const subjects = {
+    CS301:{name:"DBMS", target:60,
+      cos:[
+        {co:"CO1",desc:"Understand ER modelling",mid1:72,mid2:68,assign:80,avg:0},
+        {co:"CO2",desc:"Write SQL queries",mid1:65,mid2:70,assign:75,avg:0},
+        {co:"CO3",desc:"Normalize relations",mid1:58,mid2:55,assign:62,avg:0},
+        {co:"CO4",desc:"Understand transactions",mid1:50,mid2:48,assign:55,avg:0},
+        {co:"CO5",desc:"Apply indexing techniques",mid1:62,mid2:60,assign:68,avg:0},
+      ],
+      pos:["PO1","PO2","PO3","PO4","PO5","PO6"],
+      matrix:[[3,2,1,0,0,0],[3,3,2,1,0,0],[2,3,3,1,0,0],[2,2,1,2,0,0],[1,2,2,1,1,0]],
+    },
+    CS302:{name:"Operating Systems", target:60,
+      cos:[
+        {co:"CO1",desc:"Explain process management",mid1:70,mid2:72,assign:78,avg:0},
+        {co:"CO2",desc:"Implement scheduling algorithms",mid1:68,mid2:65,assign:72,avg:0},
+        {co:"CO3",desc:"Understand memory management",mid1:55,mid2:58,assign:64,avg:0},
+        {co:"CO4",desc:"Explain file systems",mid1:72,mid2:70,assign:76,avg:0},
+      ],
+      pos:["PO1","PO2","PO3","PO4","PO5","PO6"],
+      matrix:[[3,2,2,1,0,0],[2,3,2,1,1,0],[2,2,3,1,0,0],[2,1,2,2,0,0]],
+    },
+  };
+  const subj = subjects[selSubj];
+  const cosWithAvg = subj.cos.map(co=>{
+    const avg = Math.round((co.mid1*0.4+co.mid2*0.4+co.assign*0.2));
+    return {...co,avg};
+  });
+  const met = cosWithAvg.filter(c=>c.avg>=subj.target).length;
+
+  // PO attainment
+  const poAtt = subj.pos.map((_,pi)=>{
+    const vals = cosWithAvg.map((co,ci)=>((subj.matrix[ci]?.[pi]||0)/3)*co.avg);
+    const weights = cosWithAvg.map((_,ci)=>subj.matrix[ci]?.[pi]||0);
+    const sumW = weights.reduce((a,b)=>a+b,0);
+    return sumW>0?Math.round(vals.reduce((a,b)=>a+b,0)/sumW):0;
+  });
+
+  return (
+    <div>
+      <div style={{display:"flex",gap:8,marginBottom:14,alignItems:"center"}}>
+        <span style={{fontSize:12,fontWeight:700,color:"#475569"}}>SUBJECT:</span>
+        {Object.entries(subjects).map(([k,v])=>(
+          <button key={k} onClick={()=>setSelSubj(k)}
+            style={{padding:"6px 16px",borderRadius:8,border:"none",cursor:"pointer",fontSize:12,fontWeight:600,
+              background:selSubj===k?"linear-gradient(135deg,#6366f1,#8b5cf6)":"#f1f5f9",
+              color:selSubj===k?"#fff":"#475569"}}>
+            {k} — {v.name}
+          </button>
+        ))}
+      </div>
+
+      {/* Summary */}
+      <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:12,marginBottom:14}}>
+        {[["COs Met",`${met}/${subj.cos.length}`,"#10b981"],["Target",`${subj.target}%`,"#6366f1"],["COs Below Target",`${subj.cos.length-met}`,"#ef4444"]].map(([l,v,c])=>(
+          <div key={l} style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:10,padding:"14px",borderTop:`4px solid ${c}`,textAlign:"center"}}>
+            <div style={{fontSize:22,fontWeight:800,color:c}}>{v}</div>
+            <div style={{fontSize:12,color:"#64748b",fontWeight:600}}>{l}</div>
+          </div>
+        ))}
+      </div>
+
+      <div style={{display:"grid",gridTemplateColumns:"1.2fr 1fr",gap:14}}>
+        {/* CO table */}
+        <div style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:12,overflow:"hidden"}}>
+          <div style={{background:"linear-gradient(135deg,#6366f1,#8b5cf6)",padding:"11px 14px",color:"#fff",fontWeight:700,fontSize:13}}>
+            CO Attainment (Target: {subj.target}%)
+          </div>
+          <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
+            <thead><tr style={{background:"#f8fafc"}}>
+              {["CO","Description","Mid-1","Mid-2","Assign","Attainment","Status"].map(h=>(
+                <th key={h} style={{padding:"8px 10px",textAlign:"left",fontWeight:600,color:"#475569",borderBottom:"1px solid #e2e8f0",fontSize:11}}>{h}</th>
+              ))}
+            </tr></thead>
+            <tbody>{cosWithAvg.map((co,i)=>(
+              <tr key={co.co} style={{borderBottom:"1px solid #f1f5f9",background:i%2===0?"#fff":"#fafbff"}}>
+                <td style={{padding:"9px 10px",fontWeight:700,color:"#6366f1"}}>{co.co}</td>
+                <td style={{padding:"9px 10px",color:"#334155",fontSize:11}}>{co.desc}</td>
+                <td style={{padding:"9px 10px",textAlign:"center",color:"#64748b"}}>{co.mid1}</td>
+                <td style={{padding:"9px 10px",textAlign:"center",color:"#64748b"}}>{co.mid2}</td>
+                <td style={{padding:"9px 10px",textAlign:"center",color:"#64748b"}}>{co.assign}</td>
+                <td style={{padding:"9px 10px",textAlign:"center"}}>
+                  <div style={{display:"flex",alignItems:"center",gap:6}}>
+                    <div style={{width:40,height:5,background:"#f1f5f9",borderRadius:3}}>
+                      <div style={{width:co.avg+"%",height:"100%",background:co.avg>=subj.target?"#10b981":"#ef4444",borderRadius:3}}/>
+                    </div>
+                    <span style={{fontWeight:700,color:co.avg>=subj.target?"#10b981":"#ef4444"}}>{co.avg}%</span>
+                  </div>
+                </td>
+                <td style={{padding:"9px 10px"}}>
+                  <span style={{padding:"2px 7px",borderRadius:5,fontSize:10,fontWeight:700,background:co.avg>=subj.target?"#dcfce7":"#fee2e2",color:co.avg>=subj.target?"#16a34a":"#dc2626"}}>
+                    {co.avg>=subj.target?"Met":"Not Met"}
+                  </span>
+                </td>
+              </tr>
+            ))}</tbody>
+          </table>
+        </div>
+
+        {/* PO attainment */}
+        <div style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:12,overflow:"hidden"}}>
+          <div style={{background:"linear-gradient(135deg,#8b5cf6,#6366f1)",padding:"11px 14px",color:"#fff",fontWeight:700,fontSize:13}}>PO Attainment</div>
+          <div style={{padding:14}}>
+            {subj.pos.map((po,i)=>(
+              <div key={po} style={{marginBottom:12}}>
+                <div style={{display:"flex",justifyContent:"space-between",marginBottom:4,fontSize:12}}>
+                  <span style={{fontWeight:600,color:"#334155"}}>{po}</span>
+                  <span style={{fontWeight:700,color:poAtt[i]>=subj.target?"#10b981":"#ef4444"}}>{poAtt[i]}%</span>
+                </div>
+                <div style={{height:8,background:"#f1f5f9",borderRadius:4}}>
+                  <div style={{width:poAtt[i]+"%",height:"100%",background:poAtt[i]>=subj.target?"#10b981":"#ef4444",borderRadius:4,transition:"width .3s"}}/>
+                </div>
+              </div>
+            ))}
+            <div style={{marginTop:14,padding:"10px 12px",background:"#f8fafc",borderRadius:8,fontSize:12,color:"#64748b"}}>
+              CO-PO mapping uses 3-level correlation (3=High, 2=Med, 1=Low).
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── NOTIFICATIONS BELL ───────────────────────────────────────────────────────
+function useNotifications(role) {
+  const studentNotifs = [
+    {id:1,text:"Mid-term marks for CS301 are now available",time:"2h ago",read:false,type:"marks"},
+    {id:2,text:"Leave application L002 is pending Dean approval",time:"5h ago",read:false,type:"leave"},
+    {id:3,text:"Assignment CS304 due tomorrow — Jun 15",time:"1d ago",read:true,type:"assignment"},
+    {id:4,text:"Infosys shortlisted you for Technical Round",time:"1d ago",read:false,type:"placement"},
+    {id:5,text:"Library book overdue: Introduction to Algorithms",time:"2d ago",read:true,type:"library"},
+  ];
+  const facultyNotifs = [
+    {id:1,text:"3 new assignment submissions in CS301",time:"1h ago",read:false,type:"assignment"},
+    {id:2,text:"Rohit Sharma submitted thesis Chapter 4",time:"3h ago",read:false,type:"research"},
+    {id:3,text:"Attendance for Jun 14 not yet submitted — CS302",time:"5h ago",read:false,type:"attendance"},
+    {id:4,text:"Leave request from Priya Nair approved by HOD",time:"1d ago",read:true,type:"leave"},
+  ];
+  return role==="student"?studentNotifs:facultyNotifs;
+}
+
+// ─── STUDENT FEEDBACK VIEW ────────────────────────────────────────────────────
+function FeedbackView() {
+  const [submitted, setSubmitted] = useState({});
+  const [ratings, setRatings] = useState({});
+  const subjects = [
+    {code:"CS301",name:"Database Management Systems",faculty:"Dr. A. Sharma"},
+    {code:"CS302",name:"Operating Systems",faculty:"Prof. S. Das"},
+    {code:"CS303",name:"Computer Networks",faculty:"Dr. R. Panda"},
+    {code:"CS304",name:"Theory of Computation",faculty:"Dr. K. Rath"},
+    {code:"CS305",name:"Software Engineering",faculty:"Prof. M. Behera"},
+  ];
+  const questions = ["Course Content","Teaching Quality","Pace of Teaching","Interaction & Doubt Solving","Practical Relevance"];
+
+  const setRating = (code,q,val) => setRatings(prev=>({...prev,[code]:{...(prev[code]||{}),[q]:val}}));
+  const getRating = (code,q) => ratings[code]?.[q]||0;
+  const canSubmit = (code) => questions.every(q=>getRating(code,q)>0);
+
+  const submit = (code) => {
+    if(!canSubmit(code)) return;
+    setSubmitted(prev=>({...prev,[code]:true}));
+  };
+
+  return (
+    <div>
+      <div style={{background:"#eef2ff",border:"1px solid #c7d2fe",borderRadius:10,padding:"10px 14px",marginBottom:14,fontSize:13,color:"#4338ca"}}>
+        🔒 Your feedback is completely <strong>anonymous</strong>. Faculty cannot see individual responses.
+      </div>
+      <div style={{display:"flex",flexDirection:"column",gap:12}}>
+        {subjects.map(s=>(
+          <div key={s.code} style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:12,overflow:"hidden"}}>
+            <div style={{background:"linear-gradient(135deg,#6366f1,#8b5cf6)",padding:"11px 16px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+              <div style={{color:"#fff"}}>
+                <div style={{fontWeight:700,fontSize:13}}>{s.code} — {s.name}</div>
+                <div style={{fontSize:12,opacity:0.8}}>{s.faculty}</div>
+              </div>
+              {submitted[s.code]&&<span style={{background:"rgba(255,255,255,0.2)",color:"#fff",padding:"2px 10px",borderRadius:20,fontSize:12,fontWeight:600}}>✓ Submitted</span>}
+            </div>
+            {submitted[s.code]?(
+              <div style={{padding:"20px",textAlign:"center",color:"#16a34a",fontWeight:600,fontSize:14}}>✅ Thank you for your feedback!</div>
+            ):(
+              <div style={{padding:"14px 16px"}}>
+                {questions.map(q=>(
+                  <div key={q} style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
+                    <span style={{fontSize:13,color:"#334155",fontWeight:500}}>{q}</span>
+                    <div style={{display:"flex",gap:6}}>
+                      {[1,2,3,4,5].map(n=>(
+                        <button key={n} onClick={()=>setRating(s.code,q,n)}
+                          style={{width:32,height:32,borderRadius:6,border:"1px solid",borderColor:getRating(s.code,q)>=n?"#6366f1":"#e2e8f0",cursor:"pointer",fontSize:14,
+                            background:getRating(s.code,q)>=n?"#6366f1":"#fff",color:getRating(s.code,q)>=n?"#fff":"#94a3b8",fontWeight:700}}>
+                          ★
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+                <div style={{display:"flex",justifyContent:"flex-end",marginTop:8}}>
+                  <button onClick={()=>submit(s.code)} disabled={!canSubmit(s.code)}
+                    style={{padding:"8px 20px",background:canSubmit(s.code)?"linear-gradient(135deg,#6366f1,#8b5cf6)":"#f1f5f9",color:canSubmit(s.code)?"#fff":"#94a3b8",border:"none",borderRadius:8,fontWeight:600,cursor:canSubmit(s.code)?"pointer":"not-allowed",fontSize:13}}>
+                    Submit Feedback
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ─── FACULTY FEEDBACK RESULTS ─────────────────────────────────────────────────
+function FacultyFeedbackView() {
+  const results = [
+    {code:"CS301",name:"DBMS",responses:48,scores:{cc:4.1,tq:4.3,pace:3.8,inter:4.0,pr:3.9},overall:4.0},
+    {code:"CS302",name:"OS",responses:44,scores:{cc:3.9,tq:4.1,pace:3.7,inter:3.8,pr:3.6},overall:3.8},
+  ];
+  const labels = {cc:"Course Content",tq:"Teaching Quality",pace:"Pace",inter:"Interaction",pr:"Practical Relevance"};
+  return (
+    <div>
+      <div style={{background:"#eef2ff",border:"1px solid #c7d2fe",borderRadius:10,padding:"10px 14px",marginBottom:14,fontSize:13,color:"#4338ca"}}>
+        🔒 These are aggregated anonymous scores. Individual responses are not visible.
+      </div>
+      {results.map(r=>(
+        <div key={r.code} style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:12,overflow:"hidden",marginBottom:14}}>
+          <div style={{background:"linear-gradient(135deg,#6366f1,#8b5cf6)",padding:"12px 16px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+            <div style={{color:"#fff",fontWeight:700,fontSize:14}}>{r.code} — {r.name}</div>
+            <div style={{color:"rgba(255,255,255,0.85)",fontSize:12}}>{r.responses} responses</div>
+          </div>
+          <div style={{padding:"16px",display:"grid",gridTemplateColumns:"1fr 120px",gap:16,alignItems:"start"}}>
+            <div>
+              {Object.entries(r.scores).map(([k,v])=>(
+                <div key={k} style={{marginBottom:10}}>
+                  <div style={{display:"flex",justifyContent:"space-between",marginBottom:3,fontSize:12}}>
+                    <span style={{color:"#475569",fontWeight:500}}>{labels[k]}</span>
+                    <span style={{fontWeight:700,color:"#6366f1"}}>{v}/5</span>
+                  </div>
+                  <div style={{height:7,background:"#f1f5f9",borderRadius:4}}>
+                    <div style={{width:(v/5*100)+"%",height:"100%",background:"linear-gradient(90deg,#6366f1,#8b5cf6)",borderRadius:4}}/>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div style={{textAlign:"center",background:"#eef2ff",borderRadius:12,padding:"16px 10px"}}>
+              <div style={{fontSize:36,fontWeight:900,color:"#6366f1"}}>{r.overall}</div>
+              <div style={{fontSize:11,color:"#6366f1",fontWeight:600}}>Overall</div>
+              <div style={{fontSize:10,color:"#94a3b8",marginTop:4}}>out of 5.0</div>
+              <div style={{display:"flex",justifyContent:"center",marginTop:6}}>
+                {[1,2,3,4,5].map(n=><span key={n} style={{color:n<=Math.round(r.overall)?"#f59e0b":"#e2e8f0",fontSize:16}}>★</span>)}
+              </div>
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ─── DARK MODE TOGGLE (state lives in App) ────────────────────────────────────
+// handled in App component
+
+  const [darkMode, setDarkMode] = useState(false);
+  const notifs = useNotifications(role);
+  const [notifOpen, setNotifOpen] = useState(false);
+  const [readNotifs, setReadNotifs] = useState([]);
+  const unreadCount = notifs.filter(n=>!n.read&&!readNotifs.includes(n.id)).length;
+
+  const studentViews = {
+    dashboard:<StudentDashboard user={auth}/>, attendance:<AttendanceView/>,
+    exam:<ExamView/>, fee:<FeeView/>, assignments:<AssignmentsView/>, notices:<NoticesView/>,
+    timetable:<StudentTimetable/>, papers:<QuestionPapers/>,
+    hallticket:<HallTicket user={auth}/>, grievance:<GrievancePortal/>,
+    library:<LibraryView/>, placement:<PlacementView/>,
+    registration:<CourseRegistration/>, feedback:<FeedbackView/>,
+  };
+  const facultyViews = {
+    dashboard:<FacultyDashboard user={auth}/>, subjects:<FacultySubjectsView/>,
+    lab:<LabView/>, attendance:<AttendanceView/>, evaluation:<EvaluationView/>,
+    research:<ResearchView/>, duty:<DutyView/>, notices:<NoticesView/>,
+    copo:<COPOView/>, feedback:<FacultyFeedbackView/>,
+  };
+  const views = role==="student" ? studentViews : facultyViews;
+
+  const studentSidebarLinks = [
+    ["Dashboard","dashboard"],["Timetable","timetable"],["Attendance","attendance"],
+    ["Question Papers","papers"],["Examination","exam"],["Hall Ticket","hallticket"],
+    ["Assignments","assignments"],["Fee Payment","fee"],["Library","library"],
+    ["Placement Cell","placement"],["Course Registration","registration"],
+    ["Grievance","grievance"],["Feedback","feedback"],["Notices","notices"],
+  ];
+  const facultySidebarLinks = [
+    ["Dashboard","dashboard"],["Subjects & Students","subjects"],["Lab","lab"],
+    ["Attendance","attendance"],["Evaluation","evaluation"],["Research","research"],
+    ["CO/PO Attainment","copo"],["Exam & Duty","duty"],["Feedback Results","feedback"],["Notices","notices"],
+  ];
+
+  // Academic dropdown items
+  const studentMenuItems = [
+    ["Student Information","dashboard"],["Registration","registration"],["Attendance and Leave","attendance"],
+    ["Feedback / Assessment","feedback"],["Examination","exam"],["Fee Payment","fee"],
+    ["Hostel Management","fee"],["Thesis Submission","dashboard"],["Assignments","assignments"],
+    ["Research Scholars' Week","dashboard"],["SAC Election","dashboard"],["Student Project management","dashboard"],
+    ["Dissertation Template","dashboard"],["Scholarships","fee"],["Hall Ticket","hallticket"],
+    ["Library","library"],["Placement Cell","placement"],["Grievance Portal","grievance"],
+  ];
+  const facultyMenuItems = [
+    ["Dashboard","dashboard"],["Subjects & Students","subjects"],["Lab Management","lab"],
+    ["Attendance & Leave","attendance"],["Evaluation","evaluation"],
+    ["Research Scholars","research"],["CO/PO Attainment","copo"],
+    ["Exam & Duty","duty"],["Feedback Results","feedback"],["Notices","notices"],
+  ];
+
+  // bg colours for dark mode
+  const bg   = darkMode?"#0f172a":"#f0f0f0";
+  const sbg  = darkMode?"#1e293b":"#2d2d2d";
+  const mbg  = darkMode?"#1e293b":"#fff";
+  const mtxt = darkMode?"#e2e8f0":"#0f172a";
+
+  return (
+    <div style={{minHeight:"100vh",background:bg,fontFamily:"'Segoe UI',sans-serif",transition:"background .2s"}} onClick={()=>{if(notifOpen)setNotifOpen(false);}}>
+
+      {/* ── TOP HEADER ── */}
+      <div style={{position:"relative",zIndex:100}}>
+        <div style={{background:mbg,borderBottom:`3px solid #6366f1`,display:"flex",alignItems:"center",padding:"0 16px",height:56,gap:16,fontFamily:"'Segoe UI',sans-serif"}}>
+          <div style={{display:"flex",alignItems:"center",gap:6,minWidth:140}}>
+            <div style={{fontFamily:"Georgia,serif",fontWeight:900,fontSize:22,color:"#6366f1",fontStyle:"italic"}}>ITER</div>
+            <div style={{fontSize:9,color:"#888",lineHeight:1.2}}>SOA<br/>University</div>
+          </div>
+          <div style={{cursor:"pointer",fontSize:20,color:"#555"}}>☰</div>
+          {/* Academic dropdown */}
+          <div style={{position:"relative"}}>
+            <button onClick={e=>{e.stopPropagation();setAcademicOpen(o=>!o);setNotifOpen(false);}}
+              style={{background:"none",border:"none",cursor:"pointer",fontSize:14,fontWeight:600,color:mtxt,display:"flex",alignItems:"center",gap:4,padding:"6px 10px"}}>
+              Academic <span style={{fontSize:10,color:"#6366f1"}}>▼</span>
+            </button>
+          </div>
+          <div style={{flex:1}}/>
+          {/* Dark mode */}
+          <button onClick={()=>setDarkMode(d=>!d)}
+            style={{background:"none",border:"1px solid #e2e8f0",borderRadius:8,padding:"5px 10px",cursor:"pointer",fontSize:16,color:darkMode?"#fbbf24":"#475569"}}>
+            {darkMode?"☀️":"🌙"}
+          </button>
+          {/* Notification bell */}
+          <div style={{position:"relative"}} onClick={e=>e.stopPropagation()}>
+            <button onClick={()=>{setNotifOpen(o=>!o);setAcademicOpen(false);}}
+              style={{width:36,height:36,borderRadius:10,background:"#f8fafc",border:"1px solid #e2e8f0",display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",fontSize:16,position:"relative"}}>
+              🔔
+              {unreadCount>0&&<span style={{position:"absolute",top:4,right:4,width:8,height:8,background:"#ef4444",borderRadius:"50%",border:"2px solid #fff"}}/>}
+            </button>
+            {notifOpen&&(
+              <div style={{position:"absolute",right:0,top:44,width:320,background:"#fff",border:"1px solid #e2e8f0",borderRadius:12,boxShadow:"0 8px 32px rgba(0,0,0,0.12)",zIndex:300}}>
+                <div style={{padding:"12px 14px",fontWeight:700,fontSize:14,borderBottom:"1px solid #f1f5f9",display:"flex",justifyContent:"space-between"}}>
+                  Notifications
+                  {unreadCount>0&&<span style={{background:"#ef4444",color:"#fff",borderRadius:20,fontSize:11,padding:"1px 8px"}}>{unreadCount} new</span>}
+                </div>
+                {notifs.map(n=>{
+                  const isRead = n.read||readNotifs.includes(n.id);
+                  const iconMap = {marks:"📊",leave:"📋",assignment:"📝",placement:"💼",library:"📚",research:"🔬",attendance:"✅"};
+                  return (
+                    <div key={n.id} onClick={()=>setReadNotifs(p=>[...p,n.id])}
+                      style={{padding:"10px 14px",borderBottom:"1px solid #f8fafc",background:isRead?"#fff":"#f0f4ff",cursor:"pointer"}}>
+                      <div style={{display:"flex",gap:10,alignItems:"flex-start"}}>
+                        <span style={{fontSize:16,flexShrink:0}}>{iconMap[n.type]||"📌"}</span>
+                        <div style={{flex:1}}>
+                          <div style={{fontSize:12,fontWeight:isRead?400:600,color:"#334155"}}>{n.text}</div>
+                          <div style={{fontSize:10,color:"#94a3b8",marginTop:2}}>{n.time}</div>
+                        </div>
+                        {!isRead&&<span style={{width:7,height:7,borderRadius:"50%",background:"#6366f1",flexShrink:0,marginTop:4}}/>}
+                      </div>
+                    </div>
+                  );
+                })}
+                <div style={{padding:"8px 14px",textAlign:"center",fontSize:12,color:"#6366f1",fontWeight:600,cursor:"pointer"}}
+                  onClick={()=>setReadNotifs(notifs.map(n=>n.id))}>
+                  Mark all as read
+                </div>
+              </div>
+            )}
+          </div>
+          {/* User avatar */}
+          <div style={{width:34,height:34,borderRadius:"50%",background:"linear-gradient(135deg,#6366f1,#8b5cf6)",display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",fontWeight:700,fontSize:14,cursor:"pointer"}}
+            onClick={()=>{setAuth(null);setRole(null);}}>
+            {auth.name[0]}
+          </div>
+        </div>
+
+        {/* Academic dropdown menu */}
+        {academicOpen&&(
+          <div style={{position:"absolute",top:56,left:0,right:0,background:mbg,borderBottom:"2px solid #ddd",boxShadow:"0 4px 12px rgba(0,0,0,0.1)",padding:"18px 32px",zIndex:200}}>
+            <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:"10px 24px"}}>
+              {(role==="student"?studentMenuItems:facultyMenuItems).map(([label,key])=>(
+                <div key={label} style={{display:"flex",alignItems:"center",gap:8,padding:"6px 0",borderBottom:"1px solid #f5f5f5",cursor:"pointer",fontSize:13,color:mtxt,fontWeight:500}}
+                  onClick={()=>{setActive(key);setAcademicOpen(false);}}>
+                  <span style={{color:"#6366f1",fontSize:14}}>●</span> {label}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Breadcrumb */}
       <div style={{background:"#6366f1",color:"#fff",padding:"6px 20px",fontSize:12,display:"flex",gap:8,alignItems:"center"}}>
-        <span style={{opacity:0.7}}>Home</span>
-        <span style={{opacity:0.5}}>›</span>
+        <span style={{opacity:0.7}}>Home</span><span style={{opacity:0.5}}>›</span>
         <span style={{fontWeight:600}}>
-          {role==="student"
-            ? `Welcome ${auth.name} — ${auth.dept} · ${auth.year}`
-            : `Welcome ${auth.name} — ${auth.designation} · Dept. of ${auth.dept}`}
+          {role==="student"?`Welcome ${auth.name} — ${auth.dept} · ${auth.year}`:`Welcome ${auth.name} — ${auth.designation} · Dept. of ${auth.dept}`}
         </span>
       </div>
 
       <div style={{display:"flex",alignItems:"flex-start"}}>
-        {/* Left sidebar — Calendar */}
-        <div style={{width:200,flexShrink:0,background:"#2d2d2d",minHeight:"calc(100vh - 90px)",paddingTop:4,overflowY:"auto"}}>
+        {/* ── SIDEBAR ── */}
+        <div style={{width:200,flexShrink:0,background:sbg,minHeight:"calc(100vh - 90px)",paddingTop:4,overflowY:"auto"}}>
           <MiniCalendar/>
           <div style={{borderTop:"1px solid #444",marginTop:8,padding:"10px 10px 0"}}>
             <div style={{fontSize:11,color:"#888",fontWeight:700,marginBottom:6,letterSpacing:0.5}}>QUICK LINKS</div>
-            {(role==="student"
-              ?[["Dashboard","dashboard"],["Timetable","timetable"],["Attendance","attendance"],["Question Papers","papers"],["Examination","exam"],["Fee Payment","fee"],["Assignments","assignments"],["Notices","notices"]]
-              :[["Dashboard","dashboard"],["Subjects","subjects"],["Lab","lab"],["Attendance","attendance"],["Evaluation","evaluation"],["Research","research"],["Duty","duty"],["Notices","notices"]]
-            ).map(([label,key])=>(
+            {(role==="student"?studentSidebarLinks:facultySidebarLinks).map(([label,key])=>(
               <div key={key} onClick={()=>setActive(key)}
-                style={{padding:"7px 8px",borderRadius:2,cursor:"pointer",fontSize:12,marginBottom:2,
+                style={{padding:"7px 8px",borderRadius:4,cursor:"pointer",fontSize:12,marginBottom:2,
                   background:active===key?"#6366f1":"transparent",
                   color:active===key?"#fff":"#bbb",fontWeight:active===key?600:400}}>
                 {label}
               </div>
             ))}
           </div>
-          {/* Faculty birthdays in sidebar */}
           {role==="faculty"&&(
             <div style={{borderTop:"1px solid #444",marginTop:10,padding:"10px 10px 0"}}>
-              <div style={{fontSize:11,color:"#888",fontWeight:700,marginBottom:8,letterSpacing:0.5}}>🎂 BIRTHDAYS THIS MONTH</div>
-              {[
-                {name:"Dr. Ramesh Panda",dept:"CSE",date:"Jun 9"},
-                {name:"Prof. Sunita Das",dept:"ECE",date:"Jun 11"},
-                {name:"Dr. Manoj Behera",dept:"MECH",date:"Jun 14"},
-                {name:"Prof. Anita Mohanty",dept:"CIVIL",date:"Jun 17"},
-                {name:"Dr. Bikash Sahoo",dept:"EEE",date:"Jun 20"},
-                {name:"Prof. Lipika Nanda",dept:"CSE",date:"Jun 22"},
-              ].map((b,i)=>(
-                <div key={i} style={{padding:"7px 6px",borderBottom:"1px solid #3a3a3a",display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
+              <div style={{fontSize:11,color:"#888",fontWeight:700,marginBottom:8,letterSpacing:0.5}}>🎂 BIRTHDAYS</div>
+              {[{name:"Dr. Ramesh Panda",dept:"CSE",date:"Jun 9"},{name:"Prof. Sunita Das",dept:"ECE",date:"Jun 11"},{name:"Dr. Manoj Behera",dept:"MECH",date:"Jun 14"},{name:"Prof. Anita Mohanty",dept:"CIVIL",date:"Jun 17"},{name:"Dr. Bikash Sahoo",dept:"EEE",date:"Jun 20"}].map((b,i)=>(
+                <div key={i} style={{padding:"6px 6px",borderBottom:"1px solid #3a3a3a",display:"flex",justifyContent:"space-between"}}>
                   <div>
                     <div style={{fontSize:11,fontWeight:600,color:"#e2e8f0",lineHeight:1.3}}>{b.name}</div>
                     <div style={{fontSize:10,color:"#666"}}>{b.dept}</div>
@@ -2247,9 +3069,9 @@ export default function App() {
           )}
         </div>
 
-        {/* Main content */}
-        <div style={{flex:1,padding:16,minHeight:"calc(100vh - 90px)"}}>
-          {views[active] || <div style={{color:"#aaa",textAlign:"center",padding:40}}>Coming soon</div>}
+        {/* ── MAIN CONTENT ── */}
+        <div style={{flex:1,padding:16,minHeight:"calc(100vh - 90px)",background:darkMode?"#0f172a":"#f0f0f0"}}>
+          {views[active]||<div style={{color:"#aaa",textAlign:"center",padding:40}}>Coming soon</div>}
         </div>
       </div>
     </div>
