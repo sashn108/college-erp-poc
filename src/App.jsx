@@ -1601,6 +1601,7 @@ function FacultySubjectsView() {
   const [modal, setModal] = useState(null);
   const [activeTab, setActiveTab] = useState("students");
   const [attSaved, setAttSaved] = useState(false);
+  const [selAttDate, setSelAttDate] = useState("Jun 19");
   const [inbox, setInbox] = useState([
     {from:"Riya Patel",roll:"22CS001",subj:"Query about Assignment #4",msg:"Ma'am, can you clarify the ER diagram requirements?",time:"Jun 8, 9:42 AM",read:false},
     {from:"Amit Kumar",roll:"22CS005",subj:"Lab file submission",msg:"Sir, I submitted the lab file. Please check.",time:"Jun 7, 2:15 PM",read:true},
@@ -1815,60 +1816,78 @@ function FacultySubjectsView() {
 
               {/* Attendance tab */}
               {activeTab==="attendance" && (
-                <div style={{padding:16,overflowX:"auto"}}>
-                  <div style={{display:"flex",gap:16,marginBottom:12,alignItems:"center",flexWrap:"wrap"}}>
-                    <div style={{fontSize:12,color:"#64748b"}}>Click a cell to cycle: <span style={{background:"#dcfce7",color:"#16a34a",padding:"1px 7px",borderRadius:4,fontWeight:700,marginRight:4}}>P</span>Present → <span style={{background:"#fee2e2",color:"#dc2626",padding:"1px 7px",borderRadius:4,fontWeight:700,marginRight:4}}>A</span>Absent → <span style={{background:"#fef9c3",color:"#ca8a04",padding:"1px 7px",borderRadius:4,fontWeight:700}}>L</span>Leave</div>
+                <div style={{padding:16}}>
+                  {/* Date selector + bulk actions */}
+                  <div style={{background:"#f8fafc",border:"1px solid #e2e8f0",borderRadius:10,padding:"12px 14px",marginBottom:14,display:"flex",gap:14,alignItems:"center",flexWrap:"wrap"}}>
+                    <div>
+                      <div style={{fontSize:11,fontWeight:700,color:"#94a3b8",marginBottom:4}}>CLASS DATE</div>
+                      <select value={selAttDate} onChange={e=>setSelAttDate(e.target.value)}
+                        style={{padding:"8px 12px",border:"1px solid #e2e8f0",borderRadius:8,fontSize:13,fontWeight:600,color:"#334155",background:"#fff",outline:"none",cursor:"pointer",fontFamily:"inherit"}}>
+                        {classDates.map(d=><option key={d} value={d}>{d}</option>)}
+                      </select>
+                    </div>
+                    <div style={{height:36,width:1,background:"#e2e8f0"}}/>
+                    <div>
+                      <div style={{fontSize:11,fontWeight:700,color:"#94a3b8",marginBottom:4}}>BULK MARK</div>
+                      <div style={{display:"flex",gap:8}}>
+                        <button onClick={()=>students.forEach(s=>setAttData(prev=>({...prev,[sel.code]:{...prev[sel.code],[s.roll]:{...(prev[sel.code]?.[s.roll]||{}),[selAttDate]:"P"}}})))}
+                          style={{padding:"7px 16px",background:"#dcfce7",border:"1px solid #86efac",borderRadius:8,cursor:"pointer",fontSize:12,fontWeight:700,color:"#16a34a",display:"flex",alignItems:"center",gap:5}}>
+                          ✓ All Present
+                        </button>
+                        <button onClick={()=>students.forEach(s=>setAttData(prev=>({...prev,[sel.code]:{...prev[sel.code],[s.roll]:{...(prev[sel.code]?.[s.roll]||{}),[selAttDate]:"A"}}})))}
+                          style={{padding:"7px 16px",background:"#fee2e2",border:"1px solid #fca5a5",borderRadius:8,cursor:"pointer",fontSize:12,fontWeight:700,color:"#dc2626",display:"flex",alignItems:"center",gap:5}}>
+                          ✕ All Absent
+                        </button>
+                      </div>
+                    </div>
+                    <div style={{marginLeft:"auto",textAlign:"right"}}>
+                      <div style={{fontSize:11,color:"#94a3b8",fontWeight:600}}>
+                        {students.filter(s=>(attData[sel.code]?.[s.roll]?.[selAttDate]||"P")==="P").length}/{students.length} Present
+                      </div>
+                      <div style={{fontSize:11,color:"#94a3b8"}}>
+                        {students.filter(s=>(attData[sel.code]?.[s.roll]?.[selAttDate]||"P")==="A").length} Absent &nbsp;·&nbsp;
+                        {students.filter(s=>(attData[sel.code]?.[s.roll]?.[selAttDate]||"P")==="L").length} Leave
+                      </div>
+                    </div>
                   </div>
-                  <table style={{borderCollapse:"collapse",fontSize:12,width:"100%"}}>
-                    <thead>
-                      <tr style={{background:"#f8fafc"}}>
-                        <th style={{padding:"8px 12px",textAlign:"left",fontWeight:600,color:"#475569",borderBottom:"2px solid #e2e8f0",minWidth:130}}>Student</th>
-                        {classDates.map(d=>(
-                          <th key={d} style={{padding:"8px 8px",textAlign:"center",fontWeight:600,color:"#475569",borderBottom:"2px solid #e2e8f0",minWidth:54,fontSize:11}}>{d}</th>
-                        ))}
-                        <th style={{padding:"8px 10px",textAlign:"center",fontWeight:600,color:"#475569",borderBottom:"2px solid #e2e8f0"}}>%</th>
-                        <th style={{padding:"8px 10px",textAlign:"center",fontWeight:600,color:"#475569",borderBottom:"2px solid #e2e8f0"}}>Status</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {students.map((s,i)=>{
-                        const pct = getAttPct(sel.code,s.roll);
-                        return (
-                          <tr key={s.roll} style={{borderBottom:"1px solid #f1f5f9",background:i%2===0?"#fff":"#fafbff"}}>
-                            <td style={{padding:"8px 12px"}}>
-                              <div style={{fontWeight:600,fontSize:12,color:"#0f172a"}}>{s.name}</div>
-                              <div style={{fontSize:10,color:"#94a3b8"}}>{s.roll}</div>
-                            </td>
-                            {classDates.map(d=>{
-                              const status = attData[sel.code]?.[s.roll]?.[d]||"P";
-                              const sc = attStatusColor(status);
-                              return (
-                                <td key={d} style={{padding:"6px 4px",textAlign:"center"}}>
-                                  <div onClick={()=>toggleAtt(sel.code,s.roll,d)}
-                                    style={{display:"inline-flex",alignItems:"center",justifyContent:"center",width:32,height:26,borderRadius:5,cursor:"pointer",fontWeight:700,fontSize:11,background:sc.bg,color:sc.c,userSelect:"none",transition:"all .1s"}}>
-                                    {status}
-                                  </div>
-                                </td>
-                              );
-                            })}
-                            <td style={{padding:"8px 10px",textAlign:"center",fontWeight:700,color:pct>=75?"#10b981":pct>=65?"#f59e0b":"#ef4444"}}>{pct}%</td>
-                            <td style={{padding:"8px 10px",textAlign:"center"}}>
-                              <span style={{padding:"2px 8px",borderRadius:6,fontSize:11,fontWeight:700,
-                                background:pct>=75?"#dcfce7":pct>=65?"#fef9c3":"#fee2e2",
-                                color:pct>=75?"#16a34a":pct>=65?"#ca8a04":"#dc2626"}}>
-                                {pct>=75?"Safe":pct>=65?"Warning":"Short"}
-                              </span>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                  <div style={{marginTop:12,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                    {attSaved&&<div style={{background:"#dcfce7",border:"1px solid #86efac",borderRadius:8,padding:"8px 14px",fontSize:12,color:"#16a34a",fontWeight:600}}>✅ Attendance saved successfully!</div>}
+
+                  {/* Student list — one row per student, big P/A/L toggle */}
+                  <div style={{display:"flex",flexDirection:"column",gap:8}}>
+                    {students.map((s,i)=>{
+                      const status = attData[sel.code]?.[s.roll]?.[selAttDate]||"P";
+                      const pct = getAttPct(sel.code,s.roll);
+                      return (
+                        <div key={s.roll} style={{display:"flex",alignItems:"center",gap:12,background:"#fff",border:"1px solid #e2e8f0",borderRadius:10,padding:"10px 14px",
+                          borderLeft:`4px solid ${status==="P"?"#10b981":status==="A"?"#ef4444":"#f59e0b"}`}}>
+                          {/* Avatar + name */}
+                          <div style={{width:36,height:36,borderRadius:"50%",background:"linear-gradient(135deg,#6366f1,#8b5cf6)",display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",fontSize:14,fontWeight:700,flexShrink:0}}>
+                            {s.name[0]}
+                          </div>
+                          <div style={{flex:1,minWidth:0}}>
+                            <div style={{fontWeight:600,fontSize:13,color:"#0f172a"}}>{s.name}</div>
+                            <div style={{fontSize:11,color:"#94a3b8"}}>{s.roll} &nbsp;·&nbsp; Overall: <span style={{fontWeight:700,color:pct>=75?"#10b981":pct>=65?"#f59e0b":"#ef4444"}}>{pct}%</span></div>
+                          </div>
+                          {/* P / A / L toggle buttons */}
+                          <div style={{display:"flex",gap:6,flexShrink:0}}>
+                            {[["P","Present","#10b981","#dcfce7"],["A","Absent","#ef4444","#fee2e2"],["L","Leave","#f59e0b","#fef9c3"]].map(([val,tip,c,bg])=>(
+                              <button key={val} title={tip}
+                                onClick={()=>setAttData(prev=>({...prev,[sel.code]:{...prev[sel.code],[s.roll]:{...(prev[sel.code]?.[s.roll]||{}),[selAttDate]:val}}}))}
+                                style={{width:40,height:36,borderRadius:8,border:`2px solid ${status===val?c:"#e2e8f0"}`,cursor:"pointer",fontSize:13,fontWeight:800,
+                                  background:status===val?bg:"#fff",color:status===val?c:"#cbd5e1",transition:"all .12s"}}>
+                                {val}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  <div style={{marginTop:14,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                    {attSaved&&<div style={{background:"#dcfce7",border:"1px solid #86efac",borderRadius:8,padding:"8px 14px",fontSize:12,color:"#16a34a",fontWeight:600}}>✅ Attendance saved for {selAttDate}!</div>}
                     {!attSaved&&<div/>}
                     <button onClick={()=>{setAttSaved(true);setTimeout(()=>setAttSaved(false),3000);}}
-                      style={{padding:"8px 20px",background:"linear-gradient(135deg,#6366f1,#8b5cf6)",color:"#fff",border:"none",borderRadius:8,fontWeight:600,cursor:"pointer",fontSize:13}}>
+                      style={{padding:"9px 22px",background:"linear-gradient(135deg,#6366f1,#8b5cf6)",color:"#fff",border:"none",borderRadius:8,fontWeight:600,cursor:"pointer",fontSize:13}}>
                       💾 Save Attendance
                     </button>
                   </div>
