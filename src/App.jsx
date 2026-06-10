@@ -862,58 +862,558 @@ function AttendanceView() {
 
 // ─── Exam View ────────────────────────────────────────────────────────────────
 function ExamView() {
-  const [tab,setTab]=useState("schedule");
-  const schedule=[
-    {date:"Jun 18",subject:"DBMS",code:"CS301",time:"10:00–1:00",room:"201-A"},
-    {date:"Jun 20",subject:"Operating Systems",code:"CS302",time:"10:00–1:00",room:"202-B"},
-    {date:"Jun 22",subject:"Computer Networks",code:"CS303",time:"2:00–5:00",room:"201-A"},
-    {date:"Jun 25",subject:"Theory of Computation",code:"CS304",time:"10:00–1:00",room:"203-C"},
+  const [tab, setTab] = useState("schedule");
+  const [selSem, setSelSem] = useState("5");
+  const [selType, setSelType] = useState("All");
+
+  // Full course catalog per semester — Theory(T), Lab(L), Elective(E), Project(P)
+  const semData = {
+    "1": {
+      sem:1, year:1, parity:"Odd", session:"Autumn 2024",
+      courses:[
+        {code:"MA101",name:"Engineering Mathematics I",type:"T",credits:4,internal:28,external:62,total:90,grade:"O"},
+        {code:"PH101",name:"Engineering Physics",type:"T",credits:3,internal:22,external:55,total:77,grade:"A+"},
+        {code:"CS101",name:"Programming in C",type:"T",credits:3,internal:25,external:58,total:83,grade:"A"},
+        {code:"CS101L",name:"Programming Lab",type:"L",credits:2,internal:18,external:32,total:50,grade:"O"},
+        {code:"ME101",name:"Engineering Drawing",type:"T",credits:2,internal:20,external:45,total:65,grade:"B+"},
+        {code:"HS101",name:"English Communication",type:"T",credits:2,internal:24,external:52,total:76,grade:"A+"},
+      ],
+      schedule:[
+        {date:"Nov 15",code:"MA101",name:"Engineering Mathematics I",type:"T",time:"10:00–1:00",room:"LH-101"},
+        {date:"Nov 17",code:"PH101",name:"Engineering Physics",type:"T",time:"10:00–1:00",room:"LH-102"},
+        {date:"Nov 19",code:"CS101",name:"Programming in C",type:"T",time:"10:00–1:00",room:"LH-103"},
+        {date:"Nov 21",code:"ME101",name:"Engineering Drawing",type:"T",time:"2:00–5:00",room:"LH-101"},
+        {date:"Nov 23",code:"HS101",name:"English Communication",type:"T",time:"10:00–1:00",room:"LH-202"},
+        {date:"Nov 25",code:"CS101L",name:"Programming Lab",type:"L",time:"10:00–1:00",room:"CS Lab-1"},
+      ],
+    },
+    "2": {
+      sem:2, year:1, parity:"Even", session:"Spring 2025",
+      courses:[
+        {code:"MA102",name:"Engineering Mathematics II",type:"T",credits:4,internal:26,external:60,total:86,grade:"A+"},
+        {code:"CH101",name:"Engineering Chemistry",type:"T",credits:3,internal:21,external:50,total:71,grade:"A"},
+        {code:"CS102",name:"Data Structures",type:"T",credits:4,internal:27,external:65,total:92,grade:"O"},
+        {code:"CS102L",name:"Data Structures Lab",type:"L",credits:2,internal:19,external:30,total:49,grade:"A+"},
+        {code:"EC101",name:"Basic Electronics",type:"T",credits:3,internal:18,external:44,total:62,grade:"B+"},
+        {code:"ME102",name:"Workshop Practice",type:"L",credits:2,internal:20,external:28,total:48,grade:"A"},
+      ],
+      schedule:[
+        {date:"May 10",code:"MA102",name:"Engineering Mathematics II",type:"T",time:"10:00–1:00",room:"LH-101"},
+        {date:"May 12",code:"CH101",name:"Engineering Chemistry",type:"T",time:"10:00–1:00",room:"LH-104"},
+        {date:"May 14",code:"CS102",name:"Data Structures",type:"T",time:"10:00–1:00",room:"LH-102"},
+        {date:"May 16",code:"EC101",name:"Basic Electronics",type:"T",time:"2:00–5:00",room:"LH-103"},
+        {date:"May 18",code:"CS102L",name:"Data Structures Lab",type:"L",time:"10:00–1:00",room:"CS Lab-2"},
+        {date:"May 20",code:"ME102",name:"Workshop Practice",type:"L",time:"2:00–5:00",room:"Workshop"},
+      ],
+    },
+    "3": {
+      sem:3, year:2, parity:"Odd", session:"Autumn 2025",
+      courses:[
+        {code:"CS201",name:"Discrete Mathematics",type:"T",credits:4,internal:24,external:56,total:80,grade:"A+"},
+        {code:"CS202",name:"Digital Logic Design",type:"T",credits:3,internal:22,external:50,total:72,grade:"A"},
+        {code:"CS203",name:"OOP with Java",type:"T",credits:4,internal:28,external:62,total:90,grade:"O"},
+        {code:"CS203L",name:"Java Lab",type:"L",credits:2,internal:20,external:30,total:50,grade:"O"},
+        {code:"MA201",name:"Probability & Statistics",type:"T",credits:3,internal:19,external:48,total:67,grade:"B+"},
+        {code:"CS204",name:"Computer Organization",type:"T",credits:3,internal:21,external:52,total:73,grade:"A"},
+      ],
+      schedule:[
+        {date:"Nov 14",code:"CS201",name:"Discrete Mathematics",type:"T",time:"10:00–1:00",room:"LH-201"},
+        {date:"Nov 16",code:"CS202",name:"Digital Logic Design",type:"T",time:"10:00–1:00",room:"LH-202"},
+        {date:"Nov 18",code:"CS203",name:"OOP with Java",type:"T",time:"10:00–1:00",room:"LH-203"},
+        {date:"Nov 20",code:"MA201",name:"Probability & Statistics",type:"T",time:"2:00–5:00",room:"LH-201"},
+        {date:"Nov 22",code:"CS204",name:"Computer Organization",type:"T",time:"10:00–1:00",room:"LH-202"},
+        {date:"Nov 24",code:"CS203L",name:"Java Lab",type:"L",time:"10:00–1:00",room:"CS Lab-1"},
+      ],
+    },
+    "4": {
+      sem:4, year:2, parity:"Even", session:"Spring 2025",
+      courses:[
+        {code:"CS211",name:"Design & Analysis of Algorithms",type:"T",credits:4,internal:25,external:58,total:83,grade:"A"},
+        {code:"CS212",name:"Database Management Systems",type:"T",credits:4,internal:27,external:62,total:89,grade:"O"},
+        {code:"CS212L",name:"DBMS Lab",type:"L",credits:2,internal:19,external:29,total:48,grade:"A+"},
+        {code:"CS213",name:"Software Engineering",type:"T",credits:3,internal:22,external:54,total:76,grade:"A+"},
+        {code:"CS214E",name:"Web Technologies (Elective)",type:"E",credits:3,internal:24,external:56,total:80,grade:"A+"},
+        {code:"CS215",name:"Mini Project",type:"P",credits:2,internal:40,external:0,total:40,grade:"O"},
+      ],
+      schedule:[
+        {date:"May 8",code:"CS211",name:"Design & Analysis of Algorithms",type:"T",time:"10:00–1:00",room:"LH-201"},
+        {date:"May 10",code:"CS212",name:"Database Management Systems",type:"T",time:"10:00–1:00",room:"LH-202"},
+        {date:"May 12",code:"CS213",name:"Software Engineering",type:"T",time:"2:00–5:00",room:"LH-203"},
+        {date:"May 14",code:"CS214E",name:"Web Technologies",type:"E",time:"10:00–1:00",room:"LH-204"},
+        {date:"May 16",code:"CS212L",name:"DBMS Lab",type:"L",time:"10:00–1:00",room:"DB Lab"},
+        {date:"May 18",code:"CS215",name:"Mini Project Viva",type:"P",time:"10:00–1:00",room:"Seminar Hall"},
+      ],
+    },
+    "5": {
+      sem:5, year:3, parity:"Odd", session:"Autumn 2025",
+      courses:[
+        {code:"CS301",name:"Database Management Systems",type:"T",credits:4,internal:null,external:null,total:null,grade:null},
+        {code:"CS302",name:"Operating Systems",type:"T",credits:4,internal:null,external:null,total:null,grade:null},
+        {code:"CS303",name:"Computer Networks",type:"T",credits:4,internal:null,external:null,total:null,grade:null},
+        {code:"CS304",name:"Theory of Computation",type:"T",credits:3,internal:null,external:null,total:null,grade:null},
+        {code:"CS305",name:"Software Engineering",type:"T",credits:3,internal:null,external:null,total:null,grade:null},
+        {code:"CS301L",name:"DBMS Lab",type:"L",credits:2,internal:null,external:null,total:null,grade:null},
+        {code:"CS306E",name:"Machine Learning (Elective)",type:"E",credits:3,internal:null,external:null,total:null,grade:null},
+      ],
+      schedule:[
+        {date:"Jun 18",code:"CS301",name:"Database Management Systems",type:"T",time:"10:00–1:00",room:"201-A"},
+        {date:"Jun 20",code:"CS302",name:"Operating Systems",type:"T",time:"10:00–1:00",room:"202-B"},
+        {date:"Jun 22",code:"CS303",name:"Computer Networks",type:"T",time:"2:00–5:00",room:"201-A"},
+        {date:"Jun 25",code:"CS304",name:"Theory of Computation",type:"T",time:"10:00–1:00",room:"203-C"},
+        {date:"Jun 27",code:"CS305",name:"Software Engineering",type:"T",time:"2:00–5:00",room:"201-A"},
+        {date:"Jun 28",code:"CS306E",name:"Machine Learning",type:"E",time:"10:00–1:00",room:"204-D"},
+        {date:"Jun 30",code:"CS301L",name:"DBMS Lab Practical",type:"L",time:"10:00–1:00",room:"DB Lab"},
+      ],
+    },
+  };
+
+  const allSems = Object.keys(semData);
+  const current = semData[selSem];
+  const typeLabel = {T:"Theory",L:"Lab/Practical",E:"Elective",P:"Project"};
+  const typeColor = {T:"#6366f1",L:"#f59e0b",E:"#10b981",P:"#8b5cf6"};
+  const gradeColor = g => !g?null:g==="O"||g==="A+"?"#10b981":g==="A"||g==="B+"?"#6366f1":g==="B"?"#f59e0b":"#ef4444";
+
+  const filteredCourses = current.courses.filter(c => selType==="All"||c.type===selType);
+  const filteredSchedule = current.schedule.filter(c => selType==="All"||c.type===selType);
+
+  const sgpa = current.courses[0]?.total !== null
+    ? (current.courses.filter(c=>c.total).reduce((a,c)=>a+c.total,0)/current.courses.filter(c=>c.total).length/10).toFixed(1)
+    : null;
+
+  // Previous sem results summary
+  const prevResults = [
+    {sem:"Sem 4 — Spring 2025",sgpa:"8.9",cgpa:"8.6",status:"Pass",parity:"Even"},
+    {sem:"Sem 3 — Autumn 2025",sgpa:"8.4",cgpa:"8.3",status:"Pass",parity:"Odd"},
+    {sem:"Sem 2 — Spring 2025",sgpa:"8.0",cgpa:"8.1",status:"Pass",parity:"Even"},
+    {sem:"Sem 1 — Autumn 2024",sgpa:"8.1",cgpa:"8.1",status:"Pass",parity:"Odd"},
   ];
+
   return (
-    <Widget title="Examination">
-      <div style={{display:"flex",gap:8,marginBottom:14}}>
-        {["schedule","results"].map(t=>(
-          <button key={t} onClick={()=>setTab(t)} style={{padding:"6px 16px",border:"1px solid #6366f1",borderRadius:2,cursor:"pointer",fontSize:12,fontWeight:600,
-            background:tab===t?"#6366f1":"#fff",color:tab===t?"#fff":"#6366f1"}}>
-            {t==="schedule"?"Exam Schedule":"Results"}
+    <div>
+      {/* Sem selector row */}
+      <div style={{display:"flex",gap:6,marginBottom:14,flexWrap:"wrap",alignItems:"center"}}>
+        <span style={{fontSize:12,fontWeight:700,color:"#475569",marginRight:4}}>SEMESTER:</span>
+        {allSems.map(s=>(
+          <button key={s} onClick={()=>setSelSem(s)}
+            style={{padding:"5px 14px",borderRadius:8,border:"none",cursor:"pointer",fontSize:12,fontWeight:600,
+              background:selSem===s?"linear-gradient(135deg,#6366f1,#8b5cf6)":"#f1f5f9",
+              color:selSem===s?"#fff":"#475569"}}>
+            Sem {s}
           </button>
         ))}
       </div>
-      <table style={{width:"100%",borderCollapse:"collapse",fontSize:13}}>
-        <thead>
-          <tr style={{background:"#6366f1",color:"#fff"}}>
-            {(tab==="schedule"?["Date","Code","Subject","Time","Room"]:["Semester","SGPA","CGPA","Result"]).map(h=>(
-              <th key={h} style={{padding:"7px 10px",textAlign:"left",fontSize:12}}>{h}</th>
+
+      {/* Meta bar */}
+      <div style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:10,padding:"12px 16px",marginBottom:14,display:"flex",gap:20,alignItems:"center",flexWrap:"wrap"}}>
+        <div style={{display:"flex",gap:6,alignItems:"center"}}>
+          <span style={{fontSize:11,color:"#94a3b8",fontWeight:700}}>SESSION</span>
+          <span style={{fontWeight:700,color:"#334155",fontSize:13}}>{current.session}</span>
+        </div>
+        <div style={{display:"flex",gap:6,alignItems:"center"}}>
+          <span style={{fontSize:11,color:"#94a3b8",fontWeight:700}}>YEAR</span>
+          <span style={{fontWeight:700,color:"#334155",fontSize:13}}>{current.year}{current.year===1?"st":current.year===2?"nd":current.year===3?"rd":"th"} Year</span>
+        </div>
+        <div style={{display:"flex",gap:6,alignItems:"center"}}>
+          <span style={{fontSize:11,color:"#94a3b8",fontWeight:700}}>PARITY</span>
+          <span style={{padding:"2px 10px",borderRadius:6,fontSize:12,fontWeight:700,
+            background:current.parity==="Odd"?"#eef2ff":"#f0fdf4",
+            color:current.parity==="Odd"?"#6366f1":"#16a34a"}}>{current.parity} Semester</span>
+        </div>
+        {sgpa&&<div style={{display:"flex",gap:6,alignItems:"center",marginLeft:"auto"}}>
+          <span style={{fontSize:11,color:"#94a3b8",fontWeight:700}}>SGPA</span>
+          <span style={{fontWeight:800,color:"#6366f1",fontSize:16}}>{sgpa}</span>
+        </div>}
+      </div>
+
+      {/* Tabs + type filter */}
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12,flexWrap:"wrap",gap:8}}>
+        <div style={{display:"flex",gap:4,background:"#f1f5f9",borderRadius:8,padding:3}}>
+          {[["schedule","📋 Exam Schedule"],["courses","📚 Courses & Marks"],["results","🏆 All Results"]].map(([t,l])=>(
+            <button key={t} onClick={()=>setTab(t)}
+              style={{padding:"7px 14px",border:"none",borderRadius:6,cursor:"pointer",fontSize:12,fontWeight:600,
+                background:tab===t?"linear-gradient(135deg,#6366f1,#8b5cf6)":"transparent",
+                color:tab===t?"#fff":"#64748b"}}>
+              {l}
+            </button>
+          ))}
+        </div>
+        {tab!=="results"&&(
+          <div style={{display:"flex",gap:6,alignItems:"center"}}>
+            <span style={{fontSize:11,color:"#64748b",fontWeight:600}}>FILTER:</span>
+            {["All","T","L","E","P"].map(t=>(
+              <button key={t} onClick={()=>setSelType(t)}
+                style={{padding:"4px 10px",borderRadius:6,border:"none",cursor:"pointer",fontSize:11,fontWeight:600,
+                  background:selType===t?(typeColor[t]||"#6366f1"):"#f1f5f9",
+                  color:selType===t?"#fff":"#475569"}}>
+                {t==="All"?"All":typeLabel[t]}
+              </button>
             ))}
-          </tr>
-        </thead>
-        <tbody>
-          {tab==="schedule"&&schedule.map((e,i)=>(
-            <tr key={i} style={{borderBottom:"1px solid #eee",background:i%2===0?"#f9f9f9":"#fff"}}>
-              <td style={{padding:"8px 10px",fontWeight:700,color:"#6366f1"}}>{e.date}</td>
-              <td style={{padding:"8px 10px",color:"#555"}}>{e.code}</td>
-              <td style={{padding:"8px 10px",color:"#333",fontWeight:500}}>{e.subject}</td>
-              <td style={{padding:"8px 10px",color:"#555"}}>{e.time}</td>
-              <td style={{padding:"8px 10px",color:"#333"}}>{e.room}</td>
-            </tr>
+          </div>
+        )}
+      </div>
+
+      {/* Exam Schedule */}
+      {tab==="schedule"&&(
+        <div style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:12,overflow:"hidden"}}>
+          <div style={{background:"linear-gradient(135deg,#6366f1,#8b5cf6)",padding:"11px 16px",color:"#fff",fontWeight:700,fontSize:13}}>
+            End Semester Exam Schedule — Sem {selSem} ({current.session})
+          </div>
+          <table style={{width:"100%",borderCollapse:"collapse",fontSize:13}}>
+            <thead>
+              <tr style={{background:"#f8fafc"}}>
+                {["Date","Code","Subject","Type","Time","Room No."].map(h=>(
+                  <th key={h} style={{padding:"9px 14px",textAlign:"left",fontWeight:600,color:"#475569",fontSize:12,borderBottom:"1px solid #e2e8f0"}}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {filteredSchedule.map((e,i)=>(
+                <tr key={i} style={{borderBottom:"1px solid #f1f5f9",background:i%2===0?"#fff":"#fafbff"}}>
+                  <td style={{padding:"10px 14px",fontWeight:700,color:"#6366f1"}}>{e.date}</td>
+                  <td style={{padding:"10px 14px",fontWeight:600,color:"#334155"}}>{e.code}</td>
+                  <td style={{padding:"10px 14px",color:"#0f172a",fontWeight:500}}>{e.name}</td>
+                  <td style={{padding:"10px 14px"}}>
+                    <span style={{padding:"2px 8px",borderRadius:6,fontSize:11,fontWeight:700,background:(typeColor[e.type]||"#6366f1")+"20",color:typeColor[e.type]||"#6366f1"}}>{typeLabel[e.type]}</span>
+                  </td>
+                  <td style={{padding:"10px 14px",color:"#64748b"}}>{e.time}</td>
+                  <td style={{padding:"10px 14px",fontWeight:600,color:"#334155"}}>{e.room}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* Courses & Marks */}
+      {tab==="courses"&&(
+        <div style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:12,overflow:"hidden"}}>
+          <div style={{background:"linear-gradient(135deg,#6366f1,#8b5cf6)",padding:"11px 16px",color:"#fff",fontWeight:700,fontSize:13}}>
+            Course Details & Marks — Sem {selSem} ({current.session})
+          </div>
+          <table style={{width:"100%",borderCollapse:"collapse",fontSize:13}}>
+            <thead>
+              <tr style={{background:"#f8fafc"}}>
+                {["Code","Course Name","Type","Credits","Internal","External","Total","Grade"].map(h=>(
+                  <th key={h} style={{padding:"9px 14px",textAlign:"left",fontWeight:600,color:"#475569",fontSize:12,borderBottom:"1px solid #e2e8f0"}}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {filteredCourses.map((c,i)=>(
+                <tr key={c.code} style={{borderBottom:"1px solid #f1f5f9",background:i%2===0?"#fff":"#fafbff"}}>
+                  <td style={{padding:"10px 14px",fontWeight:700,color:"#6366f1"}}>{c.code}</td>
+                  <td style={{padding:"10px 14px",color:"#0f172a",fontWeight:500}}>{c.name}</td>
+                  <td style={{padding:"10px 14px"}}>
+                    <span style={{padding:"2px 8px",borderRadius:6,fontSize:11,fontWeight:700,background:(typeColor[c.type])+"20",color:typeColor[c.type]}}>{typeLabel[c.type]}</span>
+                  </td>
+                  <td style={{padding:"10px 14px",textAlign:"center",color:"#475569",fontWeight:600}}>{c.credits}</td>
+                  <td style={{padding:"10px 14px",textAlign:"center",color:"#64748b"}}>{c.internal??<span style={{color:"#cbd5e1"}}>—</span>}</td>
+                  <td style={{padding:"10px 14px",textAlign:"center",color:"#64748b"}}>{c.external??<span style={{color:"#cbd5e1"}}>—</span>}</td>
+                  <td style={{padding:"10px 14px",textAlign:"center",fontWeight:700,color:"#0f172a"}}>{c.total??<span style={{fontSize:11,color:"#f59e0b",fontWeight:600}}>Awaited</span>}</td>
+                  <td style={{padding:"10px 14px",textAlign:"center"}}>
+                    {c.grade
+                      ? <span style={{padding:"3px 10px",borderRadius:6,fontWeight:800,fontSize:12,background:(gradeColor(c.grade))+"20",color:gradeColor(c.grade)}}>{c.grade}</span>
+                      : <span style={{fontSize:11,color:"#94a3b8"}}>—</span>}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* All Results */}
+      {tab==="results"&&(
+        <div style={{display:"flex",flexDirection:"column",gap:12}}>
+          {/* Current sem card */}
+          <div style={{background:"linear-gradient(135deg,#6366f1,#8b5cf6)",borderRadius:12,padding:"16px 20px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+            <div>
+              <div style={{color:"rgba(255,255,255,0.8)",fontSize:12,fontWeight:600}}>CURRENT SEMESTER</div>
+              <div style={{color:"#fff",fontSize:16,fontWeight:700,marginTop:2}}>Sem 5 — Autumn 2025 (Odd)</div>
+              <div style={{color:"rgba(255,255,255,0.7)",fontSize:12,marginTop:2}}>Results awaited after exams</div>
+            </div>
+            <div style={{textAlign:"right"}}>
+              <div style={{color:"rgba(255,255,255,0.7)",fontSize:11,fontWeight:600}}>CGPA SO FAR</div>
+              <div style={{color:"#fff",fontSize:28,fontWeight:900}}>8.6</div>
+            </div>
+          </div>
+
+          {prevResults.map((r,i)=>(
+            <div key={i} style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:10,padding:"14px 18px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+              <div>
+                <div style={{fontWeight:700,fontSize:14,color:"#0f172a"}}>{r.sem}</div>
+                <div style={{display:"flex",gap:8,marginTop:4}}>
+                  <span style={{padding:"2px 8px",borderRadius:6,fontSize:11,fontWeight:700,
+                    background:r.parity==="Odd"?"#eef2ff":"#f0fdf4",
+                    color:r.parity==="Odd"?"#6366f1":"#16a34a"}}>{r.parity} Sem</span>
+                  <span style={{padding:"2px 8px",borderRadius:6,fontSize:11,fontWeight:700,background:"#dcfce7",color:"#16a34a"}}>{r.status}</span>
+                </div>
+              </div>
+              <div style={{display:"flex",gap:24,alignItems:"center"}}>
+                <div style={{textAlign:"center"}}>
+                  <div style={{fontSize:10,color:"#94a3b8",fontWeight:700}}>SGPA</div>
+                  <div style={{fontSize:20,fontWeight:800,color:"#6366f1"}}>{r.sgpa}</div>
+                </div>
+                <div style={{textAlign:"center"}}>
+                  <div style={{fontSize:10,color:"#94a3b8",fontWeight:700}}>CGPA</div>
+                  <div style={{fontSize:20,fontWeight:800,color:"#0f172a"}}>{r.cgpa}</div>
+                </div>
+                <button style={{padding:"6px 14px",background:"#f1f5f9",border:"none",borderRadius:8,cursor:"pointer",fontSize:12,fontWeight:600,color:"#475569"}}>
+                  View Marksheet
+                </button>
+              </div>
+            </div>
           ))}
-          {tab==="results"&&[
-            ["Semester 5","8.4","8.1","Pass"],["Semester 4","8.2","8.0","Pass"],["Semester 3","7.9","7.8","Pass"],
-          ].map(([sem,sgpa,cgpa,res],i)=>(
-            <tr key={i} style={{borderBottom:"1px solid #eee",background:i%2===0?"#f9f9f9":"#fff"}}>
-              <td style={{padding:"8px 10px",color:"#333",fontWeight:500}}>{sem}</td>
-              <td style={{padding:"8px 10px",fontWeight:700,color:"#6366f1"}}>{sgpa}</td>
-              <td style={{padding:"8px 10px",fontWeight:700,color:"#1a6b2a"}}>{cgpa}</td>
-              <td style={{padding:"8px 10px"}}><span style={{padding:"2px 10px",background:"#e8f8f0",color:"#27ae60",borderRadius:2,fontSize:11,fontWeight:700}}>{res}</span></td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </Widget>
+        </div>
+      )}
+    </div>
   );
 }
 
 // ─── Fee View ─────────────────────────────────────────────────────────────────
+// ─── Question Papers ──────────────────────────────────────────────────────────
+function QuestionPapers() {
+  const [selDept, setSelDept] = useState("CSE");
+  const [selSem,  setSelSem]  = useState("All");
+  const [selYear, setSelYear] = useState("All");
+  const [downloaded, setDownloaded] = useState(null);
+
+  const depts = ["CSE","ECE","MECH","CIVIL","EEE","MBA"];
+  const sems  = ["1","2","3","4","5","6","7","8"];
+  const years = ["2024","2023","2022","2021","2020","2019"];
+
+  const papers = {
+    CSE:[
+      // Sem 1
+      {sem:"1",code:"MA101",name:"Engineering Mathematics I",  type:"T",year:"2024",pages:8},
+      {sem:"1",code:"MA101",name:"Engineering Mathematics I",  type:"T",year:"2023",pages:7},
+      {sem:"1",code:"MA101",name:"Engineering Mathematics I",  type:"T",year:"2022",pages:8},
+      {sem:"1",code:"PH101",name:"Engineering Physics",        type:"T",year:"2024",pages:6},
+      {sem:"1",code:"PH101",name:"Engineering Physics",        type:"T",year:"2023",pages:6},
+      {sem:"1",code:"CS101",name:"Programming in C",           type:"T",year:"2024",pages:7},
+      {sem:"1",code:"CS101",name:"Programming in C",           type:"T",year:"2023",pages:6},
+      {sem:"1",code:"CS101",name:"Programming in C",           type:"T",year:"2022",pages:7},
+      // Sem 2
+      {sem:"2",code:"MA102",name:"Engineering Mathematics II", type:"T",year:"2024",pages:8},
+      {sem:"2",code:"MA102",name:"Engineering Mathematics II", type:"T",year:"2023",pages:8},
+      {sem:"2",code:"CS102",name:"Data Structures",            type:"T",year:"2024",pages:7},
+      {sem:"2",code:"CS102",name:"Data Structures",            type:"T",year:"2023",pages:6},
+      {sem:"2",code:"CS102",name:"Data Structures",            type:"T",year:"2022",pages:7},
+      {sem:"2",code:"EC101",name:"Basic Electronics",          type:"T",year:"2024",pages:6},
+      // Sem 3
+      {sem:"3",code:"CS201",name:"Discrete Mathematics",       type:"T",year:"2024",pages:7},
+      {sem:"3",code:"CS201",name:"Discrete Mathematics",       type:"T",year:"2023",pages:8},
+      {sem:"3",code:"CS201",name:"Discrete Mathematics",       type:"T",year:"2022",pages:7},
+      {sem:"3",code:"CS201",name:"Discrete Mathematics",       type:"T",year:"2021",pages:6},
+      {sem:"3",code:"CS203",name:"OOP with Java",              type:"T",year:"2024",pages:7},
+      {sem:"3",code:"CS203",name:"OOP with Java",              type:"T",year:"2023",pages:7},
+      {sem:"3",code:"MA201",name:"Probability & Statistics",   type:"T",year:"2024",pages:6},
+      {sem:"3",code:"MA201",name:"Probability & Statistics",   type:"T",year:"2023",pages:6},
+      // Sem 4
+      {sem:"4",code:"CS211",name:"Design & Analysis of Algorithms",type:"T",year:"2024",pages:8},
+      {sem:"4",code:"CS211",name:"Design & Analysis of Algorithms",type:"T",year:"2023",pages:8},
+      {sem:"4",code:"CS211",name:"Design & Analysis of Algorithms",type:"T",year:"2022",pages:7},
+      {sem:"4",code:"CS212",name:"Database Management Systems", type:"T",year:"2024",pages:7},
+      {sem:"4",code:"CS212",name:"Database Management Systems", type:"T",year:"2023",pages:6},
+      {sem:"4",code:"CS213",name:"Software Engineering",        type:"T",year:"2024",pages:6},
+      // Sem 5
+      {sem:"5",code:"CS301",name:"DBMS",                        type:"T",year:"2024",pages:7},
+      {sem:"5",code:"CS301",name:"DBMS",                        type:"T",year:"2023",pages:7},
+      {sem:"5",code:"CS301",name:"DBMS",                        type:"T",year:"2022",pages:8},
+      {sem:"5",code:"CS301",name:"DBMS",                        type:"T",year:"2021",pages:7},
+      {sem:"5",code:"CS302",name:"Operating Systems",           type:"T",year:"2024",pages:7},
+      {sem:"5",code:"CS302",name:"Operating Systems",           type:"T",year:"2023",pages:6},
+      {sem:"5",code:"CS302",name:"Operating Systems",           type:"T",year:"2022",pages:7},
+      {sem:"5",code:"CS303",name:"Computer Networks",           type:"T",year:"2024",pages:6},
+      {sem:"5",code:"CS303",name:"Computer Networks",           type:"T",year:"2023",pages:7},
+      {sem:"5",code:"CS304",name:"Theory of Computation",       type:"T",year:"2024",pages:8},
+      {sem:"5",code:"CS304",name:"Theory of Computation",       type:"T",year:"2023",pages:7},
+      {sem:"5",code:"CS305",name:"Software Engineering",        type:"T",year:"2024",pages:6},
+      // Sem 6
+      {sem:"6",code:"CS401",name:"Compiler Design",             type:"T",year:"2024",pages:7},
+      {sem:"6",code:"CS401",name:"Compiler Design",             type:"T",year:"2023",pages:8},
+      {sem:"6",code:"CS401",name:"Compiler Design",             type:"T",year:"2022",pages:7},
+      {sem:"6",code:"CS402",name:"Artificial Intelligence",     type:"T",year:"2024",pages:8},
+      {sem:"6",code:"CS402",name:"Artificial Intelligence",     type:"T",year:"2023",pages:7},
+      {sem:"6",code:"CS403",name:"Computer Graphics",           type:"T",year:"2024",pages:6},
+      // Sem 7
+      {sem:"7",code:"CS501",name:"Machine Learning",            type:"T",year:"2024",pages:8},
+      {sem:"7",code:"CS501",name:"Machine Learning",            type:"T",year:"2023",pages:7},
+      {sem:"7",code:"CS502",name:"Cloud Computing",             type:"T",year:"2024",pages:7},
+      {sem:"7",code:"CS503",name:"Information Security",        type:"T",year:"2024",pages:8},
+      {sem:"7",code:"CS503",name:"Information Security",        type:"T",year:"2023",pages:7},
+      // Sem 8
+      {sem:"8",code:"CS601",name:"Big Data Analytics",          type:"T",year:"2023",pages:7},
+      {sem:"8",code:"CS602",name:"Internet of Things",          type:"T",year:"2023",pages:6},
+      {sem:"8",code:"CS603",name:"Deep Learning",               type:"T",year:"2023",pages:8},
+    ],
+    ECE:[
+      {sem:"1",code:"MA101",name:"Engineering Mathematics I",type:"T",year:"2024",pages:8},
+      {sem:"3",code:"EC201",name:"Signals & Systems",type:"T",year:"2024",pages:7},
+      {sem:"3",code:"EC201",name:"Signals & Systems",type:"T",year:"2023",pages:6},
+      {sem:"5",code:"EC301",name:"VLSI Design",type:"T",year:"2024",pages:7},
+      {sem:"5",code:"EC302",name:"Digital Communication",type:"T",year:"2024",pages:7},
+      {sem:"5",code:"EC302",name:"Digital Communication",type:"T",year:"2023",pages:6},
+    ],
+    MECH:[
+      {sem:"1",code:"ME101",name:"Engineering Drawing",type:"T",year:"2024",pages:6},
+      {sem:"3",code:"ME201",name:"Thermodynamics",type:"T",year:"2024",pages:8},
+      {sem:"3",code:"ME201",name:"Thermodynamics",type:"T",year:"2023",pages:7},
+      {sem:"5",code:"ME301",name:"Machine Design",type:"T",year:"2024",pages:7},
+    ],
+    CIVIL:[
+      {sem:"3",code:"CE201",name:"Structural Analysis",type:"T",year:"2024",pages:7},
+      {sem:"5",code:"CE301",name:"Geotechnical Engineering",type:"T",year:"2024",pages:6},
+    ],
+    EEE:[
+      {sem:"3",code:"EE201",name:"Electrical Machines",type:"T",year:"2024",pages:7},
+      {sem:"5",code:"EE301",name:"Power Systems",type:"T",year:"2024",pages:8},
+      {sem:"5",code:"EE301",name:"Power Systems",type:"T",year:"2023",pages:7},
+    ],
+    MBA:[
+      {sem:"1",code:"MB101",name:"Management Principles",type:"T",year:"2024",pages:6},
+      {sem:"2",code:"MB201",name:"Financial Accounting",type:"T",year:"2024",pages:7},
+    ],
+  };
+
+  const handleDownload = (p) => {
+    setDownloaded(`${p.code}_${p.name}_${p.year}`);
+    setTimeout(()=>setDownloaded(null), 2500);
+  };
+
+  const deptPapers = papers[selDept] || [];
+  const filtered = deptPapers.filter(p =>
+    (selSem==="All" || p.sem===selSem) &&
+    (selYear==="All" || p.year===selYear)
+  );
+
+  // Group by code+name
+  const grouped = {};
+  filtered.forEach(p => {
+    const key = p.code;
+    if(!grouped[key]) grouped[key] = {code:p.code, name:p.name, sem:p.sem, papers:[]};
+    grouped[key].papers.push(p);
+  });
+
+  // Group by sem for display
+  const bySem = {};
+  Object.values(grouped).forEach(g => {
+    if(!bySem[g.sem]) bySem[g.sem] = [];
+    bySem[g.sem].push(g);
+  });
+
+  const totalCount = filtered.length;
+
+  return (
+    <div>
+      {/* Filters */}
+      <div style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:12,padding:"14px 16px",marginBottom:14}}>
+        <div style={{display:"flex",gap:16,flexWrap:"wrap",alignItems:"flex-start"}}>
+          {/* Department */}
+          <div>
+            <div style={{fontSize:11,fontWeight:700,color:"#94a3b8",marginBottom:6,letterSpacing:0.5}}>DEPARTMENT</div>
+            <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+              {depts.map(d=>(
+                <button key={d} onClick={()=>setSelDept(d)}
+                  style={{padding:"5px 14px",borderRadius:8,border:"none",cursor:"pointer",fontSize:12,fontWeight:600,
+                    background:selDept===d?"linear-gradient(135deg,#6366f1,#8b5cf6)":"#f1f5f9",
+                    color:selDept===d?"#fff":"#475569"}}>
+                  {d}
+                </button>
+              ))}
+            </div>
+          </div>
+          {/* Semester */}
+          <div>
+            <div style={{fontSize:11,fontWeight:700,color:"#94a3b8",marginBottom:6,letterSpacing:0.5}}>SEMESTER</div>
+            <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+              {["All",...sems].map(s=>(
+                <button key={s} onClick={()=>setSelSem(s)}
+                  style={{padding:"5px 12px",borderRadius:8,border:"none",cursor:"pointer",fontSize:12,fontWeight:600,
+                    background:selSem===s?"#6366f1":"#f1f5f9",
+                    color:selSem===s?"#fff":"#475569"}}>
+                  {s==="All"?"All":"Sem "+s}
+                </button>
+              ))}
+            </div>
+          </div>
+          {/* Year */}
+          <div>
+            <div style={{fontSize:11,fontWeight:700,color:"#94a3b8",marginBottom:6,letterSpacing:0.5}}>YEAR</div>
+            <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+              {["All",...years].map(y=>(
+                <button key={y} onClick={()=>setSelYear(y)}
+                  style={{padding:"5px 12px",borderRadius:8,border:"none",cursor:"pointer",fontSize:12,fontWeight:600,
+                    background:selYear===y?"#6366f1":"#f1f5f9",
+                    color:selYear===y?"#fff":"#475569"}}>
+                  {y}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Result count */}
+      <div style={{fontSize:13,color:"#64748b",marginBottom:12,fontWeight:500}}>
+        Showing <strong style={{color:"#6366f1"}}>{totalCount}</strong> paper{totalCount!==1?"s":""} for <strong>{selDept}</strong>
+        {selSem!=="All"?`, Sem ${selSem}`:""}
+        {selYear!=="All"?`, ${selYear}`:""}
+      </div>
+
+      {/* Downloaded toast */}
+      {downloaded&&(
+        <div style={{background:"#dcfce7",border:"1px solid #86efac",borderRadius:8,padding:"10px 14px",marginBottom:12,fontSize:13,color:"#16a34a",fontWeight:600,display:"flex",alignItems:"center",gap:8}}>
+          ✅ Downloading: {downloaded.replace(/_/g," ")}.pdf
+        </div>
+      )}
+
+      {/* Papers grouped by sem */}
+      {Object.keys(bySem).sort((a,b)=>Number(a)-Number(b)).map(sem=>(
+        <div key={sem} style={{marginBottom:16}}>
+          <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:8}}>
+            <div style={{background:"linear-gradient(135deg,#6366f1,#8b5cf6)",color:"#fff",borderRadius:6,padding:"3px 12px",fontSize:12,fontWeight:700}}>
+              Semester {sem}
+            </div>
+            <div style={{height:1,flex:1,background:"#e2e8f0"}}/>
+          </div>
+          {bySem[sem].map(g=>(
+            <div key={g.code} style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:10,padding:"12px 16px",marginBottom:10}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:10}}>
+                <div>
+                  <span style={{fontWeight:700,color:"#6366f1",fontSize:13,marginRight:8}}>{g.code}</span>
+                  <span style={{fontWeight:600,color:"#0f172a",fontSize:14}}>{g.name}</span>
+                </div>
+                <span style={{fontSize:11,color:"#94a3b8"}}>{g.papers.length} paper{g.papers.length>1?"s":""} available</span>
+              </div>
+              <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+                {g.papers.sort((a,b)=>Number(b.year)-Number(a.year)).map((p,i)=>(
+                  <button key={i} onClick={()=>handleDownload(p)}
+                    style={{display:"flex",alignItems:"center",gap:6,padding:"7px 14px",background:"#f8fafc",border:"1px solid #e2e8f0",borderRadius:8,cursor:"pointer",fontSize:12,fontWeight:600,color:"#334155",transition:"all .15s"}}
+                    onMouseEnter={e=>{e.currentTarget.style.background="#eef2ff";e.currentTarget.style.borderColor="#6366f1";e.currentTarget.style.color="#6366f1";}}
+                    onMouseLeave={e=>{e.currentTarget.style.background="#f8fafc";e.currentTarget.style.borderColor="#e2e8f0";e.currentTarget.style.color="#334155";}}>
+                    📄 {p.year}
+                    <span style={{fontSize:10,color:"#94a3b8",fontWeight:400}}>{p.pages}pp</span>
+                    <span style={{fontSize:11,color:"#6366f1",fontWeight:700}}>↓</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      ))}
+
+      {totalCount===0&&(
+        <div style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:12,padding:"48px 0",textAlign:"center"}}>
+          <div style={{fontSize:36,marginBottom:12}}>📂</div>
+          <div style={{fontWeight:700,fontSize:15,color:"#0f172a"}}>No papers found</div>
+          <div style={{color:"#94a3b8",fontSize:13,marginTop:4}}>Try changing the department, semester, or year filters</div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function FeeView() {
   return (
     <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14}}>
@@ -1129,6 +1629,7 @@ function FacultySubjectsView() {
   const [sel, setSel] = useState(null);
   const [modal, setModal] = useState(null);
   const [activeTab, setActiveTab] = useState("students");
+  const [attSaved, setAttSaved] = useState(false);
   const [inbox, setInbox] = useState([
     {from:"Riya Patel",roll:"22CS001",subj:"Query about Assignment #4",msg:"Ma'am, can you clarify the ER diagram requirements?",time:"Jun 8, 9:42 AM",read:false},
     {from:"Amit Kumar",roll:"22CS005",subj:"Lab file submission",msg:"Sir, I submitted the lab file. Please check.",time:"Jun 7, 2:15 PM",read:true},
@@ -1392,8 +1893,11 @@ function FacultySubjectsView() {
                       })}
                     </tbody>
                   </table>
-                  <div style={{marginTop:12,display:"flex",justifyContent:"flex-end"}}>
-                    <button style={{padding:"8px 20px",background:"linear-gradient(135deg,#6366f1,#8b5cf6)",color:"#fff",border:"none",borderRadius:8,fontWeight:600,cursor:"pointer",fontSize:13}}>
+                  <div style={{marginTop:12,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                    {attSaved&&<div style={{background:"#dcfce7",border:"1px solid #86efac",borderRadius:8,padding:"8px 14px",fontSize:12,color:"#16a34a",fontWeight:600}}>✅ Attendance saved successfully!</div>}
+                    {!attSaved&&<div/>}
+                    <button onClick={()=>{setAttSaved(true);setTimeout(()=>setAttSaved(false),3000);}}
+                      style={{padding:"8px 20px",background:"linear-gradient(135deg,#6366f1,#8b5cf6)",color:"#fff",border:"none",borderRadius:8,fontWeight:600,cursor:"pointer",fontSize:13}}>
                       💾 Save Attendance
                     </button>
                   </div>
@@ -1669,7 +2173,7 @@ export default function App() {
 
   const studentViews = {
     dashboard:<StudentDashboard user={auth}/>, attendance:<AttendanceView/>,
-    exam:<ExamView/>, fee:<FeeView/>, assignments:<AssignmentsView/>, notices:<NoticesView/>, timetable:<StudentTimetable/>,
+    exam:<ExamView/>, fee:<FeeView/>, assignments:<AssignmentsView/>, notices:<NoticesView/>, timetable:<StudentTimetable/>, papers:<QuestionPapers/>,
   };
   const facultyViews = {
     dashboard:<FacultyDashboard user={auth}/>, subjects:<FacultySubjectsView/>,
@@ -1718,7 +2222,7 @@ export default function App() {
           <div style={{borderTop:"1px solid #444",marginTop:8,padding:"10px 10px 0"}}>
             <div style={{fontSize:11,color:"#888",fontWeight:700,marginBottom:6,letterSpacing:0.5}}>QUICK LINKS</div>
             {(role==="student"
-              ?[["Dashboard","dashboard"],["Timetable","timetable"],["Attendance","attendance"],["Examination","exam"],["Fee Payment","fee"],["Assignments","assignments"],["Notices","notices"]]
+              ?[["Dashboard","dashboard"],["Timetable","timetable"],["Attendance","attendance"],["Question Papers","papers"],["Examination","exam"],["Fee Payment","fee"],["Assignments","assignments"],["Notices","notices"]]
               :[["Dashboard","dashboard"],["Subjects","subjects"],["Lab","lab"],["Attendance","attendance"],["Evaluation","evaluation"],["Research","research"],["Duty","duty"],["Notices","notices"]]
             ).map(([label,key])=>(
               <div key={key} onClick={()=>setActive(key)}
