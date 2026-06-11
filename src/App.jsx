@@ -314,9 +314,87 @@ function StudentDashboard({ user }) {
         </table>
       </Widget>
 
-      {/* Registered Courses */}
-      <Widget title="Registered Courses [ 2025-26 / Spring ]" style={{gridColumn:"1/3"}}>
-        <div style={{color:"#888",fontSize:13,padding:"20px 0",textAlign:"center"}}>No Records Found...</div>
+      {/* Registered Courses + Timetable */}
+      <Widget title="Registered Courses & Timetable [ 2025-26 / Spring ]" style={{gridColumn:"1/3"}}>
+        {(()=>{
+          const days=["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+          const slots=["9:00–10:00","10:00–11:00","11:00–12:00","12:00–1:00","1:00–2:00","2:00–3:00","3:00–4:00","4:00–5:00"];
+          const today=["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"][new Date().getDay()];
+          const tt={
+            "Monday":   ["CS301·LH-101","CS301·LH-101","—","CS302·LH-102","BREAK","CS304·LH-103","—","—"],
+            "Tuesday":  ["CS303·LH-202","—","CS305·LH-201","—","BREAK","CS301·LH-101","CS301·LH-101","—"],
+            "Wednesday":["—","CS302·LH-102","CS302·LH-102","—","BREAK","CS304·LH-103","CS305·LH-201","—"],
+            "Thursday": ["CS301·LH-101","—","CS303·LH-202","CS303·LH-202","BREAK","—","CS302·LH-102","—"],
+            "Friday":   ["CS305·LH-201","CS304·LH-103","—","CS301·LH-101","BREAK","—","CS303·LH-202","—"],
+            "Saturday": ["CS301L·DBLab","CS301L·DBLab","—","—","BREAK","—","—","—"],
+          };
+          const cc={CS301:"#6366f1",CS302:"#10b981",CS303:"#f59e0b",CS304:"#8b5cf6",CS305:"#ec4899",CS301L:"#14b8a6"};
+          const cn={CS301:"DBMS",CS302:"OS",CS303:"CN",CS304:"TOC",CS305:"SE",CS301L:"DBMS Lab"};
+          const courses=[
+            {code:"CS301",name:"Database Management Systems",credits:4,type:"Core",faculty:"Dr. A. Sharma"},
+            {code:"CS302",name:"Operating Systems",credits:4,type:"Core",faculty:"Prof. S. Das"},
+            {code:"CS303",name:"Computer Networks",credits:4,type:"Core",faculty:"Dr. R. Panda"},
+            {code:"CS304",name:"Theory of Computation",credits:3,type:"Core",faculty:"Dr. K. Rath"},
+            {code:"CS305",name:"Software Engineering",credits:3,type:"Core",faculty:"Prof. M. Behera"},
+            {code:"CS301L",name:"DBMS Lab",credits:2,type:"Lab",faculty:"Dr. A. Sharma"},
+          ];
+          const totalCredits=courses.reduce((a,c)=>a+c.credits,0);
+          return (
+            <div>
+              {/* Course pills */}
+              <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:14,paddingBottom:12,borderBottom:"1px solid #f1f5f9"}}>
+                {courses.map(c=>(
+                  <div key={c.code} style={{display:"flex",alignItems:"center",gap:6,padding:"5px 10px",borderRadius:8,border:`1px solid ${(cc[c.code]||"#6366f1")}30`,background:(cc[c.code]||"#6366f1")+"10"}}>
+                    <div style={{width:8,height:8,borderRadius:"50%",background:cc[c.code]||"#6366f1",flexShrink:0}}/>
+                    <span style={{fontWeight:700,fontSize:11,color:cc[c.code]||"#6366f1"}}>{c.code}</span>
+                    <span style={{fontSize:11,color:"#475569"}}>{c.name}</span>
+                    <span style={{fontSize:10,color:"#94a3b8"}}>{c.credits}cr</span>
+                  </div>
+                ))}
+                <div style={{marginLeft:"auto",fontSize:12,color:"#6366f1",fontWeight:700,alignSelf:"center"}}>Total: {totalCredits} credits</div>
+              </div>
+              {/* Timetable grid */}
+              <div style={{overflowX:"auto"}}>
+                <table style={{width:"100%",borderCollapse:"collapse",fontSize:11,minWidth:620}}>
+                  <thead>
+                    <tr style={{background:"#f8fafc"}}>
+                      <th style={{padding:"6px 8px",textAlign:"left",fontWeight:700,color:"#475569",width:85,borderBottom:"2px solid #e2e8f0"}}>TIME</th>
+                      {days.map(d=>(
+                        <th key={d} style={{padding:"6px 5px",fontWeight:700,fontSize:10,textAlign:"center",borderBottom:"2px solid #e2e8f0",
+                          color:d===today?"#6366f1":"#475569",background:d===today?"#eef2ff":"transparent"}}>
+                          {d.slice(0,3).toUpperCase()}
+                          {d===today&&<div style={{fontSize:8,color:"#6366f1"}}>TODAY</div>}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {slots.map((slot,si)=>(
+                      <tr key={slot} style={{borderBottom:"1px solid #f1f5f9",background:si%2===0?"#fff":"#fafbff"}}>
+                        <td style={{padding:"5px 8px",fontSize:10,fontWeight:600,color:"#64748b",whiteSpace:"nowrap"}}>{slot}</td>
+                        {days.map(d=>{
+                          const cell=(tt[d]||[])[si]||"—";
+                          if(cell==="BREAK") return <td key={d} style={{padding:"4px",textAlign:"center",background:"#fef9c3",fontSize:9,fontWeight:600,color:"#92400e"}}>BREAK</td>;
+                          if(cell==="—") return <td key={d} style={{padding:"4px",textAlign:"center",color:"#e2e8f0",background:d===today?"#f5f6ff":"transparent",fontSize:12}}>—</td>;
+                          const [code,room]=cell.split("·");
+                          const c=cc[code]||"#6366f1";
+                          return (
+                            <td key={d} style={{padding:"3px 4px",background:d===today?"#eef2ff":"transparent"}}>
+                              <div style={{background:c+"15",borderLeft:`3px solid ${c}`,borderRadius:3,padding:"3px 5px"}}>
+                                <div style={{fontWeight:700,fontSize:10,color:c}}>{code}</div>
+                                <div style={{fontSize:9,color:"#94a3b8"}}>{room}</div>
+                              </div>
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          );
+        })()}
       </Widget>
 
       {/* Important Dates */}
@@ -2911,7 +2989,7 @@ export default function App() {
   const views = role==="student" ? studentViews : facultyViews;
 
   const studentSidebarLinks = [
-    ["Dashboard","dashboard"],["Timetable","timetable"],["Attendance","attendance"],
+    ["Dashboard","dashboard"],["Attendance","attendance"],
     ["Question Papers","papers"],["Examination","exam"],["Hall Ticket","hallticket"],
     ["Assignments","assignments"],["Fee Payment","fee"],["Library","library"],
     ["Placement Cell","placement"],["Course Registration","registration"],
