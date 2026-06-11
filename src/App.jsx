@@ -2150,14 +2150,6 @@ function NoticesView() {
 }
 
 // ─── Main App ─────────────────────────────────────────────────────────────────
-export default function App() {
-  const [auth,setAuth]=useState(null);
-  const [role,setRole]=useState(null);
-  const [active,setActive]=useState("dashboard");
-  const [academicOpen,setAcademicOpen]=useState(false);
-
-  if(!auth) return <Login onLogin={(r,u)=>{setRole(r);setAuth(u);setActive("dashboard");}}/>;
-
 // ─── HALL TICKET ─────────────────────────────────────────────────────────────
 function HallTicket({ user }) {
   const [printed, setPrinted] = useState(false);
@@ -2887,13 +2879,19 @@ function FacultyFeedbackView() {
   );
 }
 
-// ─── DARK MODE TOGGLE (state lives in App) ────────────────────────────────────
-// handled in App component
-
+// ─── MAIN APP ─────────────────────────────────────────────────────────────────
+export default function App() {
+  const [auth,setAuth]=useState(null);
+  const [role,setRole]=useState(null);
+  const [active,setActive]=useState("dashboard");
+  const [academicOpen,setAcademicOpen]=useState(false);
   const [darkMode, setDarkMode] = useState(false);
-  const notifs = useNotifications(role);
   const [notifOpen, setNotifOpen] = useState(false);
   const [readNotifs, setReadNotifs] = useState([]);
+
+  if(!auth) return <Login onLogin={(r,u)=>{setRole(r);setAuth(u);setActive("dashboard");}}/>;
+
+  const notifs = useNotifications(role);
   const unreadCount = notifs.filter(n=>!n.read&&!readNotifs.includes(n.id)).length;
 
   const studentViews = {
