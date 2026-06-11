@@ -1464,30 +1464,264 @@ function QuestionPapers() {
 }
 
 function FeeView() {
+  const [tab, setTab] = useState("academic");
+  const [payModal, setPayModal] = useState(null);
+  const [payDone, setPayDone] = useState({});
+
+  const handlePay = (id) => {
+    setTimeout(() => {
+      setPayDone(p => ({...p, [id]: true}));
+      setPayModal(null);
+    }, 1500);
+  };
+
+  // ── Academic / Semester-wise fees ──
+  const semFees = [
+    { sem:"Sem 1 (Autumn 2023)", tuition:80000, exam:3000, dev:5000, lab:3000, library:2000, total:93000, paid:93000, status:"Paid" },
+    { sem:"Sem 2 (Spring 2024)",  tuition:80000, exam:3000, dev:5000, lab:3000, library:2000, total:93000, paid:93000, status:"Paid" },
+    { sem:"Sem 3 (Autumn 2024)", tuition:80000, exam:3000, dev:5000, lab:3000, library:2000, total:93000, paid:93000, status:"Paid" },
+    { sem:"Sem 4 (Spring 2025)",  tuition:80000, exam:3000, dev:5000, lab:3000, library:2000, total:93000, paid:93000, status:"Paid" },
+    { sem:"Sem 5 (Autumn 2025)", tuition:80000, exam:3000, dev:5000, lab:5000, library:2000, total:95000, paid:80000, status:"Partial", due:15000, id:"S5" },
+    { sem:"Sem 6 (Spring 2026)",  tuition:80000, exam:3000, dev:5000, lab:5000, library:2000, total:95000, paid:0,     status:"Due",     due:95000, id:"S6" },
+  ];
+
+  // ── Hostel fees ──
+  const hostelFees = [
+    { period:"2023-24 (Odd Sem)",  room:25000, mess:18000, maintenance:2000, total:45000, paid:45000, status:"Paid" },
+    { period:"2023-24 (Even Sem)", room:25000, mess:18000, maintenance:2000, total:45000, paid:45000, status:"Paid" },
+    { period:"2024-25 (Odd Sem)",  room:27000, mess:20000, maintenance:2000, total:49000, paid:49000, status:"Paid" },
+    { period:"2024-25 (Even Sem)", room:27000, mess:20000, maintenance:2000, total:49000, paid:49000, status:"Paid" },
+    { period:"2025-26 (Odd Sem)",  room:28000, mess:22000, maintenance:2000, total:52000, paid:52000, status:"Paid" },
+    { period:"2025-26 (Even Sem)", room:28000, mess:22000, maintenance:2000, total:52000, paid:0,     status:"Due", due:52000, id:"H6" },
+  ];
+
+  // ── Other academic charges ──
+  const otherFees = [
+    { name:"Admission Fee (One-time)",           amount:10000, paid:10000, status:"Paid", year:"2023" },
+    { name:"Caution Deposit (Refundable)",        amount:5000,  paid:5000,  status:"Paid", year:"2023" },
+    { name:"Alumni Fund",                         amount:1000,  paid:1000,  status:"Paid", year:"2023" },
+    { name:"Insurance (2025-26)",                 amount:500,   paid:500,   status:"Paid", year:"2025" },
+    { name:"Student Welfare Fund (2025-26)",      amount:1000,  paid:0,     status:"Due",  due:1000, id:"O1", year:"2025" },
+    { name:"Sports & Cultural Fee (2025-26)",     amount:2000,  paid:0,     status:"Due",  due:2000, id:"O2", year:"2025" },
+  ];
+
+  const totalPaid   = semFees.reduce((a,f)=>a+f.paid,0) + hostelFees.reduce((a,f)=>a+f.paid,0) + otherFees.reduce((a,f)=>a+f.paid,0);
+  const totalDue    = semFees.reduce((a,f)=>a+(f.due||0),0) + hostelFees.reduce((a,f)=>a+(f.due||0),0) + otherFees.reduce((a,f)=>a+(f.due||0),0);
+
+  const sc = s => s==="Paid"?{bg:"#dcfce7",c:"#16a34a"}:s==="Partial"?{bg:"#fef9c3",c:"#ca8a04"}:{bg:"#fee2e2",c:"#dc2626"};
+
+  const fmt = n => "₹"+n.toLocaleString("en-IN");
+
   return (
-    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14}}>
-      <Widget title="Fee Payment">
-        {[["Tuition Fee","₹80,000","Paid"],["Exam Fee","₹3,000","Paid"],["Development Fee","₹5,000","Due"],["Library Fee","₹2,000","Paid"],["Lab Fee","₹5,000","Due"]].map(([l,a,s],i)=>(
-          <div key={i} style={{display:"flex",justifyContent:"space-between",padding:"9px 0",borderBottom:"1px solid #f0f0f0",fontSize:13}}>
-            <span style={{color:"#444"}}>{l}</span>
-            <div style={{display:"flex",gap:10,alignItems:"center"}}>
-              <span style={{fontWeight:700,color:"#333"}}>{a}</span>
-              <span style={{padding:"2px 8px",borderRadius:2,fontSize:11,fontWeight:700,background:s==="Paid"?"#e8f8f0":"#fdf0f0",color:s==="Paid"?"#27ae60":"#e74c3c"}}>{s}</span>
-            </div>
+    <div>
+      {/* Summary cards */}
+      <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:12,marginBottom:16}}>
+        {[["Total Paid",fmt(totalPaid),"#10b981"],["Total Due",fmt(totalDue),"#ef4444"],["Scholarships Applied","₹50,000","#6366f1"]].map(([l,v,c])=>(
+          <div key={l} style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:10,padding:"14px 16px",borderTop:`4px solid ${c}`}}>
+            <div style={{fontSize:11,fontWeight:700,color:"#94a3b8",marginBottom:4}}>{l}</div>
+            <div style={{fontSize:22,fontWeight:800,color:c}}>{v}</div>
           </div>
         ))}
-      </Widget>
-      <Widget title="Scholarships">
-        {[{name:"SOA Merit Scholarship",amount:"₹20,000/yr",status:"Active"},{name:"AICTE Pragati",amount:"₹30,000/yr",status:"Applied"}].map((s,i)=>(
-          <div key={i} style={{padding:"10px 0",borderBottom:"1px solid #f0f0f0"}}>
-            <div style={{display:"flex",justifyContent:"space-between"}}>
-              <div style={{fontWeight:600,fontSize:13,color:"#333"}}>{s.name}</div>
-              <span style={{padding:"2px 8px",borderRadius:2,fontSize:11,fontWeight:700,background:s.status==="Active"?"#e8f8f0":"#fff8e1",color:s.status==="Active"?"#27ae60":"#f39c12"}}>{s.status}</span>
-            </div>
-            <div style={{fontSize:12,color:"#888",marginTop:3}}>{s.amount}</div>
-          </div>
+      </div>
+
+      {/* Tabs */}
+      <div style={{display:"flex",gap:4,background:"#f1f5f9",borderRadius:8,padding:3,marginBottom:14,width:"fit-content"}}>
+        {[["academic","📚 Academic (Sem-wise)"],["hostel","🏠 Hostel"],["other","📋 Other Charges"],["scholarship","🎓 Scholarships"]].map(([t,l])=>(
+          <button key={t} onClick={()=>setTab(t)}
+            style={{padding:"7px 14px",border:"none",borderRadius:6,cursor:"pointer",fontSize:12,fontWeight:600,
+              background:tab===t?"linear-gradient(135deg,#6366f1,#8b5cf6)":"transparent",
+              color:tab===t?"#fff":"#64748b"}}>
+            {l}
+          </button>
         ))}
-      </Widget>
+      </div>
+
+      {/* ── ACADEMIC TAB ── */}
+      {tab==="academic" && (
+        <div style={{display:"flex",flexDirection:"column",gap:10}}>
+          {semFees.map((f,i)=>{
+            const isPaid = payDone[f.id]||f.status==="Paid";
+            const realStatus = payDone[f.id]?"Paid":f.status;
+            const realDue = payDone[f.id]?0:(f.due||0);
+            const realPaid = payDone[f.id]?f.total:f.paid;
+            return (
+              <div key={i} style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:12,overflow:"hidden"}}>
+                <div style={{padding:"12px 16px",display:"flex",justifyContent:"space-between",alignItems:"center",borderBottom:"1px solid #f1f5f9",background:"#fafbff"}}>
+                  <div style={{fontWeight:700,fontSize:14,color:"#0f172a"}}>{f.sem}</div>
+                  <div style={{display:"flex",gap:10,alignItems:"center"}}>
+                    <span style={{fontSize:13,fontWeight:700,color:"#334155"}}>{fmt(f.total)}</span>
+                    <span style={{padding:"3px 10px",borderRadius:6,fontSize:11,fontWeight:700,background:sc(realStatus).bg,color:sc(realStatus).c}}>{realStatus}</span>
+                    {realDue>0&&<button onClick={()=>setPayModal({...f,realDue})}
+                      style={{padding:"6px 14px",background:"linear-gradient(135deg,#6366f1,#8b5cf6)",color:"#fff",border:"none",borderRadius:8,cursor:"pointer",fontSize:12,fontWeight:600}}>
+                      Pay {fmt(realDue)}
+                    </button>}
+                  </div>
+                </div>
+                <div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",padding:"10px 16px",gap:4}}>
+                  {[["Tuition",f.tuition],["Exam",f.exam],["Development",f.dev],["Lab",f.lab],["Library",f.library]].map(([l,v])=>(
+                    <div key={l} style={{textAlign:"center"}}>
+                      <div style={{fontSize:10,color:"#94a3b8",fontWeight:600}}>{l}</div>
+                      <div style={{fontSize:12,fontWeight:700,color:"#334155"}}>{fmt(v)}</div>
+                    </div>
+                  ))}
+                </div>
+                <div style={{padding:"6px 16px 10px",display:"flex",gap:8,alignItems:"center"}}>
+                  <div style={{flex:1,height:5,background:"#f1f5f9",borderRadius:3}}>
+                    <div style={{width:Math.round(realPaid/f.total*100)+"%",height:"100%",background:"#10b981",borderRadius:3}}/>
+                  </div>
+                  <span style={{fontSize:11,color:"#64748b",whiteSpace:"nowrap"}}>{fmt(realPaid)} paid</span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* ── HOSTEL TAB ── */}
+      {tab==="hostel" && (
+        <div>
+          <div style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:12,padding:"12px 16px",marginBottom:12,display:"flex",gap:16,flexWrap:"wrap"}}>
+            {[["Block","C Block"],["Room No.","C-214"],["Type","Double Sharing"],["Floor","2nd Floor"],["Warden","Mr. R. Nayak"]].map(([l,v])=>(
+              <div key={l}><div style={{fontSize:10,color:"#94a3b8",fontWeight:700}}>{l}</div><div style={{fontSize:13,fontWeight:700,color:"#334155"}}>{v}</div></div>
+            ))}
+          </div>
+          <div style={{display:"flex",flexDirection:"column",gap:10}}>
+            {hostelFees.map((f,i)=>{
+              const isPaid = payDone[f.id]||f.status==="Paid";
+              const realStatus = payDone[f.id]?"Paid":f.status;
+              const realDue = payDone[f.id]?0:(f.due||0);
+              const realPaid = payDone[f.id]?f.total:f.paid;
+              return (
+                <div key={i} style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:12,overflow:"hidden"}}>
+                  <div style={{padding:"12px 16px",display:"flex",justifyContent:"space-between",alignItems:"center",borderBottom:"1px solid #f1f5f9",background:"#fafbff"}}>
+                    <div style={{fontWeight:700,fontSize:14,color:"#0f172a"}}>{f.period}</div>
+                    <div style={{display:"flex",gap:10,alignItems:"center"}}>
+                      <span style={{fontSize:13,fontWeight:700,color:"#334155"}}>{fmt(f.total)}</span>
+                      <span style={{padding:"3px 10px",borderRadius:6,fontSize:11,fontWeight:700,background:sc(realStatus).bg,color:sc(realStatus).c}}>{realStatus}</span>
+                      {realDue>0&&<button onClick={()=>setPayModal({...f,realDue,sem:f.period})}
+                        style={{padding:"6px 14px",background:"linear-gradient(135deg,#6366f1,#8b5cf6)",color:"#fff",border:"none",borderRadius:8,cursor:"pointer",fontSize:12,fontWeight:600}}>
+                        Pay {fmt(realDue)}
+                      </button>}
+                    </div>
+                  </div>
+                  <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",padding:"10px 16px"}}>
+                    {[["Room Rent",f.room],["Mess Charges",f.mess],["Maintenance",f.maintenance]].map(([l,v])=>(
+                      <div key={l} style={{textAlign:"center"}}>
+                        <div style={{fontSize:10,color:"#94a3b8",fontWeight:600}}>{l}</div>
+                        <div style={{fontSize:13,fontWeight:700,color:"#334155"}}>{fmt(v)}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* ── OTHER CHARGES TAB ── */}
+      {tab==="other" && (
+        <div style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:12,overflow:"hidden"}}>
+          <table style={{width:"100%",borderCollapse:"collapse",fontSize:13}}>
+            <thead><tr style={{background:"#f8fafc"}}>
+              {["Fee Name","Year","Amount","Paid","Due","Status","Action"].map(h=>(
+                <th key={h} style={{padding:"10px 14px",textAlign:"left",fontWeight:600,color:"#475569",fontSize:12,borderBottom:"1px solid #e2e8f0"}}>{h}</th>
+              ))}
+            </tr></thead>
+            <tbody>{otherFees.map((f,i)=>{
+              const realStatus = payDone[f.id]?"Paid":f.status;
+              const realDue = payDone[f.id]?0:(f.due||0);
+              return (
+                <tr key={i} style={{borderBottom:"1px solid #f1f5f9",background:i%2===0?"#fff":"#fafbff"}}>
+                  <td style={{padding:"11px 14px",fontWeight:500,color:"#0f172a"}}>{f.name}</td>
+                  <td style={{padding:"11px 14px",color:"#64748b"}}>{f.year}</td>
+                  <td style={{padding:"11px 14px",fontWeight:600,color:"#334155"}}>{fmt(f.amount)}</td>
+                  <td style={{padding:"11px 14px",color:"#10b981",fontWeight:600}}>{fmt(payDone[f.id]?f.amount:f.paid)}</td>
+                  <td style={{padding:"11px 14px",color:realDue>0?"#ef4444":"#94a3b8",fontWeight:600}}>{realDue>0?fmt(realDue):"—"}</td>
+                  <td style={{padding:"11px 14px"}}>
+                    <span style={{padding:"2px 8px",borderRadius:6,fontSize:11,fontWeight:700,background:sc(realStatus).bg,color:sc(realStatus).c}}>{realStatus}</span>
+                  </td>
+                  <td style={{padding:"11px 14px"}}>
+                    {realDue>0&&<button onClick={()=>setPayModal({...f,realDue,sem:f.name})}
+                      style={{padding:"5px 12px",background:"linear-gradient(135deg,#6366f1,#8b5cf6)",color:"#fff",border:"none",borderRadius:7,cursor:"pointer",fontSize:11,fontWeight:600}}>
+                      Pay {fmt(realDue)}
+                    </button>}
+                  </td>
+                </tr>
+              );
+            })}</tbody>
+          </table>
+        </div>
+      )}
+
+      {/* ── SCHOLARSHIP TAB ── */}
+      {tab==="scholarship" && (
+        <div style={{display:"flex",flexDirection:"column",gap:12}}>
+          {[
+            {name:"SOA Merit Scholarship",body:"SOA University",amount:20000,per:"per year",status:"Active",credited:"Jul 2025",next:"Jul 2026",desc:"Awarded for CGPA above 8.5"},
+            {name:"AICTE Pragati Scholarship",body:"AICTE",amount:30000,per:"per year",status:"Applied",credited:"—",next:"Pending verification",desc:"For female students in technical education"},
+            {name:"State Merit Scholarship",body:"Govt. of Odisha",amount:15000,per:"per year",status:"Eligible",credited:"—",next:"Apply before Jul 31",desc:"For students with family income below ₹2.5L"},
+          ].map((s,i)=>(
+            <div key={i} style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:12,padding:"16px 18px"}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8}}>
+                <div>
+                  <div style={{fontWeight:700,fontSize:15,color:"#0f172a"}}>{s.name}</div>
+                  <div style={{fontSize:12,color:"#64748b",marginTop:2}}>{s.body} · {s.desc}</div>
+                </div>
+                <span style={{padding:"3px 10px",borderRadius:6,fontSize:12,fontWeight:700,
+                  background:s.status==="Active"?"#dcfce7":s.status==="Applied"?"#fef9c3":"#eef2ff",
+                  color:s.status==="Active"?"#16a34a":s.status==="Applied"?"#ca8a04":"#6366f1"}}>
+                  {s.status}
+                </span>
+              </div>
+              <div style={{display:"flex",gap:20}}>
+                <div><div style={{fontSize:10,color:"#94a3b8",fontWeight:700}}>AMOUNT</div><div style={{fontSize:16,fontWeight:800,color:"#6366f1"}}>{fmt(s.amount)}<span style={{fontSize:11,fontWeight:400,color:"#94a3b8"}}> / {s.per}</span></div></div>
+                <div><div style={{fontSize:10,color:"#94a3b8",fontWeight:700}}>LAST CREDITED</div><div style={{fontSize:13,fontWeight:600,color:"#334155"}}>{s.credited}</div></div>
+                <div><div style={{fontSize:10,color:"#94a3b8",fontWeight:700}}>NEXT / STATUS</div><div style={{fontSize:13,fontWeight:600,color:"#334155"}}>{s.next}</div></div>
+                {s.status==="Eligible"&&<div style={{marginLeft:"auto",alignSelf:"center"}}>
+                  <button style={{padding:"7px 18px",background:"linear-gradient(135deg,#6366f1,#8b5cf6)",color:"#fff",border:"none",borderRadius:8,cursor:"pointer",fontSize:12,fontWeight:600}}>Apply Now</button>
+                </div>}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* ── PAYMENT MODAL ── */}
+      {payModal&&(
+        <div style={{position:"fixed",inset:0,background:"rgba(15,23,42,0.6)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center"}} onClick={()=>setPayModal(null)}>
+          <div style={{background:"#fff",borderRadius:14,width:420,boxShadow:"0 20px 60px rgba(0,0,0,0.25)",overflow:"hidden"}} onClick={e=>e.stopPropagation()}>
+            <div style={{background:"linear-gradient(135deg,#6366f1,#8b5cf6)",padding:"14px 18px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+              <div style={{color:"#fff",fontWeight:700,fontSize:15}}>💳 Fee Payment</div>
+              <button onClick={()=>setPayModal(null)} style={{background:"rgba(255,255,255,0.2)",border:"none",borderRadius:6,color:"#fff",width:26,height:26,cursor:"pointer"}}>✕</button>
+            </div>
+            <div style={{padding:"20px 22px"}}>
+              <div style={{background:"#f8fafc",borderRadius:8,padding:"12px 14px",marginBottom:16}}>
+                <div style={{fontSize:12,color:"#94a3b8",marginBottom:2}}>Paying for</div>
+                <div style={{fontWeight:700,fontSize:14,color:"#0f172a"}}>{payModal.sem}</div>
+                <div style={{fontSize:22,fontWeight:900,color:"#6366f1",marginTop:4}}>{fmt(payModal.realDue)}</div>
+              </div>
+              <div style={{marginBottom:14}}>
+                <div style={{fontSize:11,fontWeight:700,color:"#475569",marginBottom:6}}>PAYMENT METHOD</div>
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+                  {[["💳 Debit/Credit Card","card"],["📱 UPI","upi"],["🏦 Net Banking","netbank"],["📲 PhonePe / GPay","wallet"]].map(([l,v])=>(
+                    <div key={v} style={{padding:"10px 12px",border:"2px solid #e2e8f0",borderRadius:8,cursor:"pointer",fontSize:12,fontWeight:600,color:"#334155",textAlign:"center"}}
+                      onMouseEnter={e=>e.currentTarget.style.borderColor="#6366f1"}
+                      onMouseLeave={e=>e.currentTarget.style.borderColor="#e2e8f0"}>
+                      {l}
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <button onClick={()=>handlePay(payModal.id)}
+                style={{width:"100%",padding:"12px",background:"linear-gradient(135deg,#6366f1,#8b5cf6)",color:"#fff",border:"none",borderRadius:8,fontWeight:700,cursor:"pointer",fontSize:14}}>
+                ✅ Confirm & Pay {fmt(payModal.realDue)}
+              </button>
+              <div style={{fontSize:11,color:"#94a3b8",textAlign:"center",marginTop:8}}>🔒 Secured by Razorpay · PCI DSS Compliant</div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
