@@ -3212,6 +3212,567 @@ function ForwardForm({ officers, onForward, onCancel }) {
   );
 }
 
+// ─── SERVICES HUB ─────────────────────────────────────────────────────────────
+function ServicesHub({ setActive }) {
+  const services = [
+    { key:"appraisal",    icon:"⭐", label:"Appraisal & Assessment",      desc:"Self-appraisal, performance scores, KPI submission" },
+    { key:"auditorium",   icon:"🎭", label:"Auditorium / LA Booking",     desc:"Book halls, labs, seminar rooms" },
+    { key:"crf",          icon:"🔬", label:"Central Research Facility",   desc:"Equipment booking, CRF usage requests" },
+    { key:"guesthouse",   icon:"🏨", label:"Guest House",                 desc:"Book guest house rooms for visitors" },
+    { key:"fts",          icon:"📁", label:"File Tracking System",        desc:"Track & forward official files" },
+    { key:"health",       icon:"🏥", label:"Health Centre",               desc:"Appointments, medical records" },
+    { key:"purchase",     icon:"🛒", label:"Purchase & Store Section",    desc:"Indent, purchase requests, store items" },
+    { key:"sricce",       icon:"🤝", label:"SRICCE",                      desc:"Industry collaboration, MoU, consultancy" },
+    { key:"internship",   icon:"🎓", label:"Summer Internship",           desc:"Manage student internship approvals" },
+    { key:"swimmingpool", icon:"🏊", label:"Swimming Pool",               desc:"Slot booking, membership management" },
+    { key:"vehicle",      icon:"🚗", label:"Vehicle Requisition",         desc:"Request college vehicle for official duty" },
+    { key:"complaint",    icon:"🔧", label:"Complaint Management",        desc:"Raise & track infrastructure complaints" },
+    { key:"bestaward",    icon:"🏆", label:"Best Performance Award",      desc:"Nominations and award status" },
+    { key:"bogelection",  icon:"🗳️", label:"BOG Member Election",        desc:"Board of Governors election portal" },
+    { key:"clubbooking",  icon:"🏢", label:"Club Booking",                desc:"Book faculty club facilities" },
+    { key:"sac",          icon:"🎯", label:"Student Activity Centre",     desc:"SAC event approvals and scheduling" },
+    { key:"groupemail",   icon:"✉️", label:"Group Email",                 desc:"Send bulk emails to dept/batch/all" },
+  ];
+  return (
+    <div>
+      <div style={{fontWeight:700,fontSize:16,color:"#0f172a",marginBottom:4}}>Services</div>
+      <div style={{fontSize:13,color:"#64748b",marginBottom:16}}>Quick access to all institute services</div>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:12}}>
+        {services.map(s=>(
+          <div key={s.key} onClick={()=>setActive(s.key)}
+            style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:10,padding:"14px 16px",cursor:"pointer",display:"flex",gap:12,alignItems:"flex-start",transition:"all .15s"}}
+            onMouseEnter={e=>{e.currentTarget.style.borderColor="#6366f1";e.currentTarget.style.boxShadow="0 4px 16px rgba(99,102,241,0.1)";}}
+            onMouseLeave={e=>{e.currentTarget.style.borderColor="#e2e8f0";e.currentTarget.style.boxShadow="none";}}>
+            <div style={{fontSize:26,flexShrink:0}}>{s.icon}</div>
+            <div>
+              <div style={{fontWeight:600,fontSize:13,color:"#0f172a"}}>{s.label}</div>
+              <div style={{fontSize:11,color:"#94a3b8",marginTop:2}}>{s.desc}</div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ─── APPRAISAL & ASSESSMENT ───────────────────────────────────────────────────
+function AppraisalView() {
+  const [tab, setTab] = useState("self");
+  const [saved, setSaved] = useState(false);
+  const [scores, setScores] = useState({teaching:4,research:3,admin:3,extension:3,professional:4});
+  const criteria = [
+    {key:"teaching",   label:"Teaching & Learning",   max:5, desc:"Lectures, labs, student feedback score"},
+    {key:"research",   label:"Research & Publications",max:5, desc:"Papers, patents, grants, citations"},
+    {key:"admin",      label:"Administrative Duties",  max:5, desc:"Committee work, HOD duties, mentoring"},
+    {key:"extension",  label:"Extension Activities",   max:5, desc:"Outreach, workshops, FDPs conducted"},
+    {key:"professional",label:"Professional Development",max:5,desc:"Certifications, conferences, MOOC"},
+  ];
+  const total = Object.values(scores).reduce((a,b)=>a+b,0);
+  const maxTotal = criteria.length*5;
+  const pct = Math.round(total/maxTotal*100);
+  const prevYear = [{year:"2024-25",total:18,grade:"Good"},{year:"2023-24",total:21,grade:"Very Good"},{year:"2022-23",total:17,grade:"Good"}];
+  return (
+    <div>
+      <div style={{display:"flex",gap:4,background:"#f1f5f9",borderRadius:8,padding:3,marginBottom:14,width:"fit-content"}}>
+        {[["self","📝 Self Appraisal"],["history","📊 History"]].map(([t,l])=>(
+          <button key={t} onClick={()=>setTab(t)} style={{padding:"7px 16px",border:"none",borderRadius:6,cursor:"pointer",fontSize:12,fontWeight:600,background:tab===t?"linear-gradient(135deg,#6366f1,#8b5cf6)":"transparent",color:tab===t?"#fff":"#64748b"}}>{l}</button>
+        ))}
+      </div>
+      {tab==="self"&&(
+        <div>
+          <div style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:12,padding:"16px 18px",marginBottom:14}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
+              <div><div style={{fontWeight:700,fontSize:15,color:"#0f172a"}}>Self Appraisal — 2025-26</div><div style={{fontSize:12,color:"#64748b"}}>Rate yourself 1–5 on each criterion</div></div>
+              <div style={{textAlign:"center",background:"#eef2ff",borderRadius:10,padding:"10px 16px"}}>
+                <div style={{fontSize:26,fontWeight:900,color:"#6366f1"}}>{total}/{maxTotal}</div>
+                <div style={{fontSize:11,color:"#6366f1",fontWeight:600}}>{pct}% Score</div>
+              </div>
+            </div>
+            {criteria.map(c=>(
+              <div key={c.key} style={{marginBottom:14,padding:"12px 14px",background:"#fafbff",borderRadius:8}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:6}}>
+                  <div><div style={{fontWeight:600,fontSize:13,color:"#0f172a"}}>{c.label}</div><div style={{fontSize:11,color:"#94a3b8"}}>{c.desc}</div></div>
+                  <span style={{fontWeight:800,fontSize:16,color:"#6366f1"}}>{scores[c.key]}/5</span>
+                </div>
+                <div style={{display:"flex",gap:6}}>
+                  {[1,2,3,4,5].map(n=>(
+                    <button key={n} onClick={()=>setScores(s=>({...s,[c.key]:n}))}
+                      style={{flex:1,padding:"8px 0",border:`2px solid ${scores[c.key]>=n?"#6366f1":"#e2e8f0"}`,borderRadius:7,cursor:"pointer",
+                        background:scores[c.key]>=n?"#6366f1":"#fff",color:scores[c.key]>=n?"#fff":"#94a3b8",fontWeight:700,fontSize:12}}>
+                      {n}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ))}
+            {saved&&<div style={{background:"#dcfce7",borderRadius:8,padding:"8px 14px",fontSize:12,color:"#16a34a",fontWeight:600,marginBottom:10}}>✅ Appraisal saved and submitted to HOD!</div>}
+            <button onClick={()=>{setSaved(true);setTimeout(()=>setSaved(false),3000);}} style={{width:"100%",padding:"11px",background:"linear-gradient(135deg,#6366f1,#8b5cf6)",color:"#fff",border:"none",borderRadius:8,fontWeight:600,cursor:"pointer",fontSize:14}}>Submit Appraisal to HOD</button>
+          </div>
+        </div>
+      )}
+      {tab==="history"&&(
+        <div style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:12,overflow:"hidden"}}>
+          <table style={{width:"100%",borderCollapse:"collapse",fontSize:13}}>
+            <thead><tr style={{background:"#f8fafc"}}>{["Year","Score","Max","Grade","Status"].map(h=><th key={h} style={{padding:"10px 14px",textAlign:"left",fontWeight:600,color:"#475569",fontSize:12,borderBottom:"1px solid #e2e8f0"}}>{h}</th>)}</tr></thead>
+            <tbody>{prevYear.map((r,i)=>(
+              <tr key={i} style={{borderBottom:"1px solid #f1f5f9"}}>
+                <td style={{padding:"11px 14px",fontWeight:600,color:"#334155"}}>{r.year}</td>
+                <td style={{padding:"11px 14px",fontWeight:700,color:"#6366f1"}}>{r.total}</td>
+                <td style={{padding:"11px 14px",color:"#64748b"}}>{maxTotal}</td>
+                <td style={{padding:"11px 14px"}}><span style={{padding:"2px 8px",borderRadius:6,fontSize:11,fontWeight:700,background:r.grade==="Very Good"?"#dcfce7":"#fef9c3",color:r.grade==="Very Good"?"#16a34a":"#ca8a04"}}>{r.grade}</span></td>
+                <td style={{padding:"11px 14px"}}><span style={{padding:"2px 8px",borderRadius:6,fontSize:11,fontWeight:700,background:"#dcfce7",color:"#16a34a"}}>Accepted by HOD</span></td>
+              </tr>
+            ))}</tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── AUDITORIUM / ROOM BOOKING ────────────────────────────────────────────────
+function AuditoriumBooking() {
+  const [selected, setSelected] = useState(null);
+  const [booked, setBooked] = useState(false);
+  const [date, setDate] = useState(""); const [slot, setSlot] = useState("9:00–11:00"); const [purpose, setPurpose] = useState("");
+  const venues = [
+    {id:"V1",name:"Main Auditorium",capacity:800,type:"Auditorium",features:["AC","Stage","Sound System","Projector"],bookings:["Jun 14","Jun 18"]},
+    {id:"V2",name:"Seminar Hall A",capacity:200,type:"Seminar Hall",features:["AC","Projector","Whiteboard"],bookings:["Jun 13"]},
+    {id:"V3",name:"Seminar Hall B",capacity:150,type:"Seminar Hall",features:["AC","Projector"],bookings:[]},
+    {id:"V4",name:"Conference Room",capacity:40,type:"Meeting Room",features:["AC","TV Screen","VC Enabled"],bookings:["Jun 15","Jun 16"]},
+    {id:"V5",name:"Open Air Theatre",capacity:500,type:"Outdoor",features:["Stage","Lighting"],bookings:[]},
+    {id:"V6",name:"Language Lab",capacity:60,type:"Lab",features:["Computers","Headsets"],bookings:["Jun 12"]},
+  ];
+  return (
+    <div>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:12,marginBottom:16}}>
+        {venues.map(v=>(
+          <div key={v.id} onClick={()=>{setSelected(v);setBooked(false);}} style={{background:"#fff",border:`2px solid ${selected?.id===v.id?"#6366f1":"#e2e8f0"}`,borderRadius:12,padding:"14px",cursor:"pointer",transition:"all .15s"}}>
+            <div style={{fontWeight:700,fontSize:14,color:"#0f172a",marginBottom:3}}>{v.name}</div>
+            <div style={{fontSize:12,color:"#64748b",marginBottom:6}}>👥 {v.capacity} · {v.type}</div>
+            <div style={{display:"flex",gap:4,flexWrap:"wrap",marginBottom:8}}>{v.features.map(f=><span key={f} style={{fontSize:10,background:"#f1f5f9",color:"#475569",padding:"1px 6px",borderRadius:20}}>{f}</span>)}</div>
+            {v.bookings.length>0&&<div style={{fontSize:10,color:"#f59e0b",fontWeight:600}}>⚠ Booked: {v.bookings.join(", ")}</div>}
+          </div>
+        ))}
+      </div>
+      {selected&&(
+        <div style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:12,padding:"18px 20px"}}>
+          <div style={{fontWeight:700,fontSize:15,color:"#0f172a",marginBottom:12}}>Book — {selected.name}</div>
+          {booked?<div style={{background:"#dcfce7",borderRadius:8,padding:"12px 16px",fontSize:13,color:"#16a34a",fontWeight:600}}>✅ Booking request submitted for {date}, {slot}. Pending Admin approval.</div>:(
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:12}}>
+              <div><label style={{fontSize:11,fontWeight:700,color:"#475569",display:"block",marginBottom:3}}>DATE</label><input type="date" value={date} onChange={e=>setDate(e.target.value)} style={{width:"100%",boxSizing:"border-box",padding:"8px 10px",border:"1px solid #e2e8f0",borderRadius:8,fontSize:13,outline:"none"}}/></div>
+              <div><label style={{fontSize:11,fontWeight:700,color:"#475569",display:"block",marginBottom:3}}>TIME SLOT</label><select value={slot} onChange={e=>setSlot(e.target.value)} style={{width:"100%",padding:"8px 10px",border:"1px solid #e2e8f0",borderRadius:8,fontSize:13,outline:"none",fontFamily:"inherit"}}>{["9:00–11:00","11:00–1:00","2:00–4:00","4:00–6:00","Full Day"].map(s=><option key={s}>{s}</option>)}</select></div>
+              <div><label style={{fontSize:11,fontWeight:700,color:"#475569",display:"block",marginBottom:3}}>PURPOSE</label><input value={purpose} onChange={e=>setPurpose(e.target.value)} placeholder="Event purpose" style={{width:"100%",boxSizing:"border-box",padding:"8px 10px",border:"1px solid #e2e8f0",borderRadius:8,fontSize:13,outline:"none",fontFamily:"inherit"}}/></div>
+              <button onClick={()=>{if(date&&purpose)setBooked(true);}} style={{gridColumn:"1/-1",padding:"10px",background:"linear-gradient(135deg,#6366f1,#8b5cf6)",color:"#fff",border:"none",borderRadius:8,fontWeight:600,cursor:"pointer",fontSize:13}}>Submit Booking Request</button>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── VEHICLE REQUISITION ──────────────────────────────────────────────────────
+function VehicleRequisition() {
+  const [submitted, setSubmitted] = useState(false);
+  const [form, setForm] = useState({destination:"",date:"",time:"",passengers:"",purpose:"",vehicleType:"Mini Bus"});
+  const myRequests = [
+    {id:"VR001",dest:"NIT Rourkela",date:"Jun 5",time:"8:00 AM",vehicle:"Innova",status:"Completed"},
+    {id:"VR002",dest:"Bhubaneswar Airport",date:"Jun 18",time:"6:00 AM",vehicle:"Sedan",status:"Approved"},
+  ];
+  return (
+    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14}}>
+      <div style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:12,padding:"18px 20px"}}>
+        <div style={{fontWeight:700,fontSize:15,color:"#0f172a",marginBottom:14}}>🚗 Request Vehicle</div>
+        {submitted?<div style={{background:"#dcfce7",borderRadius:8,padding:"12px",fontSize:13,color:"#16a34a",fontWeight:600}}>✅ Request submitted! Transport Office will confirm vehicle.</div>:(
+          <div style={{display:"flex",flexDirection:"column",gap:10}}>
+            {[["Destination","destination","text"],["Date","date","date"],["Departure Time","time","time"],["No. of Passengers","passengers","number"],["Purpose","purpose","text"]].map(([l,k,t])=>(
+              <div key={k}><label style={{fontSize:11,fontWeight:700,color:"#475569",display:"block",marginBottom:3}}>{l.toUpperCase()}</label>
+              <input type={t} value={form[k]} onChange={e=>setForm(f=>({...f,[k]:e.target.value}))} style={{width:"100%",boxSizing:"border-box",padding:"8px 10px",border:"1px solid #e2e8f0",borderRadius:8,fontSize:13,outline:"none",fontFamily:"inherit"}}/></div>
+            ))}
+            <div><label style={{fontSize:11,fontWeight:700,color:"#475569",display:"block",marginBottom:3}}>VEHICLE TYPE</label>
+            <select value={form.vehicleType} onChange={e=>setForm(f=>({...f,vehicleType:e.target.value}))} style={{width:"100%",padding:"8px 10px",border:"1px solid #e2e8f0",borderRadius:8,fontSize:13,outline:"none",fontFamily:"inherit"}}>
+              {["Sedan","Innova","Mini Bus","Bus","Auto"].map(v=><option key={v}>{v}</option>)}</select></div>
+            <button onClick={()=>{if(form.destination&&form.date)setSubmitted(true);}} style={{padding:"10px",background:"linear-gradient(135deg,#6366f1,#8b5cf6)",color:"#fff",border:"none",borderRadius:8,fontWeight:600,cursor:"pointer",fontSize:14,marginTop:4}}>Submit Request</button>
+          </div>
+        )}
+      </div>
+      <div style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:12,overflow:"hidden"}}>
+        <div style={{background:"linear-gradient(135deg,#6366f1,#8b5cf6)",padding:"12px 16px",color:"#fff",fontWeight:700,fontSize:13}}>My Requisitions</div>
+        {myRequests.map((r,i)=>(
+          <div key={r.id} style={{padding:"12px 16px",borderBottom:"1px solid #f1f5f9"}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+              <div><div style={{fontWeight:600,fontSize:13,color:"#0f172a"}}>{r.dest}</div><div style={{fontSize:12,color:"#64748b"}}>{r.date} · {r.time} · {r.vehicle}</div></div>
+              <span style={{padding:"2px 8px",borderRadius:6,fontSize:11,fontWeight:700,background:r.status==="Completed"?"#f1f5f9":r.status==="Approved"?"#dcfce7":"#fef9c3",color:r.status==="Completed"?"#64748b":r.status==="Approved"?"#16a34a":"#ca8a04"}}>{r.status}</span>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ─── COMPLAINT MANAGEMENT ─────────────────────────────────────────────────────
+function ComplaintManagement() {
+  const [showForm, setShowForm] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+  const [form, setForm] = useState({category:"Electrical",location:"",subject:"",desc:""});
+  const [complaints, setComplaints] = useState([
+    {id:"CMP001",category:"Electrical",subject:"Short circuit in Faculty Block B Room 214",date:"Jun 8",status:"Resolved",location:"Faculty Block B",assignedTo:"Electrical Dept"},
+    {id:"CMP002",category:"Civil",subject:"Water leakage in corridor near Lab 3",date:"Jun 10",status:"In Progress",location:"Lab Block",assignedTo:"Civil Dept"},
+    {id:"CMP003",category:"IT",subject:"Network port not working in LH-101",date:"Jun 11",status:"Pending",location:"LH-101",assignedTo:"IT Dept"},
+  ]);
+  const statusColor = s=>s==="Resolved"?{bg:"#dcfce7",c:"#16a34a"}:s==="In Progress"?{bg:"#fef9c3",c:"#ca8a04"}:{bg:"#fee2e2",c:"#dc2626"};
+  return (
+    <div>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:10,flex:1,marginRight:14}}>
+          {[["Total",complaints.length,"#6366f1"],["Resolved",complaints.filter(c=>c.status==="Resolved").length,"#10b981"],["Pending",complaints.filter(c=>c.status!=="Resolved").length,"#ef4444"]].map(([l,v,c])=>(
+            <div key={l} style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:8,padding:"10px",textAlign:"center",borderTop:`3px solid ${c}`}}>
+              <div style={{fontSize:20,fontWeight:800,color:c}}>{v}</div><div style={{fontSize:11,color:"#64748b",fontWeight:600}}>{l}</div>
+            </div>
+          ))}
+        </div>
+        <button onClick={()=>setShowForm(true)} style={{padding:"9px 18px",background:"linear-gradient(135deg,#6366f1,#8b5cf6)",color:"#fff",border:"none",borderRadius:8,fontWeight:600,cursor:"pointer",fontSize:13,whiteSpace:"nowrap"}}>+ New Complaint</button>
+      </div>
+      <div style={{display:"flex",flexDirection:"column",gap:10}}>
+        {complaints.map(c=>{const sc=statusColor(c.status);return(
+          <div key={c.id} style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:10,padding:"12px 16px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+            <div><div style={{display:"flex",gap:8,alignItems:"center",marginBottom:3}}><span style={{fontWeight:700,fontSize:13,color:"#0f172a"}}>{c.subject}</span></div>
+            <div style={{fontSize:12,color:"#64748b"}}>{c.category} · {c.location} · {c.date} · Assigned: {c.assignedTo}</div></div>
+            <span style={{padding:"3px 10px",borderRadius:6,fontSize:11,fontWeight:700,background:sc.bg,color:sc.c,flexShrink:0,marginLeft:10}}>{c.status}</span>
+          </div>
+        );})}
+      </div>
+      {showForm&&(
+        <div style={{position:"fixed",inset:0,background:"rgba(15,23,42,0.6)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center"}} onClick={()=>setShowForm(false)}>
+          <div style={{background:"#fff",borderRadius:14,width:460,overflow:"hidden",boxShadow:"0 20px 60px rgba(0,0,0,0.25)"}} onClick={e=>e.stopPropagation()}>
+            <div style={{background:"linear-gradient(135deg,#6366f1,#8b5cf6)",padding:"13px 18px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+              <span style={{color:"#fff",fontWeight:700,fontSize:14}}>🔧 New Complaint</span>
+              <button onClick={()=>setShowForm(false)} style={{background:"rgba(255,255,255,0.2)",border:"none",borderRadius:6,color:"#fff",width:24,height:24,cursor:"pointer"}}>✕</button>
+            </div>
+            {submitted?<div style={{padding:"32px",textAlign:"center"}}><div style={{fontSize:40}}>✅</div><div style={{fontWeight:700,marginTop:8}}>Complaint Registered!</div></div>:(
+              <div style={{padding:"18px 20px",display:"flex",flexDirection:"column",gap:10}}>
+                {[["Category","category","select",["Electrical","Civil","Plumbing","IT","Housekeeping","Other"]],["Location","location","text"],["Subject","subject","text"],["Description","desc","textarea"]].map(([l,k,t,opts])=>(
+                  <div key={k}><label style={{fontSize:11,fontWeight:700,color:"#475569",display:"block",marginBottom:3}}>{l.toUpperCase()}</label>
+                  {t==="select"?<select value={form[k]} onChange={e=>setForm(f=>({...f,[k]:e.target.value}))} style={{width:"100%",padding:"8px 10px",border:"1px solid #e2e8f0",borderRadius:8,fontSize:13,outline:"none",fontFamily:"inherit"}}>{opts.map(o=><option key={o}>{o}</option>)}</select>
+                  :t==="textarea"?<textarea rows={3} value={form[k]} onChange={e=>setForm(f=>({...f,[k]:e.target.value}))} style={{width:"100%",boxSizing:"border-box",padding:"8px 10px",border:"1px solid #e2e8f0",borderRadius:8,fontSize:13,outline:"none",resize:"none",fontFamily:"inherit"}}/>
+                  :<input value={form[k]} onChange={e=>setForm(f=>({...f,[k]:e.target.value}))} style={{width:"100%",boxSizing:"border-box",padding:"8px 10px",border:"1px solid #e2e8f0",borderRadius:8,fontSize:13,outline:"none",fontFamily:"inherit"}}/>}
+                  </div>
+                ))}
+                <button onClick={()=>{if(form.subject){setComplaints(p=>[{id:"CMP00"+(p.length+1),category:form.category,subject:form.subject,date:"Jun 12",status:"Pending",location:form.location||"—",assignedTo:"Pending Assignment"},...p]);setSubmitted(true);setTimeout(()=>{setSubmitted(false);setShowForm(false);setForm({category:"Electrical",location:"",subject:"",desc:""});},2000);}}}
+                  style={{padding:"10px",background:"linear-gradient(135deg,#6366f1,#8b5cf6)",color:"#fff",border:"none",borderRadius:8,fontWeight:600,cursor:"pointer",fontSize:14}}>Submit Complaint</button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── GROUP EMAIL ──────────────────────────────────────────────────────────────
+function GroupEmail() {
+  const [sent, setSent] = useState(false);
+  const [form, setForm] = useState({to:"All CSE Faculty",subject:"",body:"",attachment:""});
+  const groups = ["All CSE Faculty","All Students — CSE 5A","All Students — CSE 5B","All Students — CSE 5C","All PhD Scholars — CSE","All HODs","All Department Faculty","All Students Sem 5","Administrative Staff"];
+  const sentEmails = [
+    {to:"All Students — CSE 5A",subject:"DBMS Assignment Deadline Extended",date:"Jun 10",recipients:52},
+    {to:"All CSE Faculty",subject:"Department Meeting on Jun 14",date:"Jun 8",recipients:18},
+    {to:"All PhD Scholars — CSE",subject:"Research Progress Submission Reminder",date:"Jun 5",recipients:12},
+  ];
+  return (
+    <div style={{display:"grid",gridTemplateColumns:"1.2fr 1fr",gap:14}}>
+      <div style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:12,padding:"18px 20px"}}>
+        <div style={{fontWeight:700,fontSize:15,color:"#0f172a",marginBottom:14}}>✉️ Compose Group Email</div>
+        {sent?<div style={{background:"#dcfce7",borderRadius:8,padding:"14px",textAlign:"center",fontSize:14,color:"#16a34a",fontWeight:700}}>✅ Email sent to {form.to}!</div>:(
+          <div style={{display:"flex",flexDirection:"column",gap:12}}>
+            <div><label style={{fontSize:11,fontWeight:700,color:"#475569",display:"block",marginBottom:3}}>TO GROUP</label>
+            <select value={form.to} onChange={e=>setForm(f=>({...f,to:e.target.value}))} style={{width:"100%",padding:"9px 10px",border:"1px solid #e2e8f0",borderRadius:8,fontSize:13,outline:"none",fontFamily:"inherit"}}>{groups.map(g=><option key={g}>{g}</option>)}</select></div>
+            <div><label style={{fontSize:11,fontWeight:700,color:"#475569",display:"block",marginBottom:3}}>SUBJECT</label>
+            <input value={form.subject} onChange={e=>setForm(f=>({...f,subject:e.target.value}))} placeholder="Email subject" style={{width:"100%",boxSizing:"border-box",padding:"9px 10px",border:"1px solid #e2e8f0",borderRadius:8,fontSize:13,outline:"none",fontFamily:"inherit"}}/></div>
+            <div><label style={{fontSize:11,fontWeight:700,color:"#475569",display:"block",marginBottom:3}}>MESSAGE</label>
+            <textarea rows={5} value={form.body} onChange={e=>setForm(f=>({...f,body:e.target.value}))} placeholder="Type your message..." style={{width:"100%",boxSizing:"border-box",padding:"9px 10px",border:"1px solid #e2e8f0",borderRadius:8,fontSize:13,outline:"none",resize:"none",fontFamily:"inherit"}}/></div>
+            <div><label style={{fontSize:11,fontWeight:700,color:"#475569",display:"block",marginBottom:3}}>ATTACHMENT (filename, optional)</label>
+            <input value={form.attachment} onChange={e=>setForm(f=>({...f,attachment:e.target.value}))} placeholder="e.g. Circular.pdf" style={{width:"100%",boxSizing:"border-box",padding:"9px 10px",border:"1px solid #e2e8f0",borderRadius:8,fontSize:13,outline:"none",fontFamily:"inherit"}}/></div>
+            <button onClick={()=>{if(form.subject&&form.body)setSent(true);}} style={{padding:"11px",background:"linear-gradient(135deg,#6366f1,#8b5cf6)",color:"#fff",border:"none",borderRadius:8,fontWeight:600,cursor:"pointer",fontSize:14}}>Send Email →</button>
+          </div>
+        )}
+      </div>
+      <div style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:12,overflow:"hidden"}}>
+        <div style={{background:"linear-gradient(135deg,#6366f1,#8b5cf6)",padding:"12px 16px",color:"#fff",fontWeight:700,fontSize:13}}>Sent History</div>
+        {sentEmails.map((e,i)=>(
+          <div key={i} style={{padding:"12px 16px",borderBottom:"1px solid #f1f5f9"}}>
+            <div style={{fontWeight:600,fontSize:13,color:"#0f172a",marginBottom:2}}>{e.subject}</div>
+            <div style={{fontSize:12,color:"#64748b"}}>To: {e.to}</div>
+            <div style={{fontSize:11,color:"#94a3b8",marginTop:1}}>{e.date} · {e.recipients} recipients</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ─── BEST PERFORMANCE AWARD ───────────────────────────────────────────────────
+function BestPerformanceAward() {
+  const [tab, setTab] = useState("nominate");
+  const [submitted, setSubmitted] = useState(false);
+  const [form, setForm] = useState({nominee:"",category:"Best Teacher Award",justification:""});
+  const awards = [
+    {name:"Best Teacher Award",desc:"Outstanding teaching and student feedback scores",deadline:"Jul 15, 2026"},
+    {name:"Best Researcher Award",desc:"Top publications, citations, funded projects",deadline:"Jul 15, 2026"},
+    {name:"Best Administrative Officer",desc:"Outstanding administrative contributions",deadline:"Jul 15, 2026"},
+    {name:"Young Faculty Award",desc:"Faculty under 35 with exceptional performance",deadline:"Jul 15, 2026"},
+  ];
+  const myNominations = [
+    {award:"Best Teacher Award",year:"2024-25",status:"Shortlisted"},
+    {award:"Best Researcher Award",year:"2023-24",status:"Winner 🏆"},
+  ];
+  return (
+    <div>
+      <div style={{display:"flex",gap:4,background:"#f1f5f9",borderRadius:8,padding:3,marginBottom:14,width:"fit-content"}}>
+        {[["nominate","🏅 Nominate / Apply"],["history","📋 My History"]].map(([t,l])=>(
+          <button key={t} onClick={()=>setTab(t)} style={{padding:"7px 16px",border:"none",borderRadius:6,cursor:"pointer",fontSize:12,fontWeight:600,background:tab===t?"linear-gradient(135deg,#6366f1,#8b5cf6)":"transparent",color:tab===t?"#fff":"#64748b"}}>{l}</button>
+        ))}
+      </div>
+      {tab==="nominate"&&(
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14}}>
+          <div>
+            {awards.map(a=>(
+              <div key={a.name} style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:10,padding:"12px 14px",marginBottom:10}}>
+                <div style={{fontWeight:700,fontSize:13,color:"#0f172a"}}>{a.name}</div>
+                <div style={{fontSize:12,color:"#64748b",marginTop:2}}>{a.desc}</div>
+                <div style={{fontSize:11,color:"#f59e0b",marginTop:4,fontWeight:600}}>⏰ Deadline: {a.deadline}</div>
+              </div>
+            ))}
+          </div>
+          <div style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:12,padding:"18px"}}>
+            {submitted?<div style={{textAlign:"center",padding:"20px 0"}}><div style={{fontSize:40}}>🏅</div><div style={{fontWeight:700,marginTop:8}}>Nomination Submitted!</div></div>:(
+              <div style={{display:"flex",flexDirection:"column",gap:10}}>
+                <div style={{fontWeight:700,fontSize:14,color:"#0f172a",marginBottom:4}}>Submit Nomination</div>
+                {[["Category","category","select",awards.map(a=>a.name)],["Nominee (self or colleague)","nominee","text"],["Justification","justification","textarea"]].map(([l,k,t,opts])=>(
+                  <div key={k}><label style={{fontSize:11,fontWeight:700,color:"#475569",display:"block",marginBottom:3}}>{l.toUpperCase()}</label>
+                  {t==="select"?<select value={form[k]} onChange={e=>setForm(f=>({...f,[k]:e.target.value}))} style={{width:"100%",padding:"8px",border:"1px solid #e2e8f0",borderRadius:8,fontSize:13,outline:"none",fontFamily:"inherit"}}>{opts.map(o=><option key={o}>{o}</option>)}</select>
+                  :t==="textarea"?<textarea rows={4} value={form[k]} onChange={e=>setForm(f=>({...f,[k]:e.target.value}))} style={{width:"100%",boxSizing:"border-box",padding:"8px",border:"1px solid #e2e8f0",borderRadius:8,fontSize:13,outline:"none",resize:"none",fontFamily:"inherit"}}/>
+                  :<input value={form[k]} onChange={e=>setForm(f=>({...f,[k]:e.target.value}))} style={{width:"100%",boxSizing:"border-box",padding:"8px",border:"1px solid #e2e8f0",borderRadius:8,fontSize:13,outline:"none",fontFamily:"inherit"}}/>}
+                  </div>
+                ))}
+                <button onClick={()=>{if(form.nominee&&form.justification)setSubmitted(true);}} style={{padding:"10px",background:"linear-gradient(135deg,#6366f1,#8b5cf6)",color:"#fff",border:"none",borderRadius:8,fontWeight:600,cursor:"pointer",fontSize:13}}>Submit Nomination</button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+      {tab==="history"&&(
+        <div style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:12,overflow:"hidden"}}>
+          <table style={{width:"100%",borderCollapse:"collapse",fontSize:13}}>
+            <thead><tr style={{background:"#f8fafc"}}>{["Award","Year","Status"].map(h=><th key={h} style={{padding:"10px 14px",textAlign:"left",fontWeight:600,color:"#475569",fontSize:12,borderBottom:"1px solid #e2e8f0"}}>{h}</th>)}</tr></thead>
+            <tbody>{myNominations.map((n,i)=>(
+              <tr key={i} style={{borderBottom:"1px solid #f1f5f9"}}>
+                <td style={{padding:"11px 14px",fontWeight:500,color:"#0f172a"}}>{n.award}</td>
+                <td style={{padding:"11px 14px",color:"#64748b"}}>{n.year}</td>
+                <td style={{padding:"11px 14px"}}><span style={{padding:"2px 8px",borderRadius:6,fontSize:11,fontWeight:700,background:n.status.includes("Winner")?"#dcfce7":"#fef9c3",color:n.status.includes("Winner")?"#16a34a":"#ca8a04"}}>{n.status}</span></td>
+              </tr>
+            ))}</tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── HEALTH CENTRE ────────────────────────────────────────────────────────────
+function HealthCentreView() {
+  const [submitted, setSubmitted] = useState(false);
+  const [form, setForm] = useState({date:"",time:"9:00 AM",type:"General Checkup",symptoms:""});
+  const records = [
+    {date:"May 20",type:"General Checkup",doctor:"Dr. S. Mohanty",prescription:"Paracetamol 500mg, Rest 2 days"},
+    {date:"Apr 5",type:"Dental",doctor:"Dr. P. Das",prescription:"Filling done. Next visit: 6 months"},
+  ];
+  return (
+    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14}}>
+      <div style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:12,padding:"18px 20px"}}>
+        <div style={{fontWeight:700,fontSize:15,color:"#0f172a",marginBottom:14}}>🏥 Book Appointment</div>
+        {submitted?<div style={{background:"#dcfce7",borderRadius:8,padding:"12px",fontSize:13,color:"#16a34a",fontWeight:600}}>✅ Appointment booked for {form.date}, {form.time}!</div>:(
+          <div style={{display:"flex",flexDirection:"column",gap:10}}>
+            {[["Appointment Date","date","date"],["Time","time","select",["9:00 AM","10:00 AM","11:00 AM","2:00 PM","3:00 PM","4:00 PM"]],["Type","type","select",["General Checkup","Dental","Eye","Blood Test","Physiotherapy"]],["Symptoms / Note","symptoms","textarea"]].map(([l,k,t,opts])=>(
+              <div key={k}><label style={{fontSize:11,fontWeight:700,color:"#475569",display:"block",marginBottom:3}}>{l.toUpperCase()}</label>
+              {t==="select"?<select value={form[k]} onChange={e=>setForm(f=>({...f,[k]:e.target.value}))} style={{width:"100%",padding:"8px",border:"1px solid #e2e8f0",borderRadius:8,fontSize:13,outline:"none",fontFamily:"inherit"}}>{opts.map(o=><option key={o}>{o}</option>)}</select>
+              :t==="textarea"?<textarea rows={3} value={form[k]} onChange={e=>setForm(f=>({...f,[k]:e.target.value}))} style={{width:"100%",boxSizing:"border-box",padding:"8px",border:"1px solid #e2e8f0",borderRadius:8,fontSize:13,outline:"none",resize:"none",fontFamily:"inherit"}}/>
+              :<input type={t} value={form[k]} onChange={e=>setForm(f=>({...f,[k]:e.target.value}))} style={{width:"100%",boxSizing:"border-box",padding:"8px",border:"1px solid #e2e8f0",borderRadius:8,fontSize:13,outline:"none",fontFamily:"inherit"}}/>}
+              </div>
+            ))}
+            <button onClick={()=>{if(form.date)setSubmitted(true);}} style={{padding:"10px",background:"linear-gradient(135deg,#6366f1,#8b5cf6)",color:"#fff",border:"none",borderRadius:8,fontWeight:600,cursor:"pointer",fontSize:14}}>Book Appointment</button>
+          </div>
+        )}
+      </div>
+      <div style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:12,overflow:"hidden"}}>
+        <div style={{background:"linear-gradient(135deg,#6366f1,#8b5cf6)",padding:"12px 16px",color:"#fff",fontWeight:700,fontSize:13}}>Medical History</div>
+        {records.map((r,i)=>(
+          <div key={i} style={{padding:"12px 16px",borderBottom:"1px solid #f1f5f9"}}>
+            <div style={{fontWeight:600,fontSize:13,color:"#0f172a"}}>{r.type} — {r.date}</div>
+            <div style={{fontSize:12,color:"#64748b",marginTop:2}}>Dr. {r.doctor}</div>
+            <div style={{fontSize:11,color:"#6366f1",marginTop:2}}>Rx: {r.prescription}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ─── GUEST HOUSE ──────────────────────────────────────────────────────────────
+function GuestHouseView() {
+  const [submitted, setSubmitted] = useState(false);
+  const [form, setForm] = useState({guestName:"",purpose:"",checkin:"",checkout:"",roomType:"Single AC"});
+  const myBookings = [
+    {guest:"Prof. A. Kumar, IIT Delhi",checkin:"Jun 14",checkout:"Jun 15",room:"Room 3 (Single AC)",status:"Confirmed"},
+    {guest:"Dr. S. Patel, NIT Surat",checkin:"May 28",checkout:"May 30",room:"Room 7 (Double AC)",status:"Completed"},
+  ];
+  return (
+    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14}}>
+      <div style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:12,padding:"18px 20px"}}>
+        <div style={{fontWeight:700,fontSize:15,color:"#0f172a",marginBottom:14}}>🏨 Book Guest House</div>
+        {submitted?<div style={{background:"#dcfce7",borderRadius:8,padding:"12px",fontSize:13,color:"#16a34a",fontWeight:600}}>✅ Request submitted. Admin will confirm availability.</div>:(
+          <div style={{display:"flex",flexDirection:"column",gap:10}}>
+            {[["Guest Name & Designation","guestName","text"],["Purpose of Visit","purpose","text"],["Check-in Date","checkin","date"],["Check-out Date","checkout","date"]].map(([l,k,t])=>(
+              <div key={k}><label style={{fontSize:11,fontWeight:700,color:"#475569",display:"block",marginBottom:3}}>{l.toUpperCase()}</label>
+              <input type={t} value={form[k]} onChange={e=>setForm(f=>({...f,[k]:e.target.value}))} style={{width:"100%",boxSizing:"border-box",padding:"8px",border:"1px solid #e2e8f0",borderRadius:8,fontSize:13,outline:"none",fontFamily:"inherit"}}/></div>
+            ))}
+            <div><label style={{fontSize:11,fontWeight:700,color:"#475569",display:"block",marginBottom:3}}>ROOM TYPE</label>
+            <select value={form.roomType} onChange={e=>setForm(f=>({...f,roomType:e.target.value}))} style={{width:"100%",padding:"8px",border:"1px solid #e2e8f0",borderRadius:8,fontSize:13,outline:"none",fontFamily:"inherit"}}>
+              {["Single AC","Double AC","Suite"].map(r=><option key={r}>{r}</option>)}</select></div>
+            <button onClick={()=>{if(form.guestName&&form.checkin)setSubmitted(true);}} style={{padding:"10px",background:"linear-gradient(135deg,#6366f1,#8b5cf6)",color:"#fff",border:"none",borderRadius:8,fontWeight:600,cursor:"pointer",fontSize:14}}>Submit Request</button>
+          </div>
+        )}
+      </div>
+      <div style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:12,overflow:"hidden"}}>
+        <div style={{background:"linear-gradient(135deg,#6366f1,#8b5cf6)",padding:"12px 16px",color:"#fff",fontWeight:700,fontSize:13}}>My Bookings</div>
+        {myBookings.map((b,i)=>(
+          <div key={i} style={{padding:"12px 16px",borderBottom:"1px solid #f1f5f9"}}>
+            <div style={{fontWeight:600,fontSize:13,color:"#0f172a"}}>{b.guest}</div>
+            <div style={{fontSize:12,color:"#64748b"}}>{b.checkin} → {b.checkout} · {b.room}</div>
+            <span style={{fontSize:11,fontWeight:700,padding:"1px 8px",borderRadius:20,background:b.status==="Confirmed"?"#dcfce7":"#f1f5f9",color:b.status==="Confirmed"?"#16a34a":"#64748b"}}>{b.status}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ─── PURCHASE & STORE ─────────────────────────────────────────────────────────
+function PurchaseView() {
+  const [submitted, setSubmitted] = useState(false);
+  const [form, setForm] = useState({item:"",qty:"",estimatedCost:"",purpose:"",vendor:""});
+  const myIndents = [
+    {id:"IND001",item:"EEG Headset (Research)",qty:2,cost:"₹85,000",status:"Approved",date:"Jun 3"},
+    {id:"IND002",item:"Whiteboard Markers (Box)",qty:5,cost:"₹750",status:"Completed",date:"May 20"},
+    {id:"IND003",item:"Raspberry Pi 4 (Lab)",qty:10,cost:"₹35,000",status:"Pending",date:"Jun 10"},
+  ];
+  const statusColor = s=>s==="Approved"||s==="Completed"?{bg:"#dcfce7",c:"#16a34a"}:s==="Pending"?{bg:"#fef9c3",c:"#ca8a04"}:{bg:"#fee2e2",c:"#dc2626"};
+  return (
+    <div style={{display:"grid",gridTemplateColumns:"1fr 1.2fr",gap:14}}>
+      <div style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:12,padding:"18px 20px"}}>
+        <div style={{fontWeight:700,fontSize:15,color:"#0f172a",marginBottom:14}}>🛒 New Purchase Indent</div>
+        {submitted?<div style={{background:"#dcfce7",borderRadius:8,padding:"12px",fontSize:13,color:"#16a34a",fontWeight:600}}>✅ Indent submitted! HOD will review and forward to purchase section.</div>:(
+          <div style={{display:"flex",flexDirection:"column",gap:10}}>
+            {[["Item Name","item","text"],["Quantity","qty","number"],["Estimated Cost (₹)","estimatedCost","text"],["Purpose / Justification","purpose","text"],["Preferred Vendor (optional)","vendor","text"]].map(([l,k,t])=>(
+              <div key={k}><label style={{fontSize:11,fontWeight:700,color:"#475569",display:"block",marginBottom:3}}>{l.toUpperCase()}</label>
+              <input type={t} value={form[k]} onChange={e=>setForm(f=>({...f,[k]:e.target.value}))} style={{width:"100%",boxSizing:"border-box",padding:"8px",border:"1px solid #e2e8f0",borderRadius:8,fontSize:13,outline:"none",fontFamily:"inherit"}}/></div>
+            ))}
+            <button onClick={()=>{if(form.item&&form.qty)setSubmitted(true);}} style={{padding:"10px",background:"linear-gradient(135deg,#6366f1,#8b5cf6)",color:"#fff",border:"none",borderRadius:8,fontWeight:600,cursor:"pointer",fontSize:14}}>Submit Indent</button>
+          </div>
+        )}
+      </div>
+      <div style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:12,overflow:"hidden"}}>
+        <div style={{background:"linear-gradient(135deg,#6366f1,#8b5cf6)",padding:"12px 16px",color:"#fff",fontWeight:700,fontSize:13}}>My Indents</div>
+        <table style={{width:"100%",borderCollapse:"collapse",fontSize:13}}>
+          <thead><tr style={{background:"#f8fafc"}}>{["ID","Item","Qty","Cost","Status"].map(h=><th key={h} style={{padding:"9px 10px",textAlign:"left",fontWeight:600,color:"#475569",fontSize:11,borderBottom:"1px solid #e2e8f0"}}>{h}</th>)}</tr></thead>
+          <tbody>{myIndents.map((r,i)=>{const sc=statusColor(r.status);return(
+            <tr key={r.id} style={{borderBottom:"1px solid #f1f5f9",background:i%2===0?"#fff":"#fafbff"}}>
+              <td style={{padding:"9px 10px",color:"#6366f1",fontWeight:700,fontSize:11}}>{r.id}</td>
+              <td style={{padding:"9px 10px",color:"#334155",fontWeight:500,fontSize:12}}>{r.item}</td>
+              <td style={{padding:"9px 10px",textAlign:"center",color:"#64748b"}}>{r.qty}</td>
+              <td style={{padding:"9px 10px",color:"#334155",fontWeight:600}}>{r.cost}</td>
+              <td style={{padding:"9px 10px"}}><span style={{padding:"2px 7px",borderRadius:5,fontSize:10,fontWeight:700,background:sc.bg,color:sc.c}}>{r.status}</span></td>
+            </tr>
+          );})}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+// ─── SUMMER INTERNSHIP ────────────────────────────────────────────────────────
+function InternshipView() {
+  const students = [
+    {roll:"22CS001",name:"Riya Patel",company:"TCS Innovation Lab",role:"ML Intern",period:"May–Jul 2026",status:"Ongoing",stipend:"₹15,000/mo"},
+    {roll:"22CS005",name:"Amit Kumar",company:"Infosys",role:"Web Dev Intern",period:"May–Jun 2026",status:"Completed",stipend:"₹12,000/mo"},
+    {roll:"22CS012",name:"Priya Nair",company:"DRDO",role:"Research Intern",period:"Jun–Aug 2026",status:"Approved",stipend:"₹10,000/mo"},
+  ];
+  const statusColor = s=>s==="Ongoing"?{bg:"#dcfce7",c:"#16a34a"}:s==="Approved"?{bg:"#eef2ff",c:"#6366f1"}:s==="Completed"?{bg:"#f1f5f9",c:"#64748b"}:{bg:"#fef9c3",c:"#ca8a04"};
+  return (
+    <div>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:12,marginBottom:14}}>
+        {[["Ongoing",students.filter(s=>s.status==="Ongoing").length,"#10b981"],["Approved",students.filter(s=>s.status==="Approved").length,"#6366f1"],["Completed",students.filter(s=>s.status==="Completed").length,"#64748b"]].map(([l,v,c])=>(
+          <div key={l} style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:8,padding:"12px",textAlign:"center",borderTop:`3px solid ${c}`}}>
+            <div style={{fontSize:22,fontWeight:800,color:c}}>{v}</div><div style={{fontSize:12,color:"#64748b",fontWeight:600}}>{l}</div>
+          </div>
+        ))}
+      </div>
+      <div style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:12,overflow:"hidden"}}>
+        <div style={{background:"linear-gradient(135deg,#6366f1,#8b5cf6)",padding:"12px 16px",color:"#fff",fontWeight:700,fontSize:13}}>Student Internships — My Supervised Students</div>
+        <table style={{width:"100%",borderCollapse:"collapse",fontSize:13}}>
+          <thead><tr style={{background:"#f8fafc"}}>{["Roll","Student","Company","Role","Period","Stipend","Status"].map(h=><th key={h} style={{padding:"9px 12px",textAlign:"left",fontWeight:600,color:"#475569",fontSize:12,borderBottom:"1px solid #e2e8f0"}}>{h}</th>)}</tr></thead>
+          <tbody>{students.map((s,i)=>{const sc=statusColor(s.status);return(
+            <tr key={s.roll} style={{borderBottom:"1px solid #f1f5f9",background:i%2===0?"#fff":"#fafbff"}}>
+              <td style={{padding:"10px 12px",color:"#6366f1",fontWeight:700}}>{s.roll}</td>
+              <td style={{padding:"10px 12px",fontWeight:600,color:"#0f172a"}}>{s.name}</td>
+              <td style={{padding:"10px 12px",color:"#334155"}}>{s.company}</td>
+              <td style={{padding:"10px 12px",color:"#64748b"}}>{s.role}</td>
+              <td style={{padding:"10px 12px",color:"#64748b",fontSize:12}}>{s.period}</td>
+              <td style={{padding:"10px 12px",fontWeight:600,color:"#334155"}}>{s.stipend}</td>
+              <td style={{padding:"10px 12px"}}><span style={{padding:"2px 8px",borderRadius:6,fontSize:11,fontWeight:700,background:sc.bg,color:sc.c}}>{s.status}</span></td>
+            </tr>
+          );})}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+// ─── SRICCE ───────────────────────────────────────────────────────────────────
+function SRICCEView() {
+  const activities = [
+    {type:"MoU",title:"MoU with TCS for Research Collaboration",date:"Mar 2025",status:"Active",partner:"TCS"},
+    {type:"Consultancy",title:"ML Model for Odisha Police Crime Analysis",date:"Jan 2025",status:"Ongoing",partner:"Odisha Police"},
+    {type:"Funded Project",title:"SERB CRG — Hybrid Imputation (₹18L)",date:"Apr 2024",status:"Active",partner:"SERB, DST"},
+  ];
+  return (
+    <div>
+      <div style={{background:"#eef2ff",border:"1px solid #c7d2fe",borderRadius:10,padding:"10px 14px",marginBottom:14,fontSize:13,color:"#4338ca"}}>
+        🤝 SRICCE — Sponsored Research, Industrial Consultancy & Continuing Education
+      </div>
+      <div style={{display:"flex",flexDirection:"column",gap:10}}>
+        {activities.map((a,i)=>(
+          <div key={i} style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:10,padding:"14px 16px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+            <div>
+              <div style={{display:"flex",gap:8,alignItems:"center",marginBottom:4}}>
+                <span style={{padding:"2px 8px",borderRadius:6,fontSize:11,fontWeight:700,background:"#eef2ff",color:"#6366f1"}}>{a.type}</span>
+                <span style={{fontWeight:700,fontSize:14,color:"#0f172a"}}>{a.title}</span>
+              </div>
+              <div style={{fontSize:12,color:"#64748b"}}>Partner: {a.partner} · {a.date}</div>
+            </div>
+            <span style={{padding:"3px 10px",borderRadius:6,fontSize:12,fontWeight:700,background:"#dcfce7",color:"#16a34a",flexShrink:0,marginLeft:10}}>{a.status}</span>
+          </div>
+        ))}
+        <button style={{padding:"10px 20px",background:"linear-gradient(135deg,#6366f1,#8b5cf6)",color:"#fff",border:"none",borderRadius:8,fontWeight:600,cursor:"pointer",fontSize:13,alignSelf:"flex-start"}}>+ Register New Activity</button>
+      </div>
+    </div>
+  );
+}
+
 function DutyView() {
   const duties=[
     {date:"Jun 18",time:"9:00 AM",type:"Invigilation",room:"201-A",exam:"DBMS — CS301",status:"Upcoming"},
@@ -4984,6 +5545,11 @@ export default function App() {
     copo:<COPOView/>, feedback:<FacultyFeedbackView/>,
     profile:<FacultyProfile user={auth}/>, auditlog:<AuditLog role="faculty"/>,
     syllabus:<SyllabusTracker/>, qpaper:<QuestionPaperSubmission/>, fts:<FileTrackingSystem user={auth}/>,
+    services:<ServicesHub setActive={setActive}/>,
+    appraisal:<AppraisalView/>, auditorium:<AuditoriumBooking/>, vehicle:<VehicleRequisition/>,
+    complaint:<ComplaintManagement/>, groupemail:<GroupEmail/>, bestaward:<BestPerformanceAward/>,
+    health:<HealthCentreView/>, guesthouse:<GuestHouseView/>, purchase:<PurchaseView/>,
+    internship:<InternshipView/>, sricce:<SRICCEView/>,
   };
   const views = role==="student" ? studentViews : facultyViews;
 
@@ -4999,7 +5565,7 @@ export default function App() {
   const facultySidebarLinks = [
     ["Dashboard","dashboard"],["Subjects & Students","subjects"],["Lab","lab"],
     ["Attendance","attendance"],["Evaluation","evaluation"],["Research","research"],
-    ["CO/PO Attainment","copo"],["Syllabus Tracker","syllabus"],["Question Paper","qpaper"],["File Tracking","fts"],
+    ["CO/PO Attainment","copo"],["Syllabus Tracker","syllabus"],["Question Paper","qpaper"],["File Tracking","fts"],["Services","services"],
     ["Exam & Duty","duty"],["Feedback Results","feedback"],
     ["My Profile","profile"],["Audit Log","auditlog"],["Notices","notices"],
   ];
