@@ -2710,6 +2710,414 @@ function ResearchView() {
 }
 
 // ─── Duty View ────────────────────────────────────────────────────────────────
+// ─── FILE TRACKING SYSTEM ─────────────────────────────────────────────────────
+function FileTrackingSystem({ user }) {
+  const [tab, setTab] = useState("inbox");
+  const [showCompose, setShowCompose] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selFile, setSelFile] = useState(null);
+  const [forwardModal, setForwardModal] = useState(null);
+  const [composeDone, setComposeDone] = useState(false);
+  const [form, setForm] = useState({ subject:"", type:"Application", priority:"Normal", to:"HOD", desc:"", attachment:"" });
+
+  const officers = [
+    "HOD — CSE","Dean Academic","Dean Research","Director / Principal",
+    "Registrar","Finance Officer","Exam Controller","Lab In-charge",
+    "Dean Students","Administrative Officer",
+  ];
+
+  const [files, setFiles] = useState([
+    {
+      id:"FTS/ITER/2026/0041", subject:"Request for Lab Equipment Purchase — EEG Headset",
+      type:"Purchase Request", priority:"High", from:"Dr. Priya Singh", dept:"CSE",
+      date:"Jun 10", status:"In Progress",
+      currentDesk:"Dean Research",
+      trail:[
+        {from:"Dr. Priya Singh",to:"HOD — CSE",action:"Initiated",date:"Jun 10, 9:00 AM",remark:"Please approve and forward.",done:true},
+        {from:"HOD — CSE",to:"Dean Research",action:"Forwarded",date:"Jun 10, 2:30 PM",remark:"Recommended for approval. Budget available.",done:true},
+        {from:"Dean Research",to:"Finance Officer",action:"Pending",date:"—",remark:"",done:false},
+        {from:"Finance Officer",to:"Director",action:"Pending",date:"—",remark:"",done:false},
+      ],
+      attachments:["LabEquipmentQuotation.pdf","BudgetEstimate.xlsx"],
+      inbox:false, sent:true,
+    },
+    {
+      id:"FTS/ITER/2026/0039", subject:"Leave Application — Academic Conference ICML 2026",
+      type:"Leave Application", priority:"Normal", from:"Admin Office",dept:"Admin",
+      date:"Jun 8", status:"Pending Action",
+      currentDesk:"Dr. Priya Singh",
+      trail:[
+        {from:"Dr. Priya Singh",to:"HOD — CSE",action:"Initiated",date:"Jun 7, 11:00 AM",remark:"Requesting 3 days leave for ICML.",done:true},
+        {from:"HOD — CSE",to:"Dean Academic",action:"Forwarded",date:"Jun 8, 10:00 AM",remark:"Approved at department level.",done:true},
+        {from:"Dean Academic",to:"Dr. Priya Singh",action:"Returned for Info",date:"Jun 8, 3:00 PM",remark:"Please attach acceptance letter from conference.",done:true},
+      ],
+      attachments:["LeaveForm.pdf"],
+      inbox:true, sent:true,
+    },
+    {
+      id:"FTS/ITER/2026/0035", subject:"Research Grant Application — SERB CRG 2026",
+      type:"Research Application", priority:"Urgent", from:"Research Cell",dept:"Research",
+      date:"Jun 5", status:"Closed",
+      currentDesk:"Registrar",
+      trail:[
+        {from:"Dr. Priya Singh",to:"HOD — CSE",action:"Initiated",date:"Jun 3, 9:00 AM",remark:"SERB CRG grant application.",done:true},
+        {from:"HOD — CSE",to:"Dean Research",action:"Forwarded",date:"Jun 4, 11:00 AM",remark:"Strongly recommended.",done:true},
+        {from:"Dean Research",to:"Registrar",action:"Forwarded",date:"Jun 4, 4:00 PM",remark:"Approved at institute level.",done:true},
+        {from:"Registrar",to:"SERB Portal",action:"Submitted",date:"Jun 5, 2:00 PM",remark:"Application submitted online. Reference: SERB/CRG/2026/1234",done:true},
+      ],
+      attachments:["GrantProposal.pdf","CV.pdf","Certificates.pdf"],
+      inbox:false, sent:true,
+    },
+    {
+      id:"FTS/ITER/2026/0044", subject:"Approval for Student Project Funding — Group 13",
+      type:"Project Funding", priority:"Normal", from:"Exam Section",dept:"Academic",
+      date:"Jun 12", status:"Pending Action",
+      currentDesk:"Dr. Priya Singh",
+      trail:[
+        {from:"Project Coordinator",to:"Dr. Priya Singh",action:"Received",date:"Jun 12, 10:00 AM",remark:"Please verify student project details and forward.",done:true},
+      ],
+      attachments:["ProjectProposal.pdf"],
+      inbox:true, sent:false,
+    },
+  ]);
+
+  const priorityColor = p => ({High:"#f59e0b",Urgent:"#ef4444",Normal:"#6366f1",Low:"#10b981"}[p]||"#6366f1");
+  const statusColor  = s => ({
+    "In Progress":{bg:"#fef9c3",c:"#ca8a04"},
+    "Pending Action":{bg:"#fee2e2",c:"#dc2626"},
+    "Closed":{bg:"#dcfce7",c:"#16a34a"},
+    "Draft":{bg:"#f1f5f9",c:"#64748b"},
+  }[s]||{bg:"#f1f5f9",c:"#64748b"});
+
+  const displayFiles = files.filter(f => {
+    const q = searchQuery.toLowerCase();
+    const matchQ = !q || f.subject.toLowerCase().includes(q) || f.id.toLowerCase().includes(q) || f.type.toLowerCase().includes(q);
+    if(tab==="inbox") return f.inbox && matchQ;
+    if(tab==="sent")  return f.sent  && matchQ;
+    if(tab==="all")   return matchQ;
+    return matchQ;
+  });
+
+  const handleForward = (fileId, to, remark) => {
+    setFiles(prev=>prev.map(f=>{
+      if(f.id!==fileId) return f;
+      const newTrail = [...f.trail, {
+        from:"Dr. Priya Singh", to, action:"Forwarded",
+        date:new Date().toLocaleString("en-GB",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"}),
+        remark, done:true,
+      }];
+      return {...f, trail:newTrail, currentDesk:to, status:"In Progress", inbox:false};
+    }));
+    setForwardModal(null);
+    setSelFile(null);
+  };
+
+  const handleCompose = () => {
+    if(!form.subject.trim()) return;
+    const newFile = {
+      id:"FTS/ITER/2026/00"+(50+files.length),
+      subject:form.subject, type:form.type, priority:form.priority,
+      from:"Dr. Priya Singh", dept:"CSE",
+      date:new Date().toLocaleDateString("en-GB",{day:"numeric",month:"short"}),
+      status:"In Progress", currentDesk:form.to,
+      trail:[{
+        from:"Dr. Priya Singh", to:form.to, action:"Initiated",
+        date:new Date().toLocaleString("en-GB",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"}),
+        remark:form.desc, done:true,
+      }],
+      attachments: form.attachment ? [form.attachment] : [],
+      inbox:false, sent:true,
+    };
+    setFiles(p=>[newFile,...p]);
+    setComposeDone(true);
+    setTimeout(()=>{ setComposeDone(false); setShowCompose(false); setForm({subject:"",type:"Application",priority:"Normal",to:"HOD — CSE",desc:"",attachment:""}); },2000);
+  };
+
+  const stats = [
+    {label:"Total Files",value:files.length,color:"#6366f1"},
+    {label:"Pending Action",value:files.filter(f=>f.status==="Pending Action").length,color:"#ef4444"},
+    {label:"In Progress",value:files.filter(f=>f.status==="In Progress").length,color:"#f59e0b"},
+    {label:"Closed",value:files.filter(f=>f.status==="Closed").length,color:"#10b981"},
+  ];
+
+  if(selFile) return (
+    <div>
+      <button onClick={()=>setSelFile(null)} style={{marginBottom:12,padding:"7px 16px",background:"#f1f5f9",border:"none",borderRadius:8,cursor:"pointer",fontSize:12,fontWeight:600,color:"#475569"}}>← Back to Files</button>
+      <div style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:12,overflow:"hidden"}}>
+        {/* File header */}
+        <div style={{background:"linear-gradient(135deg,#6366f1,#8b5cf6)",padding:"16px 20px"}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
+            <div>
+              <div style={{color:"rgba(255,255,255,0.75)",fontSize:12,marginBottom:2}}>{selFile.id}</div>
+              <div style={{color:"#fff",fontWeight:700,fontSize:16}}>{selFile.subject}</div>
+              <div style={{color:"rgba(255,255,255,0.8)",fontSize:13,marginTop:3}}>
+                {selFile.type} · {selFile.date} · Current Desk: <strong>{selFile.currentDesk}</strong>
+              </div>
+            </div>
+            <div style={{display:"flex",gap:8,flexShrink:0,marginLeft:12}}>
+              <span style={{padding:"3px 10px",borderRadius:6,fontSize:11,fontWeight:700,
+                background:priorityColor(selFile.priority)+"30",color:"#fff",border:"1px solid rgba(255,255,255,0.3)"}}>
+                {selFile.priority}
+              </span>
+              <span style={{padding:"3px 10px",borderRadius:6,fontSize:11,fontWeight:700,background:"rgba(255,255,255,0.2)",color:"#fff"}}>{selFile.status}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* File movement timeline */}
+        <div style={{padding:"20px 20px 10px"}}>
+          <div style={{fontWeight:700,fontSize:13,color:"#0f172a",marginBottom:14}}>📋 File Movement Trail</div>
+          <div style={{position:"relative",paddingLeft:28}}>
+            <div style={{position:"absolute",left:10,top:0,bottom:0,width:2,background:"#e2e8f0",borderRadius:1}}/>
+            {selFile.trail.map((t,i)=>(
+              <div key={i} style={{position:"relative",marginBottom:16}}>
+                <div style={{position:"absolute",left:-18,top:3,width:14,height:14,borderRadius:"50%",
+                  background:t.done?"linear-gradient(135deg,#6366f1,#8b5cf6)":"#f1f5f9",
+                  border:t.done?"none":"2px solid #cbd5e1",display:"flex",alignItems:"center",justifyContent:"center"}}>
+                  {t.done&&<span style={{color:"#fff",fontSize:8,fontWeight:900}}>✓</span>}
+                </div>
+                <div style={{background:t.done?"#fafbff":"#fff",border:"1px solid #e2e8f0",borderRadius:10,padding:"10px 14px"}}>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
+                    <div style={{fontSize:13,fontWeight:600,color:"#0f172a"}}>
+                      <span style={{color:"#6366f1"}}>{t.from}</span>
+                      <span style={{color:"#94a3b8",margin:"0 6px"}}>→</span>
+                      <span style={{color:"#334155"}}>{t.to}</span>
+                    </div>
+                    <div style={{display:"flex",gap:8,alignItems:"center"}}>
+                      <span style={{fontSize:11,padding:"1px 8px",borderRadius:20,
+                        background:t.action==="Forwarded"?"#eef2ff":t.action==="Initiated"?"#dcfce7":t.action==="Returned for Info"?"#fef9c3":"#f1f5f9",
+                        color:t.action==="Forwarded"?"#6366f1":t.action==="Initiated"?"#16a34a":t.action==="Returned for Info"?"#ca8a04":"#64748b",
+                        fontWeight:700}}>{t.action}</span>
+                      <span style={{fontSize:11,color:"#94a3b8"}}>{t.date}</span>
+                    </div>
+                  </div>
+                  {t.remark&&<div style={{fontSize:12,color:"#64748b",fontStyle:"italic"}}>"{t.remark}"</div>}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Attachments */}
+        {selFile.attachments.length>0&&(
+          <div style={{padding:"0 20px 14px"}}>
+            <div style={{fontWeight:700,fontSize:13,color:"#0f172a",marginBottom:8}}>📎 Attachments</div>
+            <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+              {selFile.attachments.map((a,i)=>(
+                <div key={i} style={{display:"flex",alignItems:"center",gap:6,padding:"6px 12px",background:"#f8fafc",border:"1px solid #e2e8f0",borderRadius:8,cursor:"pointer"}}
+                  onMouseEnter={e=>{e.currentTarget.style.borderColor="#6366f1";}}
+                  onMouseLeave={e=>{e.currentTarget.style.borderColor="#e2e8f0";}}>
+                  <span style={{fontSize:16}}>📄</span>
+                  <span style={{fontSize:12,color:"#334155",fontWeight:500}}>{a}</span>
+                  <span style={{fontSize:11,color:"#6366f1",fontWeight:600}}>↓</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Actions */}
+        {selFile.status!=="Closed"&&(
+          <div style={{padding:"12px 20px",borderTop:"1px solid #f1f5f9",display:"flex",gap:10,background:"#fafbff"}}>
+            <button onClick={()=>setForwardModal(selFile)}
+              style={{padding:"9px 20px",background:"linear-gradient(135deg,#6366f1,#8b5cf6)",color:"#fff",border:"none",borderRadius:8,fontWeight:600,cursor:"pointer",fontSize:13}}>
+              ↗ Forward File
+            </button>
+            <button onClick={()=>{setFiles(p=>p.map(f=>f.id===selFile.id?{...f,status:"Closed"}:f));setSelFile(null);}}
+              style={{padding:"9px 20px",background:"#f1f5f9",color:"#475569",border:"none",borderRadius:8,fontWeight:600,cursor:"pointer",fontSize:13}}>
+              ✅ Close File
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+
+  return (
+    <div>
+      {/* Stats */}
+      <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:12,marginBottom:16}}>
+        {stats.map(s=>(
+          <div key={s.label} style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:10,padding:"14px",borderTop:`4px solid ${s.color}`,textAlign:"center"}}>
+            <div style={{fontSize:26,fontWeight:800,color:s.color}}>{s.value}</div>
+            <div style={{fontSize:12,color:"#64748b",fontWeight:600}}>{s.label}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Tab bar + search + compose */}
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12,flexWrap:"wrap",gap:8}}>
+        <div style={{display:"flex",gap:4,background:"#f1f5f9",borderRadius:8,padding:3}}>
+          {[["inbox","📥 Inbox"],["sent","📤 Sent"],["all","🗂 All Files"]].map(([t,l])=>(
+            <button key={t} onClick={()=>setTab(t)}
+              style={{padding:"7px 14px",border:"none",borderRadius:6,cursor:"pointer",fontSize:12,fontWeight:600,
+                background:tab===t?"linear-gradient(135deg,#6366f1,#8b5cf6)":"transparent",color:tab===t?"#fff":"#64748b"}}>
+              {l}
+              {t==="inbox"&&files.filter(f=>f.inbox&&f.status==="Pending Action").length>0&&
+                <span style={{background:"#ef4444",color:"#fff",borderRadius:20,fontSize:10,padding:"1px 6px",marginLeft:4}}>
+                  {files.filter(f=>f.inbox&&f.status==="Pending Action").length}
+                </span>}
+            </button>
+          ))}
+        </div>
+        <div style={{display:"flex",gap:8,alignItems:"center"}}>
+          <input value={searchQuery} onChange={e=>setSearchQuery(e.target.value)}
+            placeholder="Search by subject, ID, type..."
+            style={{padding:"8px 12px",border:"1px solid #e2e8f0",borderRadius:8,fontSize:12,outline:"none",width:220,fontFamily:"inherit"}}/>
+          <button onClick={()=>setShowCompose(true)}
+            style={{padding:"8px 18px",background:"linear-gradient(135deg,#6366f1,#8b5cf6)",color:"#fff",border:"none",borderRadius:8,fontWeight:600,cursor:"pointer",fontSize:12,whiteSpace:"nowrap"}}>
+            + New File
+          </button>
+        </div>
+      </div>
+
+      {/* File list */}
+      <div style={{display:"flex",flexDirection:"column",gap:10}}>
+        {displayFiles.length===0&&(
+          <div style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:12,padding:"40px 0",textAlign:"center",color:"#94a3b8",fontSize:14}}>No files found</div>
+        )}
+        {displayFiles.map(f=>{
+          const sc = statusColor(f.status);
+          const pc = priorityColor(f.priority);
+          const doneSteps = f.trail.filter(t=>t.done).length;
+          const pct = Math.round(doneSteps/f.trail.length*100);
+          return (
+            <div key={f.id} style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:12,padding:"14px 16px",cursor:"pointer",transition:"box-shadow .15s"}}
+              onMouseEnter={e=>e.currentTarget.style.boxShadow="0 4px 16px rgba(99,102,241,0.12)"}
+              onMouseLeave={e=>e.currentTarget.style.boxShadow="none"}
+              onClick={()=>setSelFile(f)}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8}}>
+                <div style={{flex:1,paddingRight:12}}>
+                  <div style={{display:"flex",gap:8,alignItems:"center",marginBottom:3,flexWrap:"wrap"}}>
+                    <span style={{fontSize:11,fontWeight:700,color:"#94a3b8"}}>{f.id}</span>
+                    <span style={{fontSize:11,padding:"1px 8px",borderRadius:20,background:pc+"15",color:pc,fontWeight:700}}>{f.priority}</span>
+                    <span style={{fontSize:11,padding:"1px 8px",borderRadius:20,background:"#f1f5f9",color:"#64748b",fontWeight:600}}>{f.type}</span>
+                  </div>
+                  <div style={{fontWeight:700,fontSize:14,color:"#0f172a",marginBottom:3}}>{f.subject}</div>
+                  <div style={{fontSize:12,color:"#64748b"}}>
+                    From: <span style={{fontWeight:600,color:"#334155"}}>{f.from}</span>
+                    &nbsp;·&nbsp; Date: {f.date}
+                    &nbsp;·&nbsp; At: <span style={{fontWeight:600,color:"#6366f1"}}>{f.currentDesk}</span>
+                  </div>
+                </div>
+                <div style={{flexShrink:0,textAlign:"right"}}>
+                  <span style={{padding:"3px 10px",borderRadius:6,fontSize:12,fontWeight:700,background:sc.bg,color:sc.c,display:"block",marginBottom:6}}>{f.status}</span>
+                  <span style={{fontSize:11,color:"#94a3b8"}}>{doneSteps}/{f.trail.length} steps</span>
+                </div>
+              </div>
+              {/* Progress bar */}
+              <div style={{display:"flex",alignItems:"center",gap:8,marginTop:4}}>
+                <div style={{flex:1,height:4,background:"#f1f5f9",borderRadius:2}}>
+                  <div style={{width:pct+"%",height:"100%",background:f.status==="Closed"?"#10b981":"linear-gradient(90deg,#6366f1,#8b5cf6)",borderRadius:2}}/>
+                </div>
+                <span style={{fontSize:10,color:"#94a3b8",width:30,textAlign:"right"}}>{pct}%</span>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Forward Modal */}
+      {forwardModal&&(
+        <div style={{position:"fixed",inset:0,background:"rgba(15,23,42,0.6)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center"}} onClick={()=>setForwardModal(null)}>
+          <div style={{background:"#fff",borderRadius:14,width:480,overflow:"hidden",boxShadow:"0 20px 60px rgba(0,0,0,0.25)"}} onClick={e=>e.stopPropagation()}>
+            <div style={{background:"linear-gradient(135deg,#6366f1,#8b5cf6)",padding:"14px 18px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+              <div style={{color:"#fff",fontWeight:700,fontSize:15}}>↗ Forward File</div>
+              <button onClick={()=>setForwardModal(null)} style={{background:"rgba(255,255,255,0.2)",border:"none",borderRadius:6,color:"#fff",width:26,height:26,cursor:"pointer"}}>✕</button>
+            </div>
+            <ForwardForm officers={officers} onForward={(to,remark)=>handleForward(forwardModal.id,to,remark)} onCancel={()=>setForwardModal(null)}/>
+          </div>
+        </div>
+      )}
+
+      {/* Compose Modal */}
+      {showCompose&&(
+        <div style={{position:"fixed",inset:0,background:"rgba(15,23,42,0.6)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center"}} onClick={()=>setShowCompose(false)}>
+          <div style={{background:"#fff",borderRadius:14,width:520,overflow:"hidden",boxShadow:"0 20px 60px rgba(0,0,0,0.25)",maxHeight:"90vh",overflowY:"auto"}} onClick={e=>e.stopPropagation()}>
+            <div style={{background:"linear-gradient(135deg,#6366f1,#8b5cf6)",padding:"14px 18px",display:"flex",justifyContent:"space-between",alignItems:"center",position:"sticky",top:0,zIndex:1}}>
+              <div style={{color:"#fff",fontWeight:700,fontSize:15}}>📄 Initiate New File</div>
+              <button onClick={()=>setShowCompose(false)} style={{background:"rgba(255,255,255,0.2)",border:"none",borderRadius:6,color:"#fff",width:26,height:26,cursor:"pointer"}}>✕</button>
+            </div>
+            {composeDone?(
+              <div style={{padding:"40px 24px",textAlign:"center"}}>
+                <div style={{fontSize:48}}>✅</div>
+                <div style={{fontWeight:700,fontSize:16,marginTop:10,color:"#0f172a"}}>File Initiated Successfully!</div>
+                <div style={{fontSize:13,color:"#64748b",marginTop:4}}>File number assigned and sent to {form.to}</div>
+              </div>
+            ):(
+              <div style={{padding:"18px 20px"}}>
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:12}}>
+                  {[["File Type","type",["Application","Request","Circular","Note","Order","Report","Proposal"]],
+                    ["Send To","to",officers],
+                    ["Priority","priority",["Normal","High","Urgent","Low"]]].map(([l,k,opts])=>(
+                    <div key={k} style={k==="to"?{gridColumn:"1/-1"}:{}}>
+                      <label style={{fontSize:11,fontWeight:700,color:"#475569",display:"block",marginBottom:3}}>{l.toUpperCase()}</label>
+                      <select value={form[k]} onChange={e=>setForm(f=>({...f,[k]:e.target.value}))}
+                        style={{width:"100%",padding:"8px 10px",border:"1px solid #e2e8f0",borderRadius:8,fontSize:13,outline:"none",fontFamily:"inherit"}}>
+                        {opts.map(o=><option key={o}>{o}</option>)}
+                      </select>
+                    </div>
+                  ))}
+                </div>
+                <div style={{marginBottom:12}}>
+                  <label style={{fontSize:11,fontWeight:700,color:"#475569",display:"block",marginBottom:3}}>SUBJECT</label>
+                  <input value={form.subject} onChange={e=>setForm(f=>({...f,subject:e.target.value}))} placeholder="Enter file subject..."
+                    style={{width:"100%",boxSizing:"border-box",padding:"9px 12px",border:"1px solid #e2e8f0",borderRadius:8,fontSize:13,outline:"none",fontFamily:"inherit"}}/>
+                </div>
+                <div style={{marginBottom:12}}>
+                  <label style={{fontSize:11,fontWeight:700,color:"#475569",display:"block",marginBottom:3}}>DESCRIPTION / NOTE</label>
+                  <textarea rows={3} value={form.desc} onChange={e=>setForm(f=>({...f,desc:e.target.value}))} placeholder="Add a note or description..."
+                    style={{width:"100%",boxSizing:"border-box",padding:"9px 12px",border:"1px solid #e2e8f0",borderRadius:8,fontSize:13,outline:"none",resize:"none",fontFamily:"inherit"}}/>
+                </div>
+                <div style={{marginBottom:16}}>
+                  <label style={{fontSize:11,fontWeight:700,color:"#475569",display:"block",marginBottom:3}}>ATTACHMENT (filename)</label>
+                  <input value={form.attachment} onChange={e=>setForm(f=>({...f,attachment:e.target.value}))} placeholder="e.g. QuotationLetter.pdf"
+                    style={{width:"100%",boxSizing:"border-box",padding:"9px 12px",border:"1px solid #e2e8f0",borderRadius:8,fontSize:13,outline:"none",fontFamily:"inherit"}}/>
+                </div>
+                <div style={{display:"flex",justifyContent:"flex-end",gap:10}}>
+                  <button onClick={()=>setShowCompose(false)} style={{padding:"9px 18px",background:"#f1f5f9",border:"none",borderRadius:8,fontWeight:600,cursor:"pointer",fontSize:13,color:"#475569"}}>Cancel</button>
+                  <button onClick={handleCompose} disabled={!form.subject.trim()}
+                    style={{padding:"9px 22px",background:form.subject.trim()?"linear-gradient(135deg,#6366f1,#8b5cf6)":"#c7d2fe",color:"#fff",border:"none",borderRadius:8,fontWeight:600,cursor:form.subject.trim()?"pointer":"not-allowed",fontSize:13}}>
+                    Initiate & Send →
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ForwardForm({ officers, onForward, onCancel }) {
+  const [to, setTo] = useState(officers[0]);
+  const [remark, setRemark] = useState("");
+  return (
+    <div style={{padding:"18px 20px"}}>
+      <div style={{marginBottom:12}}>
+        <label style={{fontSize:11,fontWeight:700,color:"#475569",display:"block",marginBottom:3}}>FORWARD TO</label>
+        <select value={to} onChange={e=>setTo(e.target.value)}
+          style={{width:"100%",padding:"9px 10px",border:"1px solid #e2e8f0",borderRadius:8,fontSize:13,outline:"none",fontFamily:"inherit"}}>
+          {officers.map(o=><option key={o}>{o}</option>)}
+        </select>
+      </div>
+      <div style={{marginBottom:16}}>
+        <label style={{fontSize:11,fontWeight:700,color:"#475569",display:"block",marginBottom:3}}>REMARK (optional)</label>
+        <textarea rows={3} value={remark} onChange={e=>setRemark(e.target.value)} placeholder="Add a forwarding remark..."
+          style={{width:"100%",boxSizing:"border-box",padding:"9px 12px",border:"1px solid #e2e8f0",borderRadius:8,fontSize:13,outline:"none",resize:"none",fontFamily:"inherit"}}/>
+      </div>
+      <div style={{display:"flex",justifyContent:"flex-end",gap:10}}>
+        <button onClick={onCancel} style={{padding:"9px 18px",background:"#f1f5f9",border:"none",borderRadius:8,fontWeight:600,cursor:"pointer",fontSize:13,color:"#475569"}}>Cancel</button>
+        <button onClick={()=>onForward(to,remark)}
+          style={{padding:"9px 22px",background:"linear-gradient(135deg,#6366f1,#8b5cf6)",color:"#fff",border:"none",borderRadius:8,fontWeight:600,cursor:"pointer",fontSize:13}}>
+          Forward →
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function DutyView() {
   const duties=[
     {date:"Jun 18",time:"9:00 AM",type:"Invigilation",room:"201-A",exam:"DBMS — CS301",status:"Upcoming"},
@@ -4481,7 +4889,7 @@ export default function App() {
     research:<ResearchView/>, duty:<DutyView/>, notices:<NoticesView/>,
     copo:<COPOView/>, feedback:<FacultyFeedbackView/>,
     profile:<FacultyProfile user={auth}/>, auditlog:<AuditLog role="faculty"/>,
-    syllabus:<SyllabusTracker/>, qpaper:<QuestionPaperSubmission/>,
+    syllabus:<SyllabusTracker/>, qpaper:<QuestionPaperSubmission/>, fts:<FileTrackingSystem user={auth}/>,
   };
   const views = role==="student" ? studentViews : facultyViews;
 
@@ -4497,7 +4905,7 @@ export default function App() {
   const facultySidebarLinks = [
     ["Dashboard","dashboard"],["Subjects & Students","subjects"],["Lab","lab"],
     ["Attendance","attendance"],["Evaluation","evaluation"],["Research","research"],
-    ["CO/PO Attainment","copo"],["Syllabus Tracker","syllabus"],["Question Paper","qpaper"],["Question Paper","qpaper"],
+    ["CO/PO Attainment","copo"],["Syllabus Tracker","syllabus"],["Question Paper","qpaper"],["File Tracking","fts"],["Question Paper","qpaper"],
     ["Exam & Duty","duty"],["Feedback Results","feedback"],
     ["My Profile","profile"],["Audit Log","auditlog"],["Notices","notices"],
   ];
