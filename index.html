@@ -4,11 +4,49 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎓</text></svg>" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Campus ERP — XYZ University</title>
+    <title>Campus ERP — ITER · SOA University</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet">
-    <style>* { margin: 0; padding: 0; box-sizing: border-box; }</style>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      body { font-family: 'Inter', 'Segoe UI', sans-serif; }
+
+      /* ── MOBILE RESPONSIVE ── */
+      @media (max-width: 768px) {
+        .erp-shell { flex-direction: column !important; }
+        .erp-sidebar { width: 100% !important; min-height: auto !important; display: flex !important; flex-wrap: wrap !important; padding: 8px !important; gap: 4px !important; }
+        .erp-sidebar .sidebar-calendar { display: none !important; }
+        .erp-sidebar .sidebar-links { display: flex !important; flex-wrap: wrap !important; padding: 0 !important; border: none !important; width: 100% !important; }
+        .erp-sidebar .sidebar-links > div { padding: 5px 10px !important; border-radius: 20px !important; font-size: 11px !important; white-space: nowrap !important; }
+        .erp-sidebar .sidebar-birthdays { display: none !important; }
+        .erp-main { padding: 10px !important; }
+        .erp-header { flex-wrap: wrap !important; height: auto !important; padding: 8px 12px !important; gap: 8px !important; }
+        /* Stack grid layouts */
+        div[style*="grid-template-columns: repeat(4"] { grid-template-columns: repeat(2,1fr) !important; }
+        div[style*="grid-template-columns: repeat(3"] { grid-template-columns: 1fr 1fr !important; }
+        div[style*="grid-template-columns: 1fr 1fr"] { grid-template-columns: 1fr !important; }
+        div[style*="grid-template-columns: 1.2fr 1fr"] { grid-template-columns: 1fr !important; }
+        div[style*="grid-template-columns: 280px"] { grid-template-columns: 1fr !important; }
+        div[style*="grid-template-columns: 260px"] { grid-template-columns: 1fr !important; }
+        div[style*="grid-template-columns: 210px"] { grid-template-columns: 1fr !important; }
+        div[style*="grid-template-columns: 220px"] { grid-template-columns: 1fr !important; }
+        div[style*="grid-template-columns: 1fr 1.5fr"] { grid-template-columns: 1fr !important; }
+        div[style*="grid-template-columns: 1fr 1.6fr"] { grid-template-columns: 1fr !important; }
+        /* Tables scroll */
+        table { font-size: 11px !important; }
+        th, td { padding: 6px 8px !important; }
+      }
+
+      @media (max-width: 480px) {
+        div[style*="grid-template-columns: repeat(2"] { grid-template-columns: 1fr !important; }
+        div[style*="grid-template-columns: 1fr 1fr"] { grid-template-columns: 1fr !important; }
+        .erp-header .header-brand { min-width: auto !important; }
+      }
+
+      /* Scrollable tables on mobile */
+      .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    </style>
   </head>
   <body>
     <div id="root"></div>

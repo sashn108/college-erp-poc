@@ -1914,6 +1914,8 @@ function FacultySubjectsView() {
   const [activeTab, setActiveTab] = useState("students");
   const [attSaved, setAttSaved] = useState(false);
   const [selAttDate, setSelAttDate] = useState("Jun 19");
+  const [marksLocked, setMarksLocked] = useState({});
+  const [marksSaved, setMarksSaved] = useState(false);
   const [inbox, setInbox] = useState([
     {from:"Riya Patel",roll:"22CS001",subj:"Query about Assignment #4",msg:"Ma'am, can you clarify the ER diagram requirements?",time:"Jun 8, 9:42 AM",read:false},
     {from:"Amit Kumar",roll:"22CS005",subj:"Lab file submission",msg:"Sir, I submitted the lab file. Please check.",time:"Jun 7, 2:15 PM",read:true},
@@ -2209,13 +2211,36 @@ function FacultySubjectsView() {
               {/* Marks tab */}
               {activeTab==="marks" && (
                 <div style={{padding:16,overflowX:"auto"}}>
-                  <div style={{fontSize:12,color:"#64748b",marginBottom:12}}>Click any marks cell to edit. Max — Mid 1: 20, Mid 2: 20, Assignment: 20, Practical: 20 | Total: 80</div>
+                  {/* Status bar */}
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12,flexWrap:"wrap",gap:8}}>
+                    <div style={{fontSize:12,color:"#64748b"}}>
+                      Internal marks: Mid-1 <strong>/20</strong> + Mid-2 <strong>/20</strong> + Assignment <strong>/20</strong> + Practical <strong>/20</strong> = <strong>/80</strong>
+                    </div>
+                    <div style={{display:"flex",gap:8,alignItems:"center"}}>
+                      {marksLocked[sel?.code] ? (
+                        <span style={{padding:"4px 12px",background:"#dcfce7",color:"#16a34a",borderRadius:8,fontSize:12,fontWeight:700}}>🔒 Locked & Submitted to Exam Section</span>
+                      ) : (
+                        <>
+                          <button onClick={()=>{setMarksSaved(true);setTimeout(()=>setMarksSaved(false),2500);}}
+                            style={{padding:"7px 16px",background:"#f1f5f9",color:"#475569",border:"none",borderRadius:8,fontWeight:600,cursor:"pointer",fontSize:12}}>
+                            💾 Save Draft
+                          </button>
+                          <button onClick={()=>{if(window.confirm("Lock and submit marks to Exam Section? This cannot be undone.")) setMarksLocked(p=>({...p,[sel.code]:true}));}}
+                            style={{padding:"7px 16px",background:"linear-gradient(135deg,#ef4444,#dc2626)",color:"#fff",border:"none",borderRadius:8,fontWeight:600,cursor:"pointer",fontSize:12}}>
+                            🔒 Lock & Submit to Exam
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                  {marksSaved&&<div style={{background:"#dcfce7",border:"1px solid #86efac",borderRadius:8,padding:"8px 12px",marginBottom:10,fontSize:12,color:"#16a34a",fontWeight:600}}>✅ Marks draft saved!</div>}
+                  {marksLocked[sel?.code]&&<div style={{background:"#fef9c3",border:"1px solid #fde68a",borderRadius:8,padding:"8px 12px",marginBottom:10,fontSize:12,color:"#92400e",fontWeight:600}}>⚠️ Marks are locked. Contact Exam Section to make corrections.</div>}
                   <table style={{borderCollapse:"collapse",fontSize:12,width:"100%"}}>
                     <thead>
                       <tr style={{background:"#f8fafc"}}>
                         <th style={{padding:"9px 12px",textAlign:"left",fontWeight:600,color:"#475569",borderBottom:"2px solid #e2e8f0",minWidth:130}}>Student</th>
                         {[["Mid 1","/20"],["Mid 2","/20"],["Assignment","/20"],["Practical","/20"],["Total","/80"],["Grade",""]].map(([h,sub])=>(
-                          <th key={h} style={{padding:"9px 10px",textAlign:"center",fontWeight:600,color:"#475569",borderBottom:"2px solid #e2e8f0",minWidth:80}}>
+                          <th key={h} style={{padding:"9px 10px",textAlign:"center",fontWeight:600,color:"#475569",borderBottom:"2px solid #e2e8f0",minWidth:72}}>
                             {h}<span style={{color:"#94a3b8",fontWeight:400,fontSize:10}}>{sub}</span>
                           </th>
                         ))}
@@ -2227,6 +2252,7 @@ function FacultySubjectsView() {
                         const total = m.mid1+m.mid2+m.assignment+m.practical;
                         const grade = getGrade(total);
                         const gradeColor = grade==="O"||grade==="A+"?"#10b981":grade==="A"||grade==="B+"?"#6366f1":grade==="B"||grade==="C"?"#f59e0b":"#ef4444";
+                        const locked = marksLocked[sel.code];
                         return (
                           <tr key={s.roll} style={{borderBottom:"1px solid #f1f5f9",background:i%2===0?"#fff":"#fafbff"}}>
                             <td style={{padding:"8px 12px"}}>
@@ -2235,10 +2261,11 @@ function FacultySubjectsView() {
                             </td>
                             {["mid1","mid2","assignment","practical"].map(comp=>(
                               <td key={comp} style={{padding:"6px 8px",textAlign:"center"}}>
-                                <input type="number" min="0" max={maxMarks[comp]}
-                                  value={m[comp]}
-                                  onChange={e=>updateMark(sel.code,s.roll,comp,e.target.value)}
-                                  style={{width:48,padding:"5px 6px",border:"1px solid #e2e8f0",borderRadius:6,textAlign:"center",fontSize:13,fontWeight:600,color:"#334155",outline:"none",fontFamily:"inherit"}}/>
+                                {locked
+                                  ? <span style={{fontWeight:700,color:"#334155"}}>{m[comp]}</span>
+                                  : <input type="number" min="0" max={maxMarks[comp]} value={m[comp]}
+                                      onChange={e=>updateMark(sel.code,s.roll,comp,e.target.value)}
+                                      style={{width:46,padding:"5px 4px",border:"1px solid #e2e8f0",borderRadius:6,textAlign:"center",fontSize:13,fontWeight:600,color:"#334155",outline:"none",fontFamily:"inherit"}}/>}
                               </td>
                             ))}
                             <td style={{padding:"8px 10px",textAlign:"center",fontWeight:800,fontSize:14,color:"#0f172a"}}>{total}</td>
@@ -2250,11 +2277,6 @@ function FacultySubjectsView() {
                       })}
                     </tbody>
                   </table>
-                  <div style={{marginTop:12,display:"flex",justifyContent:"flex-end"}}>
-                    <button style={{padding:"8px 20px",background:"linear-gradient(135deg,#6366f1,#8b5cf6)",color:"#fff",border:"none",borderRadius:8,fontWeight:600,cursor:"pointer",fontSize:13}}>
-                      💾 Save Marks
-                    </button>
-                  </div>
                 </div>
               )}
 
@@ -3022,6 +3044,324 @@ function ELearningView() {
           ))}
         </div>
       )}
+    </div>
+  );
+}
+
+// ─── SYLLABUS TRACKER ─────────────────────────────────────────────────────────
+function SyllabusTracker() {
+  const [selSubj, setSelSubj] = useState("CS301");
+  const subjects = {
+    CS301:{ name:"Database Management Systems", faculty:"Dr. A. Sharma", totalHours:52,
+      units:[
+        { unit:1, title:"Introduction to DBMS", hours:8, topics:[
+          {t:"Overview of DBMS, Advantages over File System",done:true,date:"Jun 3"},
+          {t:"Data Models — Hierarchical, Network, Relational",done:true,date:"Jun 5"},
+          {t:"ER Diagram — Entities, Attributes, Relationships",done:true,date:"Jun 7"},
+          {t:"Extended ER Features — Specialization, Generalization",done:true,date:"Jun 10"},
+        ]},
+        { unit:2, title:"Relational Model & SQL", hours:14, topics:[
+          {t:"Relational Algebra — Select, Project, Join",done:true,date:"Jun 12"},
+          {t:"SQL DDL — CREATE, ALTER, DROP",done:true,date:"Jun 14"},
+          {t:"SQL DML — INSERT, UPDATE, DELETE",done:true,date:"Jun 17"},
+          {t:"Joins — Inner, Outer, Cross, Natural",done:false,date:""},
+          {t:"Subqueries and Nested Queries",done:false,date:""},
+          {t:"Views, Indexes, Constraints",done:false,date:""},
+        ]},
+        { unit:3, title:"Normalization", hours:10, topics:[
+          {t:"Functional Dependencies",done:false,date:""},
+          {t:"1NF, 2NF, 3NF",done:false,date:""},
+          {t:"BCNF, 4NF, 5NF",done:false,date:""},
+          {t:"Multivalued and Join Dependencies",done:false,date:""},
+        ]},
+        { unit:4, title:"Transactions & Concurrency", hours:10, topics:[
+          {t:"ACID Properties",done:false,date:""},
+          {t:"Serializability",done:false,date:""},
+          {t:"Locking Protocols",done:false,date:""},
+          {t:"Deadlock Detection & Recovery",done:false,date:""},
+        ]},
+        { unit:5, title:"Storage & Indexing", hours:10, topics:[
+          {t:"File Organization",done:false,date:""},
+          {t:"B+ Trees",done:false,date:""},
+          {t:"Hashing Techniques",done:false,date:""},
+          {t:"Query Processing & Optimization",done:false,date:""},
+        ]},
+      ]
+    },
+    CS302:{ name:"Operating Systems", faculty:"Prof. S. Das", totalHours:48,
+      units:[
+        { unit:1, title:"Introduction", hours:6, topics:[
+          {t:"OS Concepts & Structure",done:true,date:"Jun 2"},
+          {t:"System Calls & OS Services",done:true,date:"Jun 4"},
+          {t:"Types of Operating Systems",done:true,date:"Jun 6"},
+        ]},
+        { unit:2, title:"Process Management", hours:12, topics:[
+          {t:"Process Concepts & PCB",done:true,date:"Jun 9"},
+          {t:"CPU Scheduling Algorithms",done:true,date:"Jun 11"},
+          {t:"Inter-Process Communication",done:false,date:""},
+          {t:"Synchronization — Semaphores, Mutex",done:false,date:""},
+        ]},
+        { unit:3, title:"Memory Management", hours:10, topics:[
+          {t:"Paging & Segmentation",done:false,date:""},
+          {t:"Virtual Memory & Page Replacement",done:false,date:""},
+        ]},
+      ]
+    },
+  };
+
+  const [localSubjects, setLocalSubjects] = useState(subjects);
+  const subj = localSubjects[selSubj];
+  const allTopics = subj.units.flatMap(u=>u.topics);
+  const doneTopic = allTopics.filter(t=>t.done).length;
+  const pct = Math.round(doneTopic/allTopics.length*100);
+
+  const markDone = (ui, ti) => {
+    setLocalSubjects(prev=>{
+      const copy = JSON.parse(JSON.stringify(prev));
+      const topic = copy[selSubj].units[ui].topics[ti];
+      topic.done = !topic.done;
+      if(topic.done) topic.date = new Date().toLocaleDateString("en-GB",{day:"numeric",month:"short"});
+      else topic.date = "";
+      return copy;
+    });
+  };
+
+  return (
+    <div>
+      <div style={{display:"flex",gap:8,marginBottom:14,flexWrap:"wrap"}}>
+        {Object.entries(localSubjects).map(([k,v])=>(
+          <button key={k} onClick={()=>setSelSubj(k)}
+            style={{padding:"7px 16px",border:"none",borderRadius:8,cursor:"pointer",fontSize:12,fontWeight:600,
+              background:selSubj===k?"linear-gradient(135deg,#6366f1,#8b5cf6)":"#f1f5f9",
+              color:selSubj===k?"#fff":"#475569"}}>
+            {k} — {v.name}
+          </button>
+        ))}
+      </div>
+
+      {/* Progress summary */}
+      <div style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:12,padding:"16px 18px",marginBottom:14}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
+          <div>
+            <div style={{fontWeight:700,fontSize:15,color:"#0f172a"}}>{subj.name}</div>
+            <div style={{fontSize:12,color:"#64748b"}}>{subj.faculty} · {subj.totalHours} hours total</div>
+          </div>
+          <div style={{textAlign:"right"}}>
+            <div style={{fontSize:28,fontWeight:900,color:"#6366f1"}}>{pct}%</div>
+            <div style={{fontSize:11,color:"#94a3b8"}}>{doneTopic}/{allTopics.length} topics</div>
+          </div>
+        </div>
+        <div style={{height:10,background:"#f1f5f9",borderRadius:5}}>
+          <div style={{width:pct+"%",height:"100%",background:"linear-gradient(90deg,#6366f1,#8b5cf6)",borderRadius:5,transition:"width .3s"}}/>
+        </div>
+        <div style={{display:"flex",gap:16,marginTop:10}}>
+          {subj.units.map(u=>{
+            const done = u.topics.filter(t=>t.done).length;
+            const up = Math.round(done/u.topics.length*100);
+            return (
+              <div key={u.unit} style={{flex:1,textAlign:"center"}}>
+                <div style={{fontSize:10,color:"#94a3b8",fontWeight:600,marginBottom:3}}>Unit {u.unit}</div>
+                <div style={{height:4,background:"#f1f5f9",borderRadius:2}}>
+                  <div style={{width:up+"%",height:"100%",background:up===100?"#10b981":"#6366f1",borderRadius:2}}/>
+                </div>
+                <div style={{fontSize:9,color:up===100?"#10b981":"#6366f1",fontWeight:600,marginTop:2}}>{up}%</div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Unit-wise topics */}
+      <div style={{display:"flex",flexDirection:"column",gap:10}}>
+        {subj.units.map((u,ui)=>{
+          const done = u.topics.filter(t=>t.done).length;
+          return (
+            <div key={u.unit} style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:12,overflow:"hidden"}}>
+              <div style={{padding:"10px 16px",background:"#f8fafc",display:"flex",justifyContent:"space-between",alignItems:"center",borderBottom:"1px solid #e2e8f0"}}>
+                <div style={{fontWeight:700,fontSize:13,color:"#0f172a"}}>Unit {u.unit}: {u.title}</div>
+                <div style={{display:"flex",gap:10,alignItems:"center"}}>
+                  <span style={{fontSize:12,color:"#64748b"}}>{u.hours} hrs</span>
+                  <span style={{fontSize:12,fontWeight:700,color:done===u.topics.length?"#10b981":"#6366f1"}}>{done}/{u.topics.length} done</span>
+                </div>
+              </div>
+              <div style={{padding:"8px 0"}}>
+                {u.topics.map((topic,ti)=>(
+                  <div key={ti} style={{display:"flex",alignItems:"center",gap:12,padding:"8px 16px",borderBottom:"1px solid #f8fafc",
+                    background:topic.done?"#f0fdf4":"#fff"}}>
+                    <button onClick={()=>markDone(ui,ti)}
+                      style={{width:22,height:22,borderRadius:6,border:`2px solid ${topic.done?"#10b981":"#cbd5e1"}`,
+                        background:topic.done?"#10b981":"#fff",cursor:"pointer",flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",fontSize:12,fontWeight:700}}>
+                      {topic.done?"✓":""}
+                    </button>
+                    <span style={{fontSize:13,color:topic.done?"#16a34a":"#334155",fontWeight:topic.done?500:400,
+                      textDecoration:topic.done?"line-through":"none",flex:1}}>
+                      {topic.t}
+                    </span>
+                    {topic.done&&topic.date&&<span style={{fontSize:11,color:"#94a3b8",flexShrink:0}}>{topic.date}</span>}
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ─── MARKSHEET ────────────────────────────────────────────────────────────────
+function MarksheetView({ user }) {
+  const [selSem, setSelSem] = useState("5");
+  const [downloading, setDownloading] = useState(false);
+
+  const semResults = {
+    "1":{ session:"Autumn 2023", parity:"Odd", sgpa:8.1, cgpa:8.1, credits:21, courses:[
+      {code:"MA101",name:"Engineering Mathematics I",  type:"T",c:4,int:28,ext:62,tot:90,gr:"O"},
+      {code:"PH101",name:"Engineering Physics",        type:"T",c:3,int:22,ext:55,tot:77,gr:"A+"},
+      {code:"CS101",name:"Programming in C",           type:"T",c:3,int:25,ext:58,tot:83,gr:"A"},
+      {code:"CS101L",name:"Programming Lab",           type:"L",c:2,int:18,ext:32,tot:50,gr:"O"},
+      {code:"ME101",name:"Engineering Drawing",        type:"T",c:2,int:20,ext:45,tot:65,gr:"B+"},
+      {code:"HS101",name:"English Communication",      type:"T",c:2,int:24,ext:52,tot:76,gr:"A+"},
+    ]},
+    "2":{ session:"Spring 2024", parity:"Even", sgpa:8.0, cgpa:8.1, credits:21, courses:[
+      {code:"MA102",name:"Engineering Mathematics II", type:"T",c:4,int:26,ext:60,tot:86,gr:"A+"},
+      {code:"CH101",name:"Engineering Chemistry",      type:"T",c:3,int:21,ext:50,tot:71,gr:"A"},
+      {code:"CS102",name:"Data Structures",            type:"T",c:4,int:27,ext:65,tot:92,gr:"O"},
+      {code:"CS102L",name:"Data Structures Lab",       type:"L",c:2,int:19,ext:30,tot:49,gr:"A+"},
+      {code:"EC101",name:"Basic Electronics",          type:"T",c:3,int:18,ext:44,tot:62,gr:"B+"},
+      {code:"ME102",name:"Workshop Practice",          type:"L",c:2,int:20,ext:28,tot:48,gr:"A"},
+    ]},
+    "3":{ session:"Autumn 2024", parity:"Odd", sgpa:8.4, cgpa:8.3, credits:22, courses:[
+      {code:"CS201",name:"Discrete Mathematics",       type:"T",c:4,int:24,ext:56,tot:80,gr:"A+"},
+      {code:"CS202",name:"Digital Logic Design",       type:"T",c:3,int:22,ext:50,tot:72,gr:"A"},
+      {code:"CS203",name:"OOP with Java",              type:"T",c:4,int:28,ext:62,tot:90,gr:"O"},
+      {code:"CS203L",name:"Java Lab",                  type:"L",c:2,int:20,ext:30,tot:50,gr:"O"},
+      {code:"MA201",name:"Probability & Statistics",   type:"T",c:3,int:19,ext:48,tot:67,gr:"B+"},
+      {code:"CS204",name:"Computer Organization",      type:"T",c:3,int:21,ext:52,tot:73,gr:"A"},
+    ]},
+    "4":{ session:"Spring 2025", parity:"Even", sgpa:8.9, cgpa:8.6, credits:22, courses:[
+      {code:"CS211",name:"Design & Analysis of Algorithms",type:"T",c:4,int:25,ext:58,tot:83,gr:"A"},
+      {code:"CS212",name:"Database Management Systems",   type:"T",c:4,int:27,ext:62,tot:89,gr:"O"},
+      {code:"CS212L",name:"DBMS Lab",                     type:"L",c:2,int:19,ext:29,tot:48,gr:"A+"},
+      {code:"CS213",name:"Software Engineering",          type:"T",c:3,int:22,ext:54,tot:76,gr:"A+"},
+      {code:"CS214E",name:"Web Technologies (Elective)",  type:"E",c:3,int:24,ext:56,tot:80,gr:"A+"},
+      {code:"CS215",name:"Mini Project",                  type:"P",c:2,int:40,ext:0,tot:40,gr:"O"},
+    ]},
+    "5":{ session:"Autumn 2025", parity:"Odd", sgpa:null, cgpa:null, credits:23, courses:[
+      {code:"CS301",name:"Database Management Systems",   type:"T",c:4,int:null,ext:null,tot:null,gr:"—"},
+      {code:"CS302",name:"Operating Systems",             type:"T",c:4,int:null,ext:null,tot:null,gr:"—"},
+      {code:"CS303",name:"Computer Networks",             type:"T",c:4,int:null,ext:null,tot:null,gr:"—"},
+      {code:"CS304",name:"Theory of Computation",         type:"T",c:3,int:null,ext:null,tot:null,gr:"—"},
+      {code:"CS305",name:"Software Engineering",          type:"T",c:3,int:null,ext:null,tot:null,gr:"—"},
+      {code:"CS301L",name:"DBMS Lab",                     type:"L",c:2,int:null,ext:null,tot:null,gr:"—"},
+      {code:"CS306E",name:"Machine Learning (Elective)",  type:"E",c:3,int:null,ext:null,tot:null,gr:"—"},
+    ]},
+  };
+
+  const gradeColor = g => ({O:"#10b981","A+":"#10b981",A:"#6366f1","B+":"#6366f1",B:"#f59e0b",C:"#f59e0b",F:"#ef4444","—":"#94a3b8"}[g]||"#94a3b8");
+  const current = semResults[selSem];
+  const cgpaAll = [8.1,8.0,8.3,8.6];
+  const handleDownload = () => {
+    setDownloading(true);
+    setTimeout(()=>setDownloading(false),2000);
+  };
+
+  return (
+    <div>
+      {/* Sem tabs */}
+      <div style={{display:"flex",gap:6,marginBottom:14,flexWrap:"wrap"}}>
+        {Object.keys(semResults).map(s=>(
+          <button key={s} onClick={()=>setSelSem(s)}
+            style={{padding:"6px 16px",border:"none",borderRadius:8,cursor:"pointer",fontSize:12,fontWeight:600,
+              background:selSem===s?"linear-gradient(135deg,#6366f1,#8b5cf6)":"#f1f5f9",
+              color:selSem===s?"#fff":"#475569"}}>
+            Sem {s}
+          </button>
+        ))}
+      </div>
+
+      {/* CGPA trend */}
+      <div style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:12,padding:"14px 18px",marginBottom:14}}>
+        <div style={{fontWeight:700,fontSize:13,color:"#0f172a",marginBottom:10}}>CGPA Progression</div>
+        <div style={{display:"flex",gap:8,alignItems:"flex-end"}}>
+          {cgpaAll.map((c,i)=>(
+            <div key={i} style={{flex:1,textAlign:"center"}}>
+              <div style={{fontSize:12,fontWeight:700,color:"#6366f1",marginBottom:4}}>{c}</div>
+              <div style={{height:Math.round((c-7)*60)+"px",background:"linear-gradient(180deg,#6366f1,#8b5cf6)",borderRadius:"4px 4px 0 0",minHeight:20}}/>
+              <div style={{fontSize:10,color:"#94a3b8",marginTop:3}}>Sem {i+1}</div>
+            </div>
+          ))}
+          <div style={{flex:1,textAlign:"center"}}>
+            <div style={{fontSize:12,fontWeight:700,color:"#94a3b8",marginBottom:4}}>—</div>
+            <div style={{height:20,background:"#f1f5f9",borderRadius:"4px 4px 0 0"}}/>
+            <div style={{fontSize:10,color:"#94a3b8",marginTop:3}}>Sem 5</div>
+          </div>
+        </div>
+      </div>
+
+      {/* Marksheet card */}
+      <div style={{background:"#fff",border:"2px solid #6366f1",borderRadius:12,overflow:"hidden"}}>
+        <div style={{background:"linear-gradient(135deg,#6366f1,#8b5cf6)",padding:"14px 20px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+          <div>
+            <div style={{color:"#fff",fontWeight:900,fontSize:16}}>ITER — SOA University</div>
+            <div style={{color:"rgba(255,255,255,0.85)",fontSize:13}}>Grade Sheet — Semester {selSem} ({current.session})</div>
+          </div>
+          {current.sgpa&&(
+            <button onClick={handleDownload}
+              style={{padding:"8px 16px",background:"rgba(255,255,255,0.2)",border:"1px solid rgba(255,255,255,0.4)",borderRadius:8,color:"#fff",fontWeight:600,cursor:"pointer",fontSize:12}}>
+              {downloading?"⏳ Generating...":"📥 Download PDF"}
+            </button>
+          )}
+        </div>
+
+        {downloading&&<div style={{background:"#dcfce7",padding:"8px 16px",fontSize:12,color:"#16a34a",fontWeight:600}}>✅ Marksheet_Sem{selSem}_{user.roll||"520CS2008"}.pdf downloaded!</div>}
+
+        {/* Student info */}
+        <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",borderBottom:"1px solid #e2e8f0"}}>
+          {[["Student Name",user.name],["Roll No.",user.roll||"520CS2008"],["Department","CSE"],
+            ["Programme","B.Tech"],["Semester",`${selSem} (${current.parity})`],["Session",current.session]].map(([l,v],i)=>(
+            <div key={i} style={{padding:"9px 14px",borderRight:i%3!==2?"1px solid #f1f5f9":"none",borderBottom:"1px solid #f1f5f9",background:i%2===0?"#fafbff":"#fff"}}>
+              <div style={{fontSize:10,fontWeight:700,color:"#94a3b8"}}>{l}</div>
+              <div style={{fontSize:13,fontWeight:700,color:"#0f172a"}}>{v}</div>
+            </div>
+          ))}
+        </div>
+
+        {/* Marks table */}
+        <table style={{width:"100%",borderCollapse:"collapse",fontSize:13}}>
+          <thead>
+            <tr style={{background:"#eef2ff"}}>
+              {["Code","Subject","Type","Credits","Internal /20","External /60","Total /80","Grade"].map(h=>(
+                <th key={h} style={{padding:"8px 12px",textAlign:"left",fontWeight:600,color:"#475569",fontSize:11}}>{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {current.courses.map((c,i)=>(
+              <tr key={c.code} style={{borderBottom:"1px solid #f1f5f9",background:i%2===0?"#fff":"#fafbff"}}>
+                <td style={{padding:"9px 12px",fontWeight:700,color:"#6366f1"}}>{c.code}</td>
+                <td style={{padding:"9px 12px",color:"#0f172a",fontWeight:500}}>{c.name}</td>
+                <td style={{padding:"9px 12px"}}><span style={{fontSize:10,padding:"1px 6px",borderRadius:4,background:"#eef2ff",color:"#6366f1",fontWeight:700}}>{c.type}</span></td>
+                <td style={{padding:"9px 12px",textAlign:"center",color:"#475569"}}>{c.c}</td>
+                <td style={{padding:"9px 12px",textAlign:"center",color:"#334155",fontWeight:500}}>{c.int??<span style={{color:"#f59e0b",fontSize:11}}>Pending</span>}</td>
+                <td style={{padding:"9px 12px",textAlign:"center",color:"#334155",fontWeight:500}}>{c.ext??<span style={{color:"#f59e0b",fontSize:11}}>Pending</span>}</td>
+                <td style={{padding:"9px 12px",textAlign:"center",fontWeight:700,color:"#0f172a"}}>{c.tot??<span style={{color:"#f59e0b",fontSize:11}}>Pending</span>}</td>
+                <td style={{padding:"9px 12px",textAlign:"center"}}>
+                  <span style={{padding:"3px 10px",borderRadius:6,fontWeight:800,fontSize:12,background:gradeColor(c.gr)+"20",color:gradeColor(c.gr)}}>{c.gr}</span>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+
+        {/* Footer */}
+        <div style={{padding:"12px 16px",background:"#f8fafc",display:"flex",gap:24,justifyContent:"flex-end",borderTop:"1px solid #e2e8f0"}}>
+          <div style={{textAlign:"center"}}><div style={{fontSize:10,color:"#94a3b8",fontWeight:700}}>CREDITS EARNED</div><div style={{fontSize:16,fontWeight:800,color:"#334155"}}>{current.sgpa?current.credits:0}/{current.credits}</div></div>
+          <div style={{textAlign:"center"}}><div style={{fontSize:10,color:"#94a3b8",fontWeight:700}}>SGPA</div><div style={{fontSize:18,fontWeight:900,color:"#6366f1"}}>{current.sgpa??"—"}</div></div>
+          <div style={{textAlign:"center"}}><div style={{fontSize:10,color:"#94a3b8",fontWeight:700}}>CGPA</div><div style={{fontSize:18,fontWeight:900,color:"#0f172a"}}>{current.cgpa??"—"}</div></div>
+          <div style={{textAlign:"center"}}><div style={{fontSize:10,color:"#94a3b8",fontWeight:700}}>RESULT</div><div style={{fontSize:14,fontWeight:800,color:current.sgpa?"#10b981":"#f59e0b"}}>{current.sgpa?"PASS":"Awaited"}</div></div>
+        </div>
+      </div>
     </div>
   );
 }
@@ -3812,6 +4152,7 @@ export default function App() {
     registration:<CourseRegistration/>, feedback:<FeedbackView/>,
     profile:<StudentProfile user={auth}/>, auditlog:<AuditLog role="student"/>,
     transport:<TransportView/>, alumni:<AlumniConnect user={auth}/>, elearning:<ELearningView/>,
+    marksheet:<MarksheetView user={auth}/>,
   };
   const facultyViews = {
     dashboard:<FacultyDashboard user={auth}/>, subjects:<FacultySubjectsView/>,
@@ -3819,14 +4160,15 @@ export default function App() {
     research:<ResearchView/>, duty:<DutyView/>, notices:<NoticesView/>,
     copo:<COPOView/>, feedback:<FacultyFeedbackView/>,
     profile:<FacultyProfile user={auth}/>, auditlog:<AuditLog role="faculty"/>,
+    syllabus:<SyllabusTracker/>,
   };
   const views = role==="student" ? studentViews : facultyViews;
 
   const studentSidebarLinks = [
     ["Dashboard","dashboard"],["Attendance","attendance"],
-    ["Question Papers","papers"],["Examination","exam"],["Hall Ticket","hallticket"],
-    ["Assignments","assignments"],["Fee Payment","fee"],["Library","library"],
-    ["Placement Cell","placement"],["E-Learning","elearning"],
+    ["Question Papers","papers"],["Examination","exam"],["Marksheet","marksheet"],
+    ["Hall Ticket","hallticket"],["Assignments","assignments"],["Fee Payment","fee"],
+    ["Library","library"],["Placement Cell","placement"],["E-Learning","elearning"],
     ["Transport","transport"],["Alumni Connect","alumni"],
     ["Course Registration","registration"],["Grievance","grievance"],
     ["Feedback","feedback"],["Profile","profile"],["Audit Log","auditlog"],["Notices","notices"],
@@ -3834,7 +4176,8 @@ export default function App() {
   const facultySidebarLinks = [
     ["Dashboard","dashboard"],["Subjects & Students","subjects"],["Lab","lab"],
     ["Attendance","attendance"],["Evaluation","evaluation"],["Research","research"],
-    ["CO/PO Attainment","copo"],["Exam & Duty","duty"],["Feedback Results","feedback"],
+    ["CO/PO Attainment","copo"],["Syllabus Tracker","syllabus"],
+    ["Exam & Duty","duty"],["Feedback Results","feedback"],
     ["My Profile","profile"],["Audit Log","auditlog"],["Notices","notices"],
   ];
 
@@ -3952,11 +4295,11 @@ export default function App() {
         </span>
       </div>
 
-      <div style={{display:"flex",alignItems:"flex-start"}}>
+      <div style={{display:"flex",alignItems:"flex-start"}} className="erp-shell">
         {/* ── SIDEBAR ── */}
-        <div style={{width:200,flexShrink:0,background:sbg,minHeight:"calc(100vh - 90px)",paddingTop:4,overflowY:"auto"}}>
-          <MiniCalendar/>
-          <div style={{borderTop:"1px solid #444",marginTop:8,padding:"10px 10px 0"}}>
+        <div style={{width:200,flexShrink:0,background:sbg,minHeight:"calc(100vh - 90px)",paddingTop:4,overflowY:"auto"}} className="erp-sidebar">
+          <div className="sidebar-calendar"><MiniCalendar/></div>
+          <div style={{borderTop:"1px solid #444",marginTop:8,padding:"10px 10px 0"}} className="sidebar-links">
             <div style={{fontSize:11,color:"#888",fontWeight:700,marginBottom:6,letterSpacing:0.5}}>QUICK LINKS</div>
             {(role==="student"?studentSidebarLinks:facultySidebarLinks).map(([label,key])=>(
               <div key={key} onClick={()=>setActive(key)}
@@ -3968,7 +4311,7 @@ export default function App() {
             ))}
           </div>
           {role==="faculty"&&(
-            <div style={{borderTop:"1px solid #444",marginTop:10,padding:"10px 10px 0"}}>
+            <div style={{borderTop:"1px solid #444",marginTop:10,padding:"10px 10px 0"}} className="sidebar-birthdays">
               <div style={{fontSize:11,color:"#888",fontWeight:700,marginBottom:8,letterSpacing:0.5}}>🎂 BIRTHDAYS</div>
               {[{name:"Dr. Ramesh Panda",dept:"CSE",date:"Jun 9"},{name:"Prof. Sunita Das",dept:"ECE",date:"Jun 11"},{name:"Dr. Manoj Behera",dept:"MECH",date:"Jun 14"},{name:"Prof. Anita Mohanty",dept:"CIVIL",date:"Jun 17"},{name:"Dr. Bikash Sahoo",dept:"EEE",date:"Jun 20"}].map((b,i)=>(
                 <div key={i} style={{padding:"6px 6px",borderBottom:"1px solid #3a3a3a",display:"flex",justifyContent:"space-between"}}>
@@ -3984,7 +4327,7 @@ export default function App() {
         </div>
 
         {/* ── MAIN CONTENT ── */}
-        <div style={{flex:1,padding:16,minHeight:"calc(100vh - 90px)",background:darkMode?"#0f172a":"#f0f0f0"}}>
+        <div style={{flex:1,padding:16,minHeight:"calc(100vh - 90px)",background:darkMode?"#0f172a":"#f0f0f0"}} className="erp-main">
           {views[active]||<div style={{color:"#aaa",textAlign:"center",padding:40}}>Coming soon</div>}
         </div>
       </div>
