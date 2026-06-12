@@ -2378,9 +2378,12 @@ function QuestionPaperSubmission() {
     },
   ]);
 
-  const [form, setForm] = useState({subject:"CS303",name:"Computer Networks",type:"End Semester",semester:"5",duration:"3 Hours",totalMarks:80,sections:[
-    {section:"A",marks:20,questions:[{no:1,text:"",marks:10,unit:"Unit 1",co:"CO1",bt:"Understanding"}]},
-  ]});
+  const [form, setForm] = useState({
+    subject:"", name:"", type:"End Semester", priority:"Normal", to:"HOD — CSE",
+    desc:"", attachment:"", mode:"online", uploadedFile:"", uploadedSize:"",
+    filePassword:"", semester:"5", duration:"3 Hours", totalMarks:80,
+    sections:[{section:"A",marks:20,questions:[{no:1,text:"",marks:10,unit:"Unit 1",co:"CO1",bt:"Understanding"}]}],
+  });
 
   const statusColor = s => ({
     "Draft":{bg:"#f1f5f9",c:"#64748b"},
@@ -2534,6 +2537,20 @@ function QuestionPaperSubmission() {
       {tab==="compose" && (
         <div style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:12,padding:"18px 20px"}}>
           <div style={{fontWeight:700,fontSize:15,color:"#0f172a",marginBottom:14}}>Create Question Paper</div>
+
+          {/* Mode toggle */}
+          <div style={{display:"flex",gap:0,background:"#f1f5f9",borderRadius:10,padding:3,marginBottom:18,width:"fit-content"}}>
+            {[["online","✏️ Type Online"],["upload","📎 Upload Document"]].map(([m,l])=>(
+              <button key={m} onClick={()=>setForm(f=>({...f,mode:m}))}
+                style={{padding:"9px 22px",border:"none",borderRadius:8,cursor:"pointer",fontSize:13,fontWeight:600,
+                  background:(form.mode||"online")===m?"linear-gradient(135deg,#6366f1,#8b5cf6)":"transparent",
+                  color:(form.mode||"online")===m?"#fff":"#64748b"}}>
+                {l}
+              </button>
+            ))}
+          </div>
+
+          {/* Common metadata fields */}
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:12,marginBottom:14}}>
             {[["Subject Code","subject"],["Subject Name","name"],["Duration","duration"]].map(([l,k])=>(
               <div key={k}>
@@ -2557,57 +2574,134 @@ function QuestionPaperSubmission() {
                 style={{width:"100%",boxSizing:"border-box",padding:"8px 10px",border:"1px solid #e2e8f0",borderRadius:8,fontSize:13,outline:"none",fontFamily:"inherit"}}/>
             </div>
           </div>
-          {/* Questions */}
-          {form.sections.map((sec,si)=>(
-            <div key={si} style={{marginBottom:14,border:"1px solid #e2e8f0",borderRadius:10,overflow:"hidden"}}>
-              <div style={{background:"#f8fafc",padding:"8px 12px",fontWeight:700,fontSize:13,color:"#0f172a",display:"flex",justifyContent:"space-between"}}>
-                Section {sec.section} — {sec.marks} Marks
-              </div>
-              {sec.questions.map((q,qi)=>(
-                <div key={qi} style={{padding:"10px 12px",borderBottom:"1px solid #f1f5f9"}}>
-                  <div style={{display:"flex",gap:8,marginBottom:6,alignItems:"center"}}>
-                    <span style={{fontWeight:700,color:"#6366f1",fontSize:13}}>Q{q.no}.</span>
-                    <input value={q.text} onChange={e=>setForm(f=>{const s=[...f.sections];s[si].questions[qi].text=e.target.value;return {...f,sections:s};})}
-                      placeholder="Enter question text..."
-                      style={{flex:1,padding:"7px 10px",border:"1px solid #e2e8f0",borderRadius:7,fontSize:12,outline:"none",fontFamily:"inherit"}}/>
-                    <input type="number" value={q.marks} onChange={e=>setForm(f=>{const s=[...f.sections];s[si].questions[qi].marks=Number(e.target.value);return {...f,sections:s};})}
-                      style={{width:52,padding:"7px 8px",border:"1px solid #e2e8f0",borderRadius:7,fontSize:12,textAlign:"center",outline:"none"}}/>
+
+          {/* ── UPLOAD MODE ── */}
+          {(form.mode||"online")==="upload" && (
+            <div>
+              {/* Upload zone */}
+              <div style={{border:"2px dashed #c7d2fe",borderRadius:12,padding:"36px 24px",textAlign:"center",background:"#f8faff",marginBottom:14,position:"relative"}}>
+                <input type="file" accept=".pdf,.doc,.docx" id="qp-upload"
+                  onChange={e=>{const f=e.target.files[0];if(f)setForm(p=>({...p,uploadedFile:f.name,uploadedSize:(f.size/1024).toFixed(1)+"KB"}));}}
+                  style={{position:"absolute",inset:0,opacity:0,cursor:"pointer",width:"100%",height:"100%"}}/>
+                {form.uploadedFile ? (
+                  <div>
+                    <div style={{fontSize:40,marginBottom:8}}>{form.uploadedFile.endsWith(".pdf")?"📄":"📝"}</div>
+                    <div style={{fontWeight:700,fontSize:14,color:"#0f172a"}}>{form.uploadedFile}</div>
+                    <div style={{fontSize:12,color:"#64748b",marginTop:2}}>{form.uploadedSize} · Click to replace</div>
+                    <button onClick={e=>{e.preventDefault();e.stopPropagation();setForm(p=>({...p,uploadedFile:"",uploadedSize:""}));}}
+                      style={{marginTop:10,padding:"4px 14px",background:"#fee2e2",color:"#dc2626",border:"none",borderRadius:6,cursor:"pointer",fontSize:12,fontWeight:600}}>
+                      ✕ Remove
+                    </button>
                   </div>
-                  <div style={{display:"flex",gap:8}}>
-                    {[["unit","Unit"],["co","CO"],["bt","BT Level"]].map(([k,l])=>(
-                      <div key={k} style={{flex:1}}>
-                        <label style={{fontSize:9,fontWeight:700,color:"#94a3b8",display:"block",marginBottom:2}}>{l}</label>
-                        <input value={q[k]} onChange={e=>setForm(f=>{const s=[...f.sections];s[si].questions[qi][k]=e.target.value;return {...f,sections:s};})}
-                          style={{width:"100%",padding:"5px 8px",border:"1px solid #e2e8f0",borderRadius:6,fontSize:11,outline:"none",fontFamily:"inherit"}}/>
+                ) : (
+                  <div>
+                    <div style={{fontSize:40,marginBottom:8}}>📎</div>
+                    <div style={{fontWeight:700,fontSize:14,color:"#334155"}}>Click to upload or drag & drop</div>
+                    <div style={{fontSize:12,color:"#94a3b8",marginTop:4}}>Supported formats: <strong>.pdf</strong>, <strong>.doc</strong>, <strong>.docx</strong></div>
+                    <div style={{fontSize:11,color:"#94a3b8",marginTop:2}}>Max size: 10 MB</div>
+                  </div>
+                )}
+              </div>
+
+              {/* Info note */}
+              <div style={{background:"#eef2ff",border:"1px solid #c7d2fe",borderRadius:8,padding:"10px 14px",marginBottom:14,fontSize:12,color:"#4338ca",display:"flex",gap:8}}>
+                <span style={{fontSize:16,flexShrink:0}}>💡</span>
+                <span>Use this option when your question paper has <strong>diagrams, figures, circuit drawings</strong>, or complex mathematical notation that can't be typed. Prepare the paper in Word/PDF and upload here. The file will go through the same coordinator → exam section approval workflow.</span>
+              </div>
+
+              {/* Set password option */}
+              <div style={{background:"#f8fafc",borderRadius:8,padding:"12px 14px",marginBottom:14,display:"flex",gap:12,alignItems:"center",justifyContent:"space-between"}}>
+                <div>
+                  <div style={{fontSize:13,fontWeight:600,color:"#334155"}}>🔒 Password protect the file</div>
+                  <div style={{fontSize:11,color:"#94a3b8"}}>Only Exam Section can open after approval</div>
+                </div>
+                <div style={{display:"flex",gap:8,alignItems:"center"}}>
+                  <input type="password" placeholder="Set password (optional)"
+                    value={form.filePassword||""}
+                    onChange={e=>setForm(p=>({...p,filePassword:e.target.value}))}
+                    style={{padding:"7px 10px",border:"1px solid #e2e8f0",borderRadius:8,fontSize:12,outline:"none",width:180,fontFamily:"inherit"}}/>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ── ONLINE TYPE MODE ── */}
+          {(form.mode||"online")==="online" && (
+            <div>
+              {form.sections.map((sec,si)=>(
+                <div key={si} style={{marginBottom:14,border:"1px solid #e2e8f0",borderRadius:10,overflow:"hidden"}}>
+                  <div style={{background:"#f8fafc",padding:"8px 12px",fontWeight:700,fontSize:13,color:"#0f172a",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                    <span>Section {sec.section} — {sec.marks} Marks</span>
+                    <input type="number" value={sec.marks} onChange={e=>setForm(f=>{const s=[...f.sections];s[si].marks=Number(e.target.value);return {...f,sections:s};})}
+                      style={{width:60,padding:"3px 6px",border:"1px solid #e2e8f0",borderRadius:6,fontSize:12,textAlign:"center",outline:"none"}}/>
+                  </div>
+                  {sec.questions.map((q,qi)=>(
+                    <div key={qi} style={{padding:"10px 12px",borderBottom:"1px solid #f1f5f9"}}>
+                      <div style={{display:"flex",gap:8,marginBottom:6,alignItems:"center"}}>
+                        <span style={{fontWeight:700,color:"#6366f1",fontSize:13,flexShrink:0}}>Q{q.no}.</span>
+                        <input value={q.text} onChange={e=>setForm(f=>{const s=[...f.sections];s[si].questions[qi].text=e.target.value;return {...f,sections:s};})}
+                          placeholder="Enter question text..."
+                          style={{flex:1,padding:"7px 10px",border:"1px solid #e2e8f0",borderRadius:7,fontSize:12,outline:"none",fontFamily:"inherit"}}/>
+                        <input type="number" value={q.marks} onChange={e=>setForm(f=>{const s=[...f.sections];s[si].questions[qi].marks=Number(e.target.value);return {...f,sections:s};})}
+                          placeholder="Marks" style={{width:52,padding:"7px 6px",border:"1px solid #e2e8f0",borderRadius:7,fontSize:12,textAlign:"center",outline:"none"}}/>
                       </div>
-                    ))}
+                      <div style={{display:"flex",gap:8}}>
+                        {[["unit","Unit"],["co","CO"],["bt","BT Level"]].map(([k,l])=>(
+                          <div key={k} style={{flex:1}}>
+                            <label style={{fontSize:9,fontWeight:700,color:"#94a3b8",display:"block",marginBottom:2}}>{l}</label>
+                            <input value={q[k]} onChange={e=>setForm(f=>{const s=[...f.sections];s[si].questions[qi][k]=e.target.value;return {...f,sections:s};})}
+                              style={{width:"100%",padding:"5px 8px",border:"1px solid #e2e8f0",borderRadius:6,fontSize:11,outline:"none",fontFamily:"inherit"}}/>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                  <div style={{padding:"8px 12px",display:"flex",gap:8}}>
+                    <button onClick={()=>setForm(f=>{const s=[...f.sections];const nq={no:s[si].questions.length+1,text:"",marks:10,unit:"Unit 1",co:"CO1",bt:"Understanding"};s[si].questions=[...s[si].questions,nq];return {...f,sections:s};})}
+                      style={{padding:"5px 12px",background:"#eef2ff",color:"#6366f1",border:"none",borderRadius:6,cursor:"pointer",fontSize:11,fontWeight:600}}>
+                      + Add Question
+                    </button>
                   </div>
                 </div>
               ))}
-              <div style={{padding:"8px 12px"}}>
-                <button onClick={()=>setForm(f=>{const s=[...f.sections];const nq={no:s[si].questions.length+1,text:"",marks:10,unit:"Unit 1",co:"CO1",bt:"Understanding"};s[si].questions=[...s[si].questions,nq];return {...f,sections:s};})}
-                  style={{padding:"5px 12px",background:"#eef2ff",color:"#6366f1",border:"none",borderRadius:6,cursor:"pointer",fontSize:11,fontWeight:600}}>
-                  + Add Question
-                </button>
-              </div>
+              <button onClick={()=>setForm(f=>({...f,sections:[...f.sections,{section:String.fromCharCode(65+f.sections.length),marks:20,questions:[{no:1,text:"",marks:10,unit:"Unit 1",co:"CO1",bt:"Understanding"}]}]}))}
+                style={{padding:"7px 16px",background:"#f1f5f9",color:"#475569",border:"none",borderRadius:8,cursor:"pointer",fontSize:12,fontWeight:600,marginBottom:14}}>
+                + Add Section
+              </button>
             </div>
-          ))}
-          <button onClick={()=>setForm(f=>({...f,sections:[...f.sections,{section:String.fromCharCode(65+f.sections.length),marks:20,questions:[{no:1,text:"",marks:10,unit:"Unit 1",co:"CO1",bt:"Understanding"}]}]}))}
-            style={{padding:"7px 16px",background:"#f1f5f9",color:"#475569",border:"none",borderRadius:8,cursor:"pointer",fontSize:12,fontWeight:600,marginBottom:14}}>
-            + Add Section
-          </button>
-          <div style={{display:"flex",gap:10,justifyContent:"flex-end"}}>
+          )}
+
+          {/* Save button */}
+          <div style={{display:"flex",gap:10,justifyContent:"space-between",alignItems:"center",borderTop:"1px solid #f1f5f9",paddingTop:14}}>
+            <div style={{fontSize:12,color:"#94a3b8"}}>
+              {(form.mode||"online")==="upload"
+                ? form.uploadedFile ? `📎 ${form.uploadedFile} ready to submit` : "No file uploaded yet"
+                : `${form.sections.reduce((a,s)=>a+s.questions.length,0)} questions across ${form.sections.length} section(s)`}
+            </div>
             <button onClick={()=>{
-              const newPaper = {...form, id:"QP00"+(papers.length+1), status:"Draft", submittedTo:null,
-                stages:[{label:"Created",done:true,date:new Date().toLocaleDateString("en-GB",{day:"numeric",month:"short"}),actor:"Dr. Priya Singh"},
+              const isUpload = (form.mode||"online")==="upload";
+              const newPaper = {
+                ...form,
+                id:"QP00"+(papers.length+1),
+                status:"Draft", submittedTo:null,
+                uploadMode: isUpload,
+                uploadedFile: isUpload ? form.uploadedFile : null,
+                stages:[
+                  {label:"Created",done:true,date:new Date().toLocaleDateString("en-GB",{day:"numeric",month:"short"}),actor:"Dr. Priya Singh"},
                   {label:"Submitted to Coordinator",done:false,date:"—",actor:""},
                   {label:"Coordinator Approved",done:false,date:"—",actor:""},
                   {label:"Sent to Exam Section",done:false,date:"—",actor:""},
-                  {label:"Approved to Print",done:false,date:"—",actor:""}],
-                remarks:[]};
+                  {label:"Approved to Print",done:false,date:"—",actor:""},
+                ],
+                attachments: isUpload && form.uploadedFile ? [form.uploadedFile] : [],
+                remarks:[],
+              };
               setPapers(p=>[...p,newPaper]);
+              setForm({subject:"",type:"Application",priority:"Normal",to:"HOD",desc:"",attachment:"",mode:"online",
+                sections:[{section:"A",marks:20,questions:[{no:1,text:"",marks:10,unit:"Unit 1",co:"CO1",bt:"Understanding"}]}],
+                totalMarks:80,duration:"3 Hours",semester:"5",name:"",uploadedFile:"",uploadedSize:"",filePassword:""});
               setTab("my");
-            }} style={{padding:"9px 22px",background:"linear-gradient(135deg,#6366f1,#8b5cf6)",color:"#fff",border:"none",borderRadius:8,fontWeight:600,cursor:"pointer",fontSize:13}}>
+            }} style={{padding:"9px 24px",background:"linear-gradient(135deg,#6366f1,#8b5cf6)",color:"#fff",border:"none",borderRadius:8,fontWeight:600,cursor:"pointer",fontSize:13}}>
               💾 Save as Draft
             </button>
           </div>
