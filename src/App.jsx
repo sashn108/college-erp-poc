@@ -2316,6 +2316,327 @@ function FacultySubjectsView() {
 
 
 // ─── Evaluation View ──────────────────────────────────────────────────────────
+// ─── QUESTION PAPER SUBMISSION ────────────────────────────────────────────────
+function QuestionPaperSubmission() {
+  const [tab, setTab] = useState("my");
+  const [showCompose, setShowCompose] = useState(false);
+  const [confirmModal, setConfirmModal] = useState(null); // {id, action}
+
+  const [papers, setPapers] = useState([
+    {
+      id:"QP001", subject:"CS301", name:"Database Management Systems",
+      type:"End Semester", year:"2025-26", semester:"5",
+      sections:[
+        {section:"A", marks:20, questions:[
+          {no:1, text:"Explain the concept of normalization. Describe 1NF, 2NF, and 3NF with examples.", marks:10, unit:"Unit 3", co:"CO3", bt:"Understanding"},
+          {no:2, text:"Draw and explain the ER diagram for a Hospital Management System.", marks:10, unit:"Unit 1", co:"CO1", bt:"Application"},
+        ]},
+        {section:"B", marks:30, questions:[
+          {no:3, text:"Explain ACID properties of a transaction with suitable examples.", marks:10, unit:"Unit 4", co:"CO4", bt:"Understanding"},
+          {no:4, text:"Write SQL queries for the given schema to demonstrate joins and subqueries.", marks:10, unit:"Unit 2", co:"CO2", bt:"Application"},
+          {no:5, text:"Explain B+ tree structure. How is it used for indexing?", marks:10, unit:"Unit 5", co:"CO5", bt:"Analysis"},
+        ]},
+        {section:"C", marks:30, questions:[
+          {no:6, text:"Explain concurrency control using two-phase locking protocol.", marks:15, unit:"Unit 4", co:"CO4", bt:"Analysis"},
+          {no:7, text:"Discuss query optimization techniques with examples.", marks:15, unit:"Unit 5", co:"CO5", bt:"Evaluation"},
+        ]},
+      ],
+      status:"Draft", submittedTo:null,
+      stages:[
+        {label:"Created",done:true,date:"Jun 8",actor:"Dr. Priya Singh"},
+        {label:"Submitted to Coordinator",done:false,date:"—",actor:""},
+        {label:"Coordinator Approved",done:false,date:"—",actor:""},
+        {label:"Sent to Exam Section",done:false,date:"—",actor:""},
+        {label:"Approved to Print",done:false,date:"—",actor:""},
+      ],
+      remarks:[],
+      totalMarks:80, duration:"3 Hours",
+    },
+    {
+      id:"QP002", subject:"CS302", name:"Operating Systems",
+      type:"Mid Semester", year:"2025-26", semester:"5",
+      sections:[
+        {section:"A", marks:20, questions:[
+          {no:1, text:"Define a process. Explain process states with state transition diagram.", marks:10, unit:"Unit 2", co:"CO1", bt:"Understanding"},
+          {no:2, text:"Explain Round Robin scheduling with an example. Calculate average waiting time.", marks:10, unit:"Unit 2", co:"CO2", bt:"Application"},
+        ]},
+        {section:"B", marks:20, questions:[
+          {no:3, text:"What is deadlock? Explain Banker's algorithm for deadlock avoidance.", marks:20, unit:"Unit 2", co:"CO3", bt:"Analysis"},
+        ]},
+      ],
+      status:"Pending Coordinator",
+      submittedTo:"Dr. R. Panda (Coordinator)",
+      stages:[
+        {label:"Created",done:true,date:"Jun 5",actor:"Dr. Priya Singh"},
+        {label:"Submitted to Coordinator",done:true,date:"Jun 6",actor:"Dr. Priya Singh"},
+        {label:"Coordinator Approved",done:false,date:"—",actor:""},
+        {label:"Sent to Exam Section",done:false,date:"—",actor:""},
+        {label:"Approved to Print",done:false,date:"—",actor:""},
+      ],
+      remarks:[{from:"Dr. R. Panda",text:"Please increase difficulty of Q2.",date:"Jun 7"}],
+      totalMarks:40, duration:"2 Hours",
+    },
+  ]);
+
+  const [form, setForm] = useState({subject:"CS303",name:"Computer Networks",type:"End Semester",semester:"5",duration:"3 Hours",totalMarks:80,sections:[
+    {section:"A",marks:20,questions:[{no:1,text:"",marks:10,unit:"Unit 1",co:"CO1",bt:"Understanding"}]},
+  ]});
+
+  const statusColor = s => ({
+    "Draft":{bg:"#f1f5f9",c:"#64748b"},
+    "Pending Coordinator":{bg:"#fef9c3",c:"#ca8a04"},
+    "Coordinator Approved":{bg:"#dcfce7",c:"#16a34a"},
+    "Pending Exam Section":{bg:"#fef9c3",c:"#ca8a04"},
+    "Approved to Print":{bg:"#dcfce7",c:"#16a34a"},
+    "Returned for Revision":{bg:"#fee2e2",c:"#dc2626"},
+  }[s]||{bg:"#f1f5f9",c:"#64748b"});
+
+  const advanceStage = (paperId) => {
+    setPapers(prev => prev.map(p => {
+      if(p.id !== paperId) return p;
+      const nextStages = [...p.stages];
+      const nextIdx = nextStages.findIndex(s => !s.done);
+      if(nextIdx === -1) return p;
+      nextStages[nextIdx] = {...nextStages[nextIdx], done:true, date:new Date().toLocaleDateString("en-GB",{day:"numeric",month:"short"}), actor:"Dr. Priya Singh"};
+      const statusMap = {1:"Pending Coordinator",2:"Coordinator Approved",3:"Pending Exam Section",4:"Approved to Print"};
+      return {...p, stages:nextStages, status:statusMap[nextIdx]||p.status};
+    }));
+    setConfirmModal(null);
+  };
+
+  const [selPaper, setSelPaper] = useState(null);
+
+  return (
+    <div>
+      <div style={{display:"flex",gap:4,background:"#f1f5f9",borderRadius:8,padding:3,marginBottom:14,width:"fit-content"}}>
+        {[["my","📄 My Papers"],["compose","✏️ Create New Paper"]].map(([t,l])=>(
+          <button key={t} onClick={()=>{setTab(t);setSelPaper(null);}}
+            style={{padding:"7px 16px",border:"none",borderRadius:6,cursor:"pointer",fontSize:12,fontWeight:600,
+              background:tab===t?"linear-gradient(135deg,#6366f1,#8b5cf6)":"transparent",color:tab===t?"#fff":"#64748b"}}>{l}</button>
+        ))}
+      </div>
+
+      {/* ── MY PAPERS ── */}
+      {tab==="my" && !selPaper && (
+        <div style={{display:"flex",flexDirection:"column",gap:12}}>
+          {papers.map(p=>{
+            const sc = statusColor(p.status);
+            const nextStage = p.stages.find(s=>!s.done);
+            return (
+              <div key={p.id} style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:12,overflow:"hidden"}}>
+                {/* Header */}
+                <div style={{padding:"12px 16px",display:"flex",justifyContent:"space-between",alignItems:"flex-start",borderBottom:"1px solid #f1f5f9"}}>
+                  <div>
+                    <div style={{display:"flex",gap:8,alignItems:"center",marginBottom:3}}>
+                      <span style={{fontWeight:700,color:"#6366f1",fontSize:13}}>{p.subject}</span>
+                      <span style={{fontWeight:700,fontSize:14,color:"#0f172a"}}>{p.name}</span>
+                      <span style={{fontSize:11,padding:"1px 8px",borderRadius:20,background:"#eef2ff",color:"#6366f1",fontWeight:600}}>{p.type}</span>
+                    </div>
+                    <div style={{fontSize:12,color:"#64748b"}}>
+                      Sem {p.semester} · {p.totalMarks} Marks · {p.duration} · {p.id}
+                    </div>
+                    {p.remarks.length>0&&(
+                      <div style={{marginTop:6,background:"#fef9c3",borderRadius:6,padding:"5px 10px",fontSize:12,color:"#92400e"}}>
+                        💬 Remark: "{p.remarks[p.remarks.length-1].text}" — {p.remarks[p.remarks.length-1].from}
+                      </div>
+                    )}
+                  </div>
+                  <div style={{display:"flex",gap:8,alignItems:"center",flexShrink:0,marginLeft:12}}>
+                    <span style={{padding:"3px 10px",borderRadius:6,fontSize:12,fontWeight:700,background:sc.bg,color:sc.c}}>{p.status}</span>
+                    <button onClick={()=>setSelPaper(p)}
+                      style={{padding:"5px 12px",background:"#f1f5f9",color:"#334155",border:"none",borderRadius:7,cursor:"pointer",fontSize:11,fontWeight:600}}>
+                      View
+                    </button>
+                    {nextStage&&p.status!=="Approved to Print"&&(
+                      <button onClick={()=>setConfirmModal({id:p.id,stage:nextStage.label})}
+                        style={{padding:"5px 14px",background:"linear-gradient(135deg,#6366f1,#8b5cf6)",color:"#fff",border:"none",borderRadius:7,cursor:"pointer",fontSize:11,fontWeight:600}}>
+                        {nextStage.label} →
+                      </button>
+                    )}
+                    {p.status==="Approved to Print"&&(
+                      <span style={{padding:"5px 12px",background:"#dcfce7",color:"#16a34a",borderRadius:7,fontSize:11,fontWeight:700}}>✅ Ready to Print</span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Stage tracker */}
+                <div style={{padding:"12px 16px",background:"#fafbff"}}>
+                  <div style={{display:"flex",alignItems:"center"}}>
+                    {p.stages.map((st,si)=>(
+                      <div key={si} style={{display:"flex",alignItems:"center",flex:si<p.stages.length-1?1:"initial"}}>
+                        <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:3,minWidth:90}}>
+                          <div style={{width:28,height:28,borderRadius:"50%",display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:700,flexShrink:0,
+                            background:st.done?"linear-gradient(135deg,#6366f1,#8b5cf6)":"#f1f5f9",
+                            color:st.done?"#fff":"#94a3b8",border:st.done?"none":"2px dashed #cbd5e1"}}>
+                            {st.done?"✓":si+1}
+                          </div>
+                          <div style={{fontSize:9,fontWeight:600,color:st.done?"#6366f1":"#94a3b8",textAlign:"center",lineHeight:1.3,maxWidth:80}}>{st.label}</div>
+                          {st.done&&<div style={{fontSize:8,color:"#94a3b8"}}>{st.date}</div>}
+                        </div>
+                        {si<p.stages.length-1&&<div style={{flex:1,height:2,background:p.stages[si+1].done?"#6366f1":"#e2e8f0",margin:"0 2px",marginBottom:24}}/>}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* ── VIEW PAPER ── */}
+      {tab==="my" && selPaper && (
+        <div>
+          <button onClick={()=>setSelPaper(null)} style={{marginBottom:12,padding:"6px 14px",background:"#f1f5f9",border:"none",borderRadius:8,cursor:"pointer",fontSize:12,fontWeight:600,color:"#475569"}}>← Back</button>
+          <div style={{background:"#fff",border:"2px solid #6366f1",borderRadius:12,overflow:"hidden"}}>
+            {/* Paper header */}
+            <div style={{background:"linear-gradient(135deg,#6366f1,#8b5cf6)",padding:"16px 20px",textAlign:"center",color:"#fff"}}>
+              <div style={{fontWeight:900,fontSize:16}}>ITER — SOA University, Bhubaneswar</div>
+              <div style={{fontSize:13,marginTop:2,opacity:0.9}}>Department of Computer Science & Engineering</div>
+              <div style={{fontSize:14,fontWeight:700,marginTop:6}}>{selPaper.type} Examination — {selPaper.year}</div>
+              <div style={{fontSize:13,marginTop:2}}>{selPaper.subject} : {selPaper.name}</div>
+              <div style={{display:"flex",justifyContent:"center",gap:32,marginTop:8,fontSize:12,opacity:0.85}}>
+                <span>Semester: {selPaper.semester}</span>
+                <span>Full Marks: {selPaper.totalMarks}</span>
+                <span>Duration: {selPaper.duration}</span>
+              </div>
+            </div>
+            <div style={{padding:"6px 16px",background:"#fef9c3",textAlign:"center",fontSize:12,color:"#92400e",fontWeight:500}}>
+              Answer all questions. Figures in the margin indicate full marks.
+            </div>
+            {/* Sections */}
+            <div style={{padding:"16px 20px"}}>
+              {selPaper.sections.map(sec=>(
+                <div key={sec.section} style={{marginBottom:20}}>
+                  <div style={{fontWeight:700,fontSize:14,color:"#0f172a",marginBottom:10,paddingBottom:6,borderBottom:"2px solid #6366f1"}}>
+                    Section {sec.section} (Marks: {sec.marks})
+                  </div>
+                  {sec.questions.map(q=>(
+                    <div key={q.no} style={{display:"flex",gap:10,marginBottom:12,padding:"10px 12px",background:"#fafbff",borderRadius:8,borderLeft:"3px solid #6366f1"}}>
+                      <div style={{fontWeight:700,fontSize:14,color:"#6366f1",flexShrink:0,width:24}}>{q.no}.</div>
+                      <div style={{flex:1}}>
+                        <div style={{fontSize:13,color:"#0f172a",lineHeight:1.6,marginBottom:4}}>{q.text}</div>
+                        <div style={{display:"flex",gap:10,fontSize:10,color:"#94a3b8"}}>
+                          <span>📚 {q.unit}</span><span>🎯 {q.co}</span><span>🧠 {q.bt}</span>
+                        </div>
+                      </div>
+                      <div style={{fontWeight:700,fontSize:13,color:"#6366f1",flexShrink:0}}>[{q.marks}]</div>
+                    </div>
+                  ))}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── CREATE NEW PAPER ── */}
+      {tab==="compose" && (
+        <div style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:12,padding:"18px 20px"}}>
+          <div style={{fontWeight:700,fontSize:15,color:"#0f172a",marginBottom:14}}>Create Question Paper</div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:12,marginBottom:14}}>
+            {[["Subject Code","subject"],["Subject Name","name"],["Duration","duration"]].map(([l,k])=>(
+              <div key={k}>
+                <label style={{fontSize:11,fontWeight:700,color:"#475569",display:"block",marginBottom:3}}>{l.toUpperCase()}</label>
+                <input value={form[k]} onChange={e=>setForm(f=>({...f,[k]:e.target.value}))}
+                  style={{width:"100%",boxSizing:"border-box",padding:"8px 10px",border:"1px solid #e2e8f0",borderRadius:8,fontSize:13,outline:"none",fontFamily:"inherit"}}/>
+              </div>
+            ))}
+            {[["Exam Type","type",["End Semester","Mid Semester","Supplementary"]],["Semester","semester",["1","2","3","4","5","6","7","8"]]].map(([l,k,opts])=>(
+              <div key={k}>
+                <label style={{fontSize:11,fontWeight:700,color:"#475569",display:"block",marginBottom:3}}>{l.toUpperCase()}</label>
+                <select value={form[k]} onChange={e=>setForm(f=>({...f,[k]:e.target.value}))}
+                  style={{width:"100%",padding:"8px 10px",border:"1px solid #e2e8f0",borderRadius:8,fontSize:13,outline:"none",fontFamily:"inherit"}}>
+                  {opts.map(o=><option key={o}>{o}</option>)}
+                </select>
+              </div>
+            ))}
+            <div>
+              <label style={{fontSize:11,fontWeight:700,color:"#475569",display:"block",marginBottom:3}}>TOTAL MARKS</label>
+              <input type="number" value={form.totalMarks} onChange={e=>setForm(f=>({...f,totalMarks:e.target.value}))}
+                style={{width:"100%",boxSizing:"border-box",padding:"8px 10px",border:"1px solid #e2e8f0",borderRadius:8,fontSize:13,outline:"none",fontFamily:"inherit"}}/>
+            </div>
+          </div>
+          {/* Questions */}
+          {form.sections.map((sec,si)=>(
+            <div key={si} style={{marginBottom:14,border:"1px solid #e2e8f0",borderRadius:10,overflow:"hidden"}}>
+              <div style={{background:"#f8fafc",padding:"8px 12px",fontWeight:700,fontSize:13,color:"#0f172a",display:"flex",justifyContent:"space-between"}}>
+                Section {sec.section} — {sec.marks} Marks
+              </div>
+              {sec.questions.map((q,qi)=>(
+                <div key={qi} style={{padding:"10px 12px",borderBottom:"1px solid #f1f5f9"}}>
+                  <div style={{display:"flex",gap:8,marginBottom:6,alignItems:"center"}}>
+                    <span style={{fontWeight:700,color:"#6366f1",fontSize:13}}>Q{q.no}.</span>
+                    <input value={q.text} onChange={e=>setForm(f=>{const s=[...f.sections];s[si].questions[qi].text=e.target.value;return {...f,sections:s};})}
+                      placeholder="Enter question text..."
+                      style={{flex:1,padding:"7px 10px",border:"1px solid #e2e8f0",borderRadius:7,fontSize:12,outline:"none",fontFamily:"inherit"}}/>
+                    <input type="number" value={q.marks} onChange={e=>setForm(f=>{const s=[...f.sections];s[si].questions[qi].marks=Number(e.target.value);return {...f,sections:s};})}
+                      style={{width:52,padding:"7px 8px",border:"1px solid #e2e8f0",borderRadius:7,fontSize:12,textAlign:"center",outline:"none"}}/>
+                  </div>
+                  <div style={{display:"flex",gap:8}}>
+                    {[["unit","Unit"],["co","CO"],["bt","BT Level"]].map(([k,l])=>(
+                      <div key={k} style={{flex:1}}>
+                        <label style={{fontSize:9,fontWeight:700,color:"#94a3b8",display:"block",marginBottom:2}}>{l}</label>
+                        <input value={q[k]} onChange={e=>setForm(f=>{const s=[...f.sections];s[si].questions[qi][k]=e.target.value;return {...f,sections:s};})}
+                          style={{width:"100%",padding:"5px 8px",border:"1px solid #e2e8f0",borderRadius:6,fontSize:11,outline:"none",fontFamily:"inherit"}}/>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+              <div style={{padding:"8px 12px"}}>
+                <button onClick={()=>setForm(f=>{const s=[...f.sections];const nq={no:s[si].questions.length+1,text:"",marks:10,unit:"Unit 1",co:"CO1",bt:"Understanding"};s[si].questions=[...s[si].questions,nq];return {...f,sections:s};})}
+                  style={{padding:"5px 12px",background:"#eef2ff",color:"#6366f1",border:"none",borderRadius:6,cursor:"pointer",fontSize:11,fontWeight:600}}>
+                  + Add Question
+                </button>
+              </div>
+            </div>
+          ))}
+          <button onClick={()=>setForm(f=>({...f,sections:[...f.sections,{section:String.fromCharCode(65+f.sections.length),marks:20,questions:[{no:1,text:"",marks:10,unit:"Unit 1",co:"CO1",bt:"Understanding"}]}]}))}
+            style={{padding:"7px 16px",background:"#f1f5f9",color:"#475569",border:"none",borderRadius:8,cursor:"pointer",fontSize:12,fontWeight:600,marginBottom:14}}>
+            + Add Section
+          </button>
+          <div style={{display:"flex",gap:10,justifyContent:"flex-end"}}>
+            <button onClick={()=>{
+              const newPaper = {...form, id:"QP00"+(papers.length+1), status:"Draft", submittedTo:null,
+                stages:[{label:"Created",done:true,date:new Date().toLocaleDateString("en-GB",{day:"numeric",month:"short"}),actor:"Dr. Priya Singh"},
+                  {label:"Submitted to Coordinator",done:false,date:"—",actor:""},
+                  {label:"Coordinator Approved",done:false,date:"—",actor:""},
+                  {label:"Sent to Exam Section",done:false,date:"—",actor:""},
+                  {label:"Approved to Print",done:false,date:"—",actor:""}],
+                remarks:[]};
+              setPapers(p=>[...p,newPaper]);
+              setTab("my");
+            }} style={{padding:"9px 22px",background:"linear-gradient(135deg,#6366f1,#8b5cf6)",color:"#fff",border:"none",borderRadius:8,fontWeight:600,cursor:"pointer",fontSize:13}}>
+              💾 Save as Draft
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Confirm modal */}
+      {confirmModal&&(
+        <div style={{position:"fixed",inset:0,background:"rgba(15,23,42,0.6)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center"}}>
+          <div style={{background:"#fff",borderRadius:14,padding:"24px",width:400,boxShadow:"0 20px 60px rgba(0,0,0,0.25)"}}>
+            <div style={{fontWeight:700,fontSize:16,color:"#0f172a",marginBottom:8}}>Confirm Action</div>
+            <div style={{fontSize:13,color:"#64748b",marginBottom:20}}>
+              Are you sure you want to proceed with: <strong style={{color:"#6366f1"}}>{confirmModal.stage}</strong>?
+              <br/><span style={{fontSize:12,color:"#94a3b8",marginTop:4,display:"block"}}>This action will update the paper status and notify the next person in the workflow.</span>
+            </div>
+            <div style={{display:"flex",gap:10,justifyContent:"flex-end"}}>
+              <button onClick={()=>setConfirmModal(null)} style={{padding:"8px 18px",background:"#f1f5f9",border:"none",borderRadius:8,cursor:"pointer",fontSize:13,fontWeight:600,color:"#475569"}}>Cancel</button>
+              <button onClick={()=>advanceStage(confirmModal.id)}
+                style={{padding:"8px 20px",background:"linear-gradient(135deg,#6366f1,#8b5cf6)",color:"#fff",border:"none",borderRadius:8,fontWeight:600,cursor:"pointer",fontSize:13}}>
+                Confirm & Send →
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function EvaluationView() {
   const items=[
     {student:"Riya Patel",subject:"DBMS",type:"Assignment",title:"ER Diagram",submitted:"Jun 8",maxMarks:20,status:"Pending"},
@@ -4160,7 +4481,7 @@ export default function App() {
     research:<ResearchView/>, duty:<DutyView/>, notices:<NoticesView/>,
     copo:<COPOView/>, feedback:<FacultyFeedbackView/>,
     profile:<FacultyProfile user={auth}/>, auditlog:<AuditLog role="faculty"/>,
-    syllabus:<SyllabusTracker/>,
+    syllabus:<SyllabusTracker/>, qpaper:<QuestionPaperSubmission/>,
   };
   const views = role==="student" ? studentViews : facultyViews;
 
@@ -4176,7 +4497,7 @@ export default function App() {
   const facultySidebarLinks = [
     ["Dashboard","dashboard"],["Subjects & Students","subjects"],["Lab","lab"],
     ["Attendance","attendance"],["Evaluation","evaluation"],["Research","research"],
-    ["CO/PO Attainment","copo"],["Syllabus Tracker","syllabus"],
+    ["CO/PO Attainment","copo"],["Syllabus Tracker","syllabus"],["Question Paper","qpaper"],["Question Paper","qpaper"],
     ["Exam & Duty","duty"],["Feedback Results","feedback"],
     ["My Profile","profile"],["Audit Log","auditlog"],["Notices","notices"],
   ];
