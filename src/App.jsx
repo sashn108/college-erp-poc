@@ -2429,6 +2429,603 @@ function LabView() {
 }
 
 // ─── Notices ──────────────────────────────────────────────────────────────────
+// ─── FACULTY PROFILE & PUBLICATIONS ──────────────────────────────────────────
+function FacultyProfile({ user }) {
+  const [tab, setTab] = useState("profile");
+  const [editing, setEditing] = useState(false);
+  const [profile, setProfile] = useState({
+    name: user.name, designation: user.designation, dept: user.dept,
+    email: "priya.singh@iter.ac.in", phone: "+91 98765 43210",
+    cabin: "Faculty Block B, Room 214", specialization: "Database Systems, Machine Learning",
+    qualification: "Ph.D (CSE), NIT Rourkela | M.Tech (CSE), IIT Bhubaneswar",
+    experience: "8 years", joined: "Aug 2017", orcid: "0000-0002-1234-5678",
+    scopus: "57205234891", googlescholar: "abc123XYZ",
+  });
+  const [publications, setPublications] = useState([
+    { id:"P1", title:"Hybrid Clustering for Data Imputation in Healthcare", journal:"Expert Systems with Applications", year:2024, type:"Journal", citations:12, doi:"10.1016/j.eswa.2024.123", status:"Published", q:"Q1", if:"8.5" },
+    { id:"P2", title:"EEG-Based Cognitive Load Detection using Deep Learning", journal:"IEEE Transactions on Neural Systems", year:2023, type:"Journal", citations:8, doi:"10.1109/TNSRE.2023.456", status:"Published", q:"Q1", if:"4.9" },
+    { id:"P3", title:"Federated Learning for Privacy-Preserving Medical Data", journal:"ICML 2024 Workshop", year:2024, type:"Conference", citations:3, doi:"10.1145/3580305.3599234", status:"Published", q:"A*", if:"—" },
+    { id:"P4", title:"Adaptive Parameter Tuning in Imputation Models", journal:"Knowledge-Based Systems", year:2025, type:"Journal", citations:0, doi:"—", status:"Under Review", q:"Q1", if:"8.8" },
+  ]);
+  const [patents, setPatents] = useState([
+    { id:"PT1", title:"System and Method for Real-time EEG Signal Processing", number:"202131045678", office:"Indian Patent Office", filed:"Mar 2021", status:"Granted", year:2023 },
+    { id:"PT2", title:"Hybrid Data Imputation Framework for Medical Records", number:"202231067890", office:"Indian Patent Office", filed:"Jun 2022", status:"Published", year:2023 },
+  ]);
+  const [showAddPub, setShowAddPub] = useState(false);
+  const [newPub, setNewPub] = useState({ title:"", journal:"", year:new Date().getFullYear(), type:"Journal", doi:"", status:"Published", q:"Q1", if:"" });
+
+  const totalCitations = publications.reduce((a,p)=>a+p.citations,0);
+  const hIndex = 2; // mock
+
+  return (
+    <div>
+      <div style={{display:"flex",gap:4,background:"#f1f5f9",borderRadius:8,padding:3,marginBottom:14,width:"fit-content"}}>
+        {[["profile","👤 Profile"],["publications","📄 Publications"],["patents","💡 Patents & Grants"]].map(([t,l])=>(
+          <button key={t} onClick={()=>setTab(t)}
+            style={{padding:"7px 16px",border:"none",borderRadius:6,cursor:"pointer",fontSize:12,fontWeight:600,
+              background:tab===t?"linear-gradient(135deg,#6366f1,#8b5cf6)":"transparent",color:tab===t?"#fff":"#64748b"}}>{l}</button>
+        ))}
+      </div>
+
+      {tab==="profile" && (
+        <div style={{display:"grid",gridTemplateColumns:"280px 1fr",gap:14}}>
+          {/* Avatar card */}
+          <div style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:12,padding:"24px 16px",textAlign:"center"}}>
+            <div style={{width:80,height:80,borderRadius:"50%",background:"linear-gradient(135deg,#6366f1,#8b5cf6)",display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",fontSize:32,fontWeight:700,margin:"0 auto 12px"}}>
+              {user.name[0]}
+            </div>
+            <div style={{fontWeight:700,fontSize:16,color:"#0f172a"}}>{profile.name}</div>
+            <div style={{fontSize:13,color:"#6366f1",fontWeight:600,marginTop:2}}>{profile.designation}</div>
+            <div style={{fontSize:12,color:"#64748b",marginTop:2}}>Dept. of {profile.dept}</div>
+            <div style={{marginTop:16,display:"flex",justifyContent:"space-around",borderTop:"1px solid #f1f5f9",paddingTop:14}}>
+              {[["Publications",publications.length],["Citations",totalCitations],["h-index",hIndex]].map(([l,v])=>(
+                <div key={l}><div style={{fontSize:20,fontWeight:800,color:"#6366f1"}}>{v}</div><div style={{fontSize:10,color:"#94a3b8",fontWeight:600}}>{l}</div></div>
+              ))}
+            </div>
+            <div style={{marginTop:14,display:"flex",flexDirection:"column",gap:6}}>
+              {[["ORCID",profile.orcid],["Scopus ID",profile.scopus],["Google Scholar",profile.googlescholar]].map(([l,v])=>(
+                <div key={l} style={{background:"#f8fafc",borderRadius:6,padding:"6px 10px",textAlign:"left"}}>
+                  <div style={{fontSize:9,fontWeight:700,color:"#94a3b8"}}>{l}</div>
+                  <div style={{fontSize:11,color:"#6366f1",fontWeight:600}}>{v}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+          {/* Details */}
+          <div style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:12,padding:"16px 18px"}}>
+            <div style={{display:"flex",justifyContent:"space-between",marginBottom:14}}>
+              <div style={{fontWeight:700,fontSize:15,color:"#0f172a"}}>Profile Details</div>
+              <button onClick={()=>setEditing(e=>!e)}
+                style={{padding:"6px 14px",background:editing?"#10b981":"#f1f5f9",color:editing?"#fff":"#475569",border:"none",borderRadius:8,cursor:"pointer",fontSize:12,fontWeight:600}}>
+                {editing?"Save Changes ✓":"Edit Profile ✎"}
+              </button>
+            </div>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+              {[
+                ["Full Name","name"],["Email","email"],["Phone","phone"],["Cabin / Room","cabin"],
+                ["Specialization","specialization"],["Qualification","qualification"],
+                ["Experience","experience"],["Date of Joining","joined"],
+              ].map(([l,k])=>(
+                <div key={k}>
+                  <div style={{fontSize:11,fontWeight:700,color:"#94a3b8",marginBottom:3}}>{l.toUpperCase()}</div>
+                  {editing&&!["joined","experience"].includes(k)
+                    ? <input value={profile[k]} onChange={e=>setProfile(p=>({...p,[k]:e.target.value}))}
+                        style={{width:"100%",boxSizing:"border-box",padding:"7px 10px",border:"1px solid #e2e8f0",borderRadius:7,fontSize:12,outline:"none",fontFamily:"inherit",color:"#334155"}}/>
+                    : <div style={{fontSize:13,color:"#334155",fontWeight:500}}>{profile[k]}</div>
+                  }
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {tab==="publications" && (
+        <div>
+          <div style={{display:"flex",justifyContent:"flex-end",marginBottom:12}}>
+            <button onClick={()=>setShowAddPub(true)}
+              style={{padding:"8px 18px",background:"linear-gradient(135deg,#6366f1,#8b5cf6)",color:"#fff",border:"none",borderRadius:8,fontWeight:600,cursor:"pointer",fontSize:13}}>
+              + Add Publication
+            </button>
+          </div>
+          <div style={{display:"flex",flexDirection:"column",gap:10}}>
+            {publications.map(p=>(
+              <div key={p.id} style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:12,padding:"14px 18px"}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:6}}>
+                  <div style={{flex:1,paddingRight:12}}>
+                    <div style={{fontWeight:700,fontSize:14,color:"#0f172a",marginBottom:3}}>{p.title}</div>
+                    <div style={{fontSize:12,color:"#6366f1",fontWeight:600}}>{p.journal} · {p.year}</div>
+                  </div>
+                  <div style={{display:"flex",gap:6,flexShrink:0}}>
+                    <span style={{padding:"2px 8px",borderRadius:6,fontSize:11,fontWeight:700,background:p.type==="Journal"?"#eef2ff":"#f0fdf4",color:p.type==="Journal"?"#6366f1":"#16a34a"}}>{p.type}</span>
+                    <span style={{padding:"2px 8px",borderRadius:6,fontSize:11,fontWeight:700,background:p.status==="Published"?"#dcfce7":"#fef9c3",color:p.status==="Published"?"#16a34a":"#ca8a04"}}>{p.status}</span>
+                  </div>
+                </div>
+                <div style={{display:"flex",gap:16,fontSize:12,color:"#64748b",flexWrap:"wrap"}}>
+                  <span>📊 <strong style={{color:"#6366f1"}}>{p.citations}</strong> citations</span>
+                  <span>🏆 <strong>{p.q}</strong> ranked</span>
+                  <span>📈 IF: <strong>{p.if}</strong></span>
+                  {p.doi!=="—"&&<span style={{color:"#6366f1",cursor:"pointer"}}>🔗 DOI: {p.doi}</span>}
+                </div>
+              </div>
+            ))}
+          </div>
+          {showAddPub&&(
+            <div style={{position:"fixed",inset:0,background:"rgba(15,23,42,0.6)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center"}} onClick={()=>setShowAddPub(false)}>
+              <div style={{background:"#fff",borderRadius:14,width:520,padding:0,overflow:"hidden",boxShadow:"0 20px 60px rgba(0,0,0,0.25)"}} onClick={e=>e.stopPropagation()}>
+                <div style={{background:"linear-gradient(135deg,#6366f1,#8b5cf6)",padding:"14px 18px",color:"#fff",fontWeight:700,fontSize:15,display:"flex",justifyContent:"space-between"}}>
+                  Add Publication <button onClick={()=>setShowAddPub(false)} style={{background:"rgba(255,255,255,0.2)",border:"none",borderRadius:6,color:"#fff",width:26,height:26,cursor:"pointer"}}>✕</button>
+                </div>
+                <div style={{padding:"18px 20px",display:"flex",flexDirection:"column",gap:10}}>
+                  {[["Title","title","text"],["Journal / Conference","journal","text"],["DOI","doi","text"]].map(([l,k,t])=>(
+                    <div key={k}><label style={{fontSize:11,fontWeight:700,color:"#475569",display:"block",marginBottom:3}}>{l.toUpperCase()}</label>
+                    <input type={t} value={newPub[k]} onChange={e=>setNewPub(p=>({...p,[k]:e.target.value}))}
+                      style={{width:"100%",boxSizing:"border-box",padding:"8px 10px",border:"1px solid #e2e8f0",borderRadius:8,fontSize:13,outline:"none",fontFamily:"inherit"}}/></div>
+                  ))}
+                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10}}>
+                    {[["Year","year",["2025","2024","2023","2022"]],["Type","type",["Journal","Conference","Book Chapter"]],["Status","status",["Published","Under Review","Accepted"]]].map(([l,k,opts])=>(
+                      <div key={k}><label style={{fontSize:11,fontWeight:700,color:"#475569",display:"block",marginBottom:3}}>{l.toUpperCase()}</label>
+                      <select value={newPub[k]} onChange={e=>setNewPub(p=>({...p,[k]:e.target.value}))}
+                        style={{width:"100%",padding:"8px 10px",border:"1px solid #e2e8f0",borderRadius:8,fontSize:13,outline:"none",fontFamily:"inherit"}}>
+                        {opts.map(o=><option key={o}>{o}</option>)}
+                      </select></div>
+                    ))}
+                  </div>
+                  <button onClick={()=>{setPublications(prev=>[...prev,{...newPub,id:"P"+(prev.length+1),citations:0,q:"—",if:"—"}]);setShowAddPub(false);}}
+                    style={{padding:"10px",background:"linear-gradient(135deg,#6366f1,#8b5cf6)",color:"#fff",border:"none",borderRadius:8,fontWeight:600,cursor:"pointer",fontSize:14,marginTop:4}}>
+                    Add Publication
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {tab==="patents" && (
+        <div>
+          {patents.map(p=>(
+            <div key={p.id} style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:12,padding:"14px 18px",marginBottom:10}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
+                <div>
+                  <div style={{fontWeight:700,fontSize:14,color:"#0f172a",marginBottom:4}}>{p.title}</div>
+                  <div style={{fontSize:12,color:"#64748b"}}>Application No: <strong>{p.number}</strong> · {p.office}</div>
+                  <div style={{fontSize:12,color:"#64748b",marginTop:2}}>Filed: {p.filed} · Year: {p.year}</div>
+                </div>
+                <span style={{padding:"3px 10px",borderRadius:6,fontSize:12,fontWeight:700,
+                  background:p.status==="Granted"?"#dcfce7":"#fef9c3",
+                  color:p.status==="Granted"?"#16a34a":"#ca8a04",flexShrink:0,marginLeft:10}}>{p.status}</span>
+              </div>
+            </div>
+          ))}
+          <button style={{padding:"9px 18px",background:"linear-gradient(135deg,#6366f1,#8b5cf6)",color:"#fff",border:"none",borderRadius:8,fontWeight:600,cursor:"pointer",fontSize:13,marginTop:4}}>
+            + Add Patent / Grant
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── STUDENT PROFILE ──────────────────────────────────────────────────────────
+function StudentProfile({ user }) {
+  const [editing, setEditing] = useState(false);
+  const [profile, setProfile] = useState({
+    name: user.name, roll: user.roll||"520CS2008", dept: user.dept,
+    programme:"B.Tech (CSE)", semester:"5th", year:"3rd Year",
+    dob:"15 Aug 2003", gender:"Male", blood:"O+",
+    email:"subhashish@iter.ac.in", phone:"+91 94370 12345",
+    address:"C-214, ITER Hostel, SOA University, Bhubaneswar - 751030",
+    guardian:"Ramakant Nayak", guardianPhone:"+91 98760 11223",
+    aadhar:"XXXX-XXXX-4321", category:"General",
+  });
+  const [sessions] = useState([
+    { device:"Chrome on Windows", ip:"103.21.58.142", location:"Bhubaneswar, OD", time:"Today, 9:42 AM", current:true },
+    { device:"Mobile (Android)", ip:"103.21.58.143", location:"Bhubaneswar, OD", time:"Yesterday, 7:15 PM", current:false },
+    { device:"Chrome on Windows", ip:"122.170.45.21", location:"Rourkela, OD", time:"Jun 8, 3:30 PM", current:false },
+  ]);
+
+  return (
+    <div style={{display:"grid",gridTemplateColumns:"260px 1fr",gap:14}}>
+      {/* Left card */}
+      <div style={{display:"flex",flexDirection:"column",gap:14}}>
+        <div style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:12,padding:"20px 14px",textAlign:"center"}}>
+          <div style={{width:72,height:72,borderRadius:"50%",background:"linear-gradient(135deg,#6366f1,#8b5cf6)",display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",fontSize:28,fontWeight:700,margin:"0 auto 10px"}}>{user.name[0]}</div>
+          <div style={{fontWeight:700,fontSize:15,color:"#0f172a"}}>{profile.name}</div>
+          <div style={{fontSize:12,color:"#6366f1",fontWeight:600,marginTop:2}}>{profile.roll}</div>
+          <div style={{fontSize:12,color:"#64748b"}}>{profile.dept} · {profile.semester} Sem</div>
+          <div style={{marginTop:12,display:"flex",flexDirection:"column",gap:4}}>
+            {[["Programme",profile.programme],["Year",profile.year],["Blood Group",profile.blood],["Category",profile.category]].map(([l,v])=>(
+              <div key={l} style={{display:"flex",justifyContent:"space-between",background:"#f8fafc",borderRadius:6,padding:"5px 10px"}}>
+                <span style={{fontSize:11,color:"#94a3b8",fontWeight:600}}>{l}</span>
+                <span style={{fontSize:11,color:"#334155",fontWeight:700}}>{v}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+        {/* Session activity */}
+        <div style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:12,overflow:"hidden"}}>
+          <div style={{background:"linear-gradient(135deg,#6366f1,#8b5cf6)",padding:"10px 14px",color:"#fff",fontWeight:700,fontSize:13}}>🔒 Login Sessions</div>
+          {sessions.map((s,i)=>(
+            <div key={i} style={{padding:"10px 12px",borderBottom:"1px solid #f1f5f9",background:s.current?"#f0f4ff":"#fff"}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                <div style={{fontSize:12,fontWeight:600,color:"#334155"}}>{s.device}</div>
+                {s.current&&<span style={{background:"#dcfce7",color:"#16a34a",fontSize:10,padding:"1px 7px",borderRadius:20,fontWeight:700}}>Active</span>}
+              </div>
+              <div style={{fontSize:11,color:"#94a3b8",marginTop:1}}>📍 {s.location} · {s.ip}</div>
+              <div style={{fontSize:10,color:"#cbd5e1"}}>{s.time}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+      {/* Right details */}
+      <div style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:12,padding:"16px 18px"}}>
+        <div style={{display:"flex",justifyContent:"space-between",marginBottom:14}}>
+          <div style={{fontWeight:700,fontSize:15,color:"#0f172a"}}>Personal Details</div>
+          <button onClick={()=>setEditing(e=>!e)}
+            style={{padding:"6px 14px",background:editing?"#10b981":"#f1f5f9",color:editing?"#fff":"#475569",border:"none",borderRadius:8,cursor:"pointer",fontSize:12,fontWeight:600}}>
+            {editing?"Save Changes ✓":"Edit Profile ✎"}
+          </button>
+        </div>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+          {[["Full Name","name"],["Date of Birth","dob"],["Gender","gender"],["Blood Group","blood"],
+            ["Email","email"],["Phone","phone"],["Guardian Name","guardian"],["Guardian Phone","guardianPhone"],
+            ["Aadhar (masked)","aadhar"],["Permanent Address","address"]].map(([l,k])=>(
+            <div key={k} style={k==="address"?{gridColumn:"1/-1"}:{}}>
+              <div style={{fontSize:11,fontWeight:700,color:"#94a3b8",marginBottom:3}}>{l.toUpperCase()}</div>
+              {editing&&!["dob","gender","blood","aadhar"].includes(k)
+                ? <input value={profile[k]} onChange={e=>setProfile(p=>({...p,[k]:e.target.value}))}
+                    style={{width:"100%",boxSizing:"border-box",padding:"7px 10px",border:"1px solid #e2e8f0",borderRadius:7,fontSize:12,outline:"none",fontFamily:"inherit"}}/>
+                : <div style={{fontSize:13,color:"#334155",fontWeight:500}}>{profile[k]}</div>}
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── AUDIT LOG ────────────────────────────────────────────────────────────────
+function AuditLog({ role }) {
+  const studentLogs = [
+    { action:"Logged in", detail:"Chrome on Windows · 103.21.58.142", time:"Today 9:42 AM", type:"auth" },
+    { action:"Viewed Hall Ticket", detail:"Sem 5 End Semester Exam", time:"Today 9:44 AM", type:"view" },
+    { action:"Submitted Assignment", detail:"CS301 — ER Diagram uploaded", time:"Today 9:50 AM", type:"submit" },
+    { action:"Applied for Leave", detail:"Medical Leave Jun 1–2, sent to HOD", time:"Jun 9, 3:15 PM", type:"leave" },
+    { action:"Fee Payment", detail:"Sem 5 partial fee ₹15,000 via UPI", time:"Jun 8, 11:00 AM", type:"payment" },
+    { action:"Logged in", detail:"Mobile Android · 103.21.58.143", time:"Jun 8, 10:55 AM", type:"auth" },
+    { action:"Downloaded Question Paper", detail:"CS301 DBMS 2024", time:"Jun 7, 6:30 PM", type:"download" },
+    { action:"Course Registered", detail:"CS306E Machine Learning added", time:"Jun 6, 2:00 PM", type:"register" },
+    { action:"Grievance Filed", detail:"GR003 — Water supply C Block", time:"Jun 5, 4:00 PM", type:"grievance" },
+    { action:"Password Changed", detail:"Password updated successfully", time:"Jun 3, 8:00 PM", type:"security" },
+    { action:"Logged out", detail:"Session ended", time:"Jun 3, 8:05 PM", type:"auth" },
+  ];
+  const facultyLogs = [
+    { action:"Logged in", detail:"Chrome on Windows · 122.170.45.21", time:"Today 8:30 AM", type:"auth" },
+    { action:"Attendance Saved", detail:"CS301 CSE5A — Jun 10 (48 students)", time:"Today 10:15 AM", type:"submit" },
+    { action:"Marks Updated", detail:"CS301 Mid-1 marks entered for 52 students", time:"Today 11:00 AM", type:"submit" },
+    { action:"Message Sent", detail:"Broadcast to CS301 CSE5A — Exam reminder", time:"Today 11:45 AM", type:"message" },
+    { action:"Leave Request Approved", detail:"Priya Nair — Jun 10-12 Medical Leave", time:"Jun 9, 3:00 PM", type:"leave" },
+    { action:"Publication Added", detail:"Hybrid Clustering paper — Expert Systems", time:"Jun 8, 2:00 PM", type:"submit" },
+    { action:"Research Milestone Updated", detail:"Rohit Sharma — Ch.4 deadline set Jun 20", time:"Jun 7, 4:00 PM", type:"submit" },
+    { action:"Logged in", detail:"Mobile · 103.21.45.67", time:"Jun 6, 9:00 AM", type:"auth" },
+  ];
+  const logs = role==="student"?studentLogs:facultyLogs;
+  const iconMap = { auth:"🔐", view:"👁", submit:"✅", leave:"📋", payment:"💳", download:"📥", register:"📝", grievance:"⚠️", security:"🔒", message:"✉️" };
+  const colorMap = { auth:"#6366f1", view:"#64748b", submit:"#10b981", leave:"#f59e0b", payment:"#8b5cf6", download:"#14b8a6", register:"#6366f1", grievance:"#ef4444", security:"#ef4444", message:"#6366f1" };
+
+  return (
+    <div style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:12,overflow:"hidden"}}>
+      <div style={{background:"linear-gradient(135deg,#6366f1,#8b5cf6)",padding:"12px 16px",color:"#fff",fontWeight:700,fontSize:14,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+        <span>🗃 Activity & Audit Log</span>
+        <span style={{fontSize:12,opacity:0.8}}>Last 30 days</span>
+      </div>
+      <div style={{padding:"8px 0"}}>
+        {logs.map((l,i)=>(
+          <div key={i} style={{display:"flex",gap:12,padding:"10px 16px",borderBottom:"1px solid #f8fafc",alignItems:"flex-start"}}>
+            <div style={{width:34,height:34,borderRadius:"50%",background:(colorMap[l.type]||"#6366f1")+"15",display:"flex",alignItems:"center",justifyContent:"center",fontSize:15,flexShrink:0}}>
+              {iconMap[l.type]||"📌"}
+            </div>
+            <div style={{flex:1}}>
+              <div style={{fontWeight:600,fontSize:13,color:"#0f172a"}}>{l.action}</div>
+              <div style={{fontSize:12,color:"#64748b",marginTop:1}}>{l.detail}</div>
+            </div>
+            <div style={{fontSize:11,color:"#94a3b8",whiteSpace:"nowrap",marginTop:2}}>{l.time}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ─── TRANSPORT MODULE ─────────────────────────────────────────────────────────
+function TransportView() {
+  const [tab, setTab] = useState("mybus");
+  const [renewDone, setRenewDone] = useState(false);
+  const routes = [
+    { no:"R-01", name:"Bhubaneswar City Route", stops:["ITER Gate","Vani Vihar","Bhubaneswar Station","Saheed Nagar","Airport Sq","Master Canteen"], timing:"7:00 AM / 5:30 PM", seats:52, avail:12 },
+    { no:"R-02", name:"Cuttack Route", stops:["ITER Gate","Infocity","Patia","Chandrasekharpur","CDA","Cuttack Bus Stand"], timing:"6:45 AM / 5:15 PM", seats:52, avail:5 },
+    { no:"R-03", name:"Khordha / Berhampur Route", stops:["ITER Gate","Kalinga Hospital","Rasulgarh","Khordha Road","Jatni"], timing:"7:15 AM / 5:45 PM", seats:40, avail:18 },
+    { no:"R-04", name:"Puri Route", stops:["ITER Gate","Balianta","Pipili","Delang","Puri Bus Stand"], timing:"7:00 AM / 5:30 PM", seats:40, avail:0 },
+  ];
+  const myPass = { route:"R-01", routeName:"Bhubaneswar City Route", stop:"Saheed Nagar", passNo:"BUS-2025-4521", valid:"Jul 2025 – Jun 2026", fee:18000, status:"Active" };
+
+  return (
+    <div>
+      <div style={{display:"flex",gap:4,background:"#f1f5f9",borderRadius:8,padding:3,marginBottom:14,width:"fit-content"}}>
+        {[["mybus","🚌 My Bus Pass"],["routes","🗺 All Routes"],["apply","📝 Apply / Renew"]].map(([t,l])=>(
+          <button key={t} onClick={()=>setTab(t)}
+            style={{padding:"7px 14px",border:"none",borderRadius:6,cursor:"pointer",fontSize:12,fontWeight:600,
+              background:tab===t?"linear-gradient(135deg,#6366f1,#8b5cf6)":"transparent",color:tab===t?"#fff":"#64748b"}}>{l}</button>
+        ))}
+      </div>
+
+      {tab==="mybus" && (
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14}}>
+          <div style={{background:"#fff",border:"2px solid #6366f1",borderRadius:12,padding:"20px",background:"linear-gradient(135deg,#6366f1,#8b5cf6)",color:"#fff"}}>
+            <div style={{fontSize:11,opacity:0.8,fontWeight:700,marginBottom:4}}>BUS PASS</div>
+            <div style={{fontSize:22,fontWeight:900,letterSpacing:1}}>{myPass.passNo}</div>
+            <div style={{fontSize:13,marginTop:8,opacity:0.9}}>{myPass.routeName}</div>
+            <div style={{fontSize:12,opacity:0.8}}>Boarding: {myPass.stop}</div>
+            <div style={{display:"flex",justifyContent:"space-between",marginTop:16,paddingTop:12,borderTop:"1px solid rgba(255,255,255,0.2)"}}>
+              <div><div style={{fontSize:10,opacity:0.7}}>VALID</div><div style={{fontWeight:700}}>{myPass.valid}</div></div>
+              <div><div style={{fontSize:10,opacity:0.7}}>FEE</div><div style={{fontWeight:700}}>₹{myPass.fee.toLocaleString()}/yr</div></div>
+              <div><div style={{fontSize:10,opacity:0.7}}>STATUS</div><span style={{background:"rgba(255,255,255,0.2)",padding:"2px 8px",borderRadius:20,fontWeight:700,fontSize:12}}>{myPass.status}</span></div>
+            </div>
+          </div>
+          <div style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:12,padding:"16px"}}>
+            <div style={{fontWeight:700,fontSize:14,color:"#0f172a",marginBottom:12}}>Route Stops — {myPass.route}</div>
+            {routes.find(r=>r.no===myPass.route)?.stops.map((s,i,arr)=>(
+              <div key={i} style={{display:"flex",gap:10,alignItems:"center",marginBottom:i<arr.length-1?6:0}}>
+                <div style={{display:"flex",flexDirection:"column",alignItems:"center"}}>
+                  <div style={{width:12,height:12,borderRadius:"50%",background:s===myPass.stop?"#6366f1":"#e2e8f0",border:"2px solid",borderColor:s===myPass.stop?"#6366f1":"#cbd5e1"}}/>
+                  {i<arr.length-1&&<div style={{width:2,height:16,background:"#e2e8f0"}}/>}
+                </div>
+                <div style={{fontSize:12,fontWeight:s===myPass.stop?700:400,color:s===myPass.stop?"#6366f1":"#334155"}}>
+                  {s} {s===myPass.stop&&<span style={{fontSize:10,background:"#eef2ff",color:"#6366f1",padding:"1px 6px",borderRadius:20,marginLeft:4}}>Your Stop</span>}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {tab==="routes" && (
+        <div style={{display:"flex",flexDirection:"column",gap:10}}>
+          {routes.map(r=>(
+            <div key={r.no} style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:12,padding:"14px 16px"}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8}}>
+                <div>
+                  <div style={{display:"flex",gap:8,alignItems:"center"}}>
+                    <span style={{background:"#eef2ff",color:"#6366f1",fontWeight:700,fontSize:12,padding:"2px 8px",borderRadius:6}}>{r.no}</span>
+                    <span style={{fontWeight:700,fontSize:14,color:"#0f172a"}}>{r.name}</span>
+                  </div>
+                  <div style={{fontSize:12,color:"#64748b",marginTop:3}}>⏰ {r.timing} &nbsp;·&nbsp; 💺 {r.avail}/{r.seats} seats available</div>
+                </div>
+                <span style={{fontSize:11,fontWeight:700,padding:"2px 8px",borderRadius:6,background:r.avail>0?"#dcfce7":"#fee2e2",color:r.avail>0?"#16a34a":"#dc2626"}}>{r.avail>0?"Available":"Full"}</span>
+              </div>
+              <div style={{display:"flex",gap:4,flexWrap:"wrap"}}>
+                {r.stops.map((s,i)=>(
+                  <span key={i} style={{fontSize:11,color:"#475569",background:"#f1f5f9",padding:"2px 8px",borderRadius:20}}>
+                    {i>0&&"→ "}{s}
+                  </span>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {tab==="apply" && (
+        <div style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:12,padding:"20px 24px",maxWidth:480}}>
+          <div style={{fontWeight:700,fontSize:15,color:"#0f172a",marginBottom:14}}>Renew / Apply for Bus Pass</div>
+          {renewDone ? (
+            <div style={{textAlign:"center",padding:"24px 0"}}>
+              <div style={{fontSize:48}}>✅</div>
+              <div style={{fontWeight:700,fontSize:16,color:"#0f172a",marginTop:10}}>Renewal Request Submitted!</div>
+              <div style={{fontSize:13,color:"#64748b",marginTop:4}}>Your bus pass will be renewed after fee payment.</div>
+            </div>
+          ) : (
+            <>
+              {[["Select Route","select"],["Boarding Stop","text"],["Period","select2"]].map(([l,t],i)=>(
+                <div key={i} style={{marginBottom:12}}>
+                  <label style={{fontSize:11,fontWeight:700,color:"#475569",display:"block",marginBottom:4}}>{l.toUpperCase()}</label>
+                  {t==="select"?<select style={{width:"100%",padding:"9px 10px",border:"1px solid #e2e8f0",borderRadius:8,fontSize:13,outline:"none",fontFamily:"inherit"}}>
+                    {routes.map(r=><option key={r.no}>{r.no} — {r.name}</option>)}
+                  </select>:t==="select2"?<select style={{width:"100%",padding:"9px 10px",border:"1px solid #e2e8f0",borderRadius:8,fontSize:13,outline:"none",fontFamily:"inherit"}}>
+                    <option>Jul 2026 – Jun 2027</option><option>Jan 2026 – Dec 2026</option>
+                  </select>:<input placeholder={l} style={{width:"100%",boxSizing:"border-box",padding:"9px 10px",border:"1px solid #e2e8f0",borderRadius:8,fontSize:13,outline:"none",fontFamily:"inherit"}}/>}
+                </div>
+              ))}
+              <div style={{background:"#f8fafc",borderRadius:8,padding:"10px 14px",marginBottom:14,fontSize:12,color:"#475569"}}>
+                Annual fee: <strong style={{color:"#6366f1"}}>₹18,000</strong> · Payment via fee portal after approval
+              </div>
+              <button onClick={()=>setRenewDone(true)}
+                style={{width:"100%",padding:"11px",background:"linear-gradient(135deg,#6366f1,#8b5cf6)",color:"#fff",border:"none",borderRadius:8,fontWeight:600,cursor:"pointer",fontSize:14}}>
+                Submit Application
+              </button>
+            </>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── ALUMNI CONNECT ───────────────────────────────────────────────────────────
+function AlumniConnect({ user }) {
+  const [tab, setTab] = useState("directory");
+  const [regDone, setRegDone] = useState(false);
+  const [msgSent, setMsgSent] = useState(null);
+  const alumni = [
+    { name:"Rahul Mohanty", batch:"2022", company:"Google", role:"SDE II", location:"Bangalore", dept:"CSE", linkedin:"rahul-mohanty", mentoring:true, skills:["DSA","System Design","Go"] },
+    { name:"Priyanka Das", batch:"2021", company:"Microsoft", role:"Product Manager", location:"Hyderabad", dept:"CSE", linkedin:"priyanka-das", mentoring:true, skills:["Product","Agile","SQL"] },
+    { name:"Arun Kumar", batch:"2023", company:"Infosys", role:"Systems Engineer", location:"Pune", dept:"CSE", linkedin:"arun-kumar", mentoring:false, skills:["Java","Spring Boot","AWS"] },
+    { name:"Sneha Rath", batch:"2020", company:"Amazon", role:"SDE III", location:"Seattle", dept:"CSE", linkedin:"sneha-rath", mentoring:true, skills:["ML","Python","AWS"] },
+    { name:"Bikash Panda", batch:"2022", company:"Wipro", role:"Tech Lead", location:"Chennai", dept:"ECE", linkedin:"bikash-panda", mentoring:true, skills:["Embedded","VLSI","IoT"] },
+    { name:"Anjali Nanda", batch:"2021", company:"TCS Research", role:"Research Analyst", location:"Mumbai", dept:"CSE", linkedin:"anjali-nanda", mentoring:false, skills:["NLP","Research","Python"] },
+  ];
+
+  return (
+    <div>
+      <div style={{display:"flex",gap:4,background:"#f1f5f9",borderRadius:8,padding:3,marginBottom:14,width:"fit-content"}}>
+        {[["directory","🎓 Alumni Directory"],["mentors","🤝 Find a Mentor"],["register","📝 Register as Alumni"]].map(([t,l])=>(
+          <button key={t} onClick={()=>setTab(t)}
+            style={{padding:"7px 14px",border:"none",borderRadius:6,cursor:"pointer",fontSize:12,fontWeight:600,
+              background:tab===t?"linear-gradient(135deg,#6366f1,#8b5cf6)":"transparent",color:tab===t?"#fff":"#64748b"}}>{l}</button>
+        ))}
+      </div>
+
+      {(tab==="directory"||tab==="mentors") && (
+        <div>
+          {tab==="mentors"&&<div style={{background:"#eef2ff",border:"1px solid #c7d2fe",borderRadius:10,padding:"10px 14px",marginBottom:12,fontSize:13,color:"#4338ca"}}>
+            🤝 These alumni have opted to mentor current students. Connect with them for career guidance, resume reviews, and interview prep.
+          </div>}
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+            {alumni.filter(a=>tab==="directory"||a.mentoring).map((a,i)=>(
+              <div key={i} style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:12,padding:"14px 16px"}}>
+                <div style={{display:"flex",gap:12,alignItems:"flex-start",marginBottom:8}}>
+                  <div style={{width:42,height:42,borderRadius:"50%",background:"linear-gradient(135deg,#6366f1,#8b5cf6)",display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",fontWeight:700,fontSize:16,flexShrink:0}}>
+                    {a.name[0]}
+                  </div>
+                  <div style={{flex:1}}>
+                    <div style={{fontWeight:700,fontSize:13,color:"#0f172a"}}>{a.name}</div>
+                    <div style={{fontSize:12,color:"#6366f1",fontWeight:600}}>{a.role} @ {a.company}</div>
+                    <div style={{fontSize:11,color:"#64748b"}}>📍 {a.location} · Batch {a.batch} · {a.dept}</div>
+                  </div>
+                </div>
+                <div style={{display:"flex",gap:4,flexWrap:"wrap",marginBottom:10}}>
+                  {a.skills.map(s=><span key={s} style={{fontSize:10,background:"#f1f5f9",color:"#475569",padding:"2px 7px",borderRadius:20,fontWeight:600}}>{s}</span>)}
+                </div>
+                <div style={{display:"flex",gap:8}}>
+                  {a.mentoring&&<button onClick={()=>setMsgSent(a.name)}
+                    style={{flex:1,padding:"6px 0",background:"linear-gradient(135deg,#6366f1,#8b5cf6)",color:"#fff",border:"none",borderRadius:7,cursor:"pointer",fontSize:11,fontWeight:600}}>
+                    {msgSent===a.name?"✅ Request Sent":"🤝 Request Mentorship"}
+                  </button>}
+                  <button style={{padding:"6px 12px",background:"#f1f5f9",color:"#334155",border:"none",borderRadius:7,cursor:"pointer",fontSize:11,fontWeight:600}}>LinkedIn</button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {tab==="register" && (
+        <div style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:12,padding:"20px 24px",maxWidth:520}}>
+          {regDone?(
+            <div style={{textAlign:"center",padding:"24px 0"}}>
+              <div style={{fontSize:48}}>🎓</div>
+              <div style={{fontWeight:700,fontSize:16,color:"#0f172a",marginTop:10}}>Welcome to the Alumni Network!</div>
+              <div style={{fontSize:13,color:"#64748b",marginTop:4}}>Your profile will be visible to current students after verification.</div>
+            </div>
+          ):(
+            <>
+              <div style={{fontWeight:700,fontSize:15,color:"#0f172a",marginBottom:14}}>Register as an ITER Alumni</div>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+                {[["Current Company","text"],["Current Role","text"],["Graduation Year","select"],["Current Location","text"],["LinkedIn Profile","text"],["Open to Mentoring","select2"]].map(([l,t],i)=>(
+                  <div key={i}>
+                    <label style={{fontSize:11,fontWeight:700,color:"#475569",display:"block",marginBottom:3}}>{l.toUpperCase()}</label>
+                    {t==="select"?<select style={{width:"100%",padding:"8px 10px",border:"1px solid #e2e8f0",borderRadius:8,fontSize:13,outline:"none",fontFamily:"inherit"}}>
+                      {["2026","2025","2024","2023","2022","2021","2020"].map(y=><option key={y}>{y}</option>)}
+                    </select>:t==="select2"?<select style={{width:"100%",padding:"8px 10px",border:"1px solid #e2e8f0",borderRadius:8,fontSize:13,outline:"none",fontFamily:"inherit"}}>
+                      <option>Yes — happy to mentor</option><option>No</option>
+                    </select>:<input placeholder={l} style={{width:"100%",boxSizing:"border-box",padding:"8px 10px",border:"1px solid #e2e8f0",borderRadius:8,fontSize:13,outline:"none",fontFamily:"inherit"}}/>}
+                  </div>
+                ))}
+              </div>
+              <button onClick={()=>setRegDone(true)}
+                style={{width:"100%",padding:"11px",background:"linear-gradient(135deg,#6366f1,#8b5cf6)",color:"#fff",border:"none",borderRadius:8,fontWeight:600,cursor:"pointer",fontSize:14,marginTop:16}}>
+                Register & Join Alumni Network
+              </button>
+            </>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── E-LEARNING ───────────────────────────────────────────────────────────────
+function ELearningView() {
+  const [tab, setTab] = useState("enrolled");
+  const [addDone, setAddDone] = useState(null);
+  const enrolled = [
+    { id:"E1", title:"Deep Learning Specialization", platform:"Coursera", provider:"deeplearning.ai", progress:65, weeks:12, completed:8, cert:false, link:"#", color:"#0056d2" },
+    { id:"E2", title:"The Joy of Computing using Python", platform:"NPTEL", provider:"IIT Ropar", progress:100, weeks:8, completed:8, cert:true, link:"#", color:"#ff6f00" },
+    { id:"E3", title:"Data Structures and Algorithms", platform:"Swayam", provider:"IIT Bombay", progress:40, weeks:10, completed:4, cert:false, link:"#", color:"#1a73e8" },
+    { id:"E4", title:"Cloud Computing", platform:"NPTEL", provider:"IIT Kharagpur", progress:25, weeks:12, completed:3, cert:false, link:"#", color:"#ff6f00" },
+  ];
+  const catalog = [
+    { title:"Machine Learning", platform:"Coursera", provider:"Stanford / Andrew Ng", duration:"11 weeks", rating:4.9, enrolled:4500000 },
+    { title:"Full Stack Web Development", platform:"Swayam", provider:"IIT Madras", duration:"12 weeks", rating:4.6, enrolled:85000 },
+    { title:"Computer Networks", platform:"NPTEL", provider:"IIT Bombay", duration:"8 weeks", rating:4.7, enrolled:120000 },
+    { title:"Cyber Security", platform:"Coursera", provider:"Google", duration:"6 months", rating:4.8, enrolled:780000 },
+    { title:"Database Management Systems", platform:"NPTEL", provider:"IIT Madras", duration:"8 weeks", rating:4.5, enrolled:95000 },
+  ];
+  const platformColors = { Coursera:"#0056d2", NPTEL:"#ff6f00", Swayam:"#1a73e8" };
+
+  return (
+    <div>
+      <div style={{display:"flex",gap:4,background:"#f1f5f9",borderRadius:8,padding:3,marginBottom:14,width:"fit-content"}}>
+        {[["enrolled","📚 My Courses"],["catalog","🔍 Explore"]].map(([t,l])=>(
+          <button key={t} onClick={()=>setTab(t)}
+            style={{padding:"7px 16px",border:"none",borderRadius:6,cursor:"pointer",fontSize:12,fontWeight:600,
+              background:tab===t?"linear-gradient(135deg,#6366f1,#8b5cf6)":"transparent",color:tab===t?"#fff":"#64748b"}}>{l}</button>
+        ))}
+      </div>
+
+      {tab==="enrolled" && (
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+          {enrolled.map(c=>(
+            <div key={c.id} style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:12,overflow:"hidden"}}>
+              <div style={{background:c.color,padding:"10px 14px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                <span style={{color:"#fff",fontWeight:700,fontSize:12}}>{c.platform}</span>
+                {c.cert&&<span style={{background:"rgba(255,255,255,0.25)",color:"#fff",fontSize:10,padding:"2px 8px",borderRadius:20,fontWeight:700}}>🏆 Certified</span>}
+              </div>
+              <div style={{padding:"12px 14px"}}>
+                <div style={{fontWeight:700,fontSize:13,color:"#0f172a",marginBottom:2}}>{c.title}</div>
+                <div style={{fontSize:11,color:"#64748b",marginBottom:10}}>{c.provider}</div>
+                <div style={{display:"flex",justifyContent:"space-between",marginBottom:5,fontSize:12}}>
+                  <span style={{color:"#475569"}}>Week {c.completed} of {c.weeks}</span>
+                  <span style={{fontWeight:700,color:c.progress===100?"#10b981":"#6366f1"}}>{c.progress}%</span>
+                </div>
+                <div style={{height:7,background:"#f1f5f9",borderRadius:4,marginBottom:10}}>
+                  <div style={{width:c.progress+"%",height:"100%",background:c.progress===100?"#10b981":c.color,borderRadius:4}}/>
+                </div>
+                <div style={{display:"flex",gap:8}}>
+                  <button style={{flex:1,padding:"6px 0",background:c.color,color:"#fff",border:"none",borderRadius:7,cursor:"pointer",fontSize:11,fontWeight:600}}>
+                    {c.progress===100?"View Certificate":"Continue →"}
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {tab==="catalog" && (
+        <div style={{display:"flex",flexDirection:"column",gap:10}}>
+          {catalog.map((c,i)=>(
+            <div key={i} style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:12,padding:"14px 18px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+              <div style={{flex:1}}>
+                <div style={{display:"flex",gap:8,alignItems:"center",marginBottom:3}}>
+                  <span style={{padding:"2px 8px",borderRadius:6,fontSize:11,fontWeight:700,background:(platformColors[c.platform]||"#6366f1")+"15",color:platformColors[c.platform]||"#6366f1"}}>{c.platform}</span>
+                  <span style={{fontWeight:700,fontSize:14,color:"#0f172a"}}>{c.title}</span>
+                </div>
+                <div style={{fontSize:12,color:"#64748b"}}>{c.provider} · {c.duration} · ⭐ {c.rating} · {(c.enrolled/1000).toFixed(0)}k enrolled</div>
+              </div>
+              <button onClick={()=>setAddDone(c.title)}
+                style={{padding:"7px 16px",background:addDone===c.title?"#10b981":"linear-gradient(135deg,#6366f1,#8b5cf6)",color:"#fff",border:"none",borderRadius:8,cursor:"pointer",fontSize:12,fontWeight:600,flexShrink:0,marginLeft:14}}>
+                {addDone===c.title?"✓ Added":"+ Enroll"}
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function NoticesView() {
   const notices=[
     {title:"End-Semester Examination Schedule June 2024",date:"Jun 7",cat:"Exam",body:"The schedule for End-Semester examinations is now published. Students are requested to check their hall tickets on the portal."},
@@ -3213,12 +3810,15 @@ export default function App() {
     hallticket:<HallTicket user={auth}/>, grievance:<GrievancePortal/>,
     library:<LibraryView/>, placement:<PlacementView/>,
     registration:<CourseRegistration/>, feedback:<FeedbackView/>,
+    profile:<StudentProfile user={auth}/>, auditlog:<AuditLog role="student"/>,
+    transport:<TransportView/>, alumni:<AlumniConnect user={auth}/>, elearning:<ELearningView/>,
   };
   const facultyViews = {
     dashboard:<FacultyDashboard user={auth}/>, subjects:<FacultySubjectsView/>,
     lab:<LabView/>, attendance:<AttendanceView/>, evaluation:<EvaluationView/>,
     research:<ResearchView/>, duty:<DutyView/>, notices:<NoticesView/>,
     copo:<COPOView/>, feedback:<FacultyFeedbackView/>,
+    profile:<FacultyProfile user={auth}/>, auditlog:<AuditLog role="faculty"/>,
   };
   const views = role==="student" ? studentViews : facultyViews;
 
@@ -3226,29 +3826,33 @@ export default function App() {
     ["Dashboard","dashboard"],["Attendance","attendance"],
     ["Question Papers","papers"],["Examination","exam"],["Hall Ticket","hallticket"],
     ["Assignments","assignments"],["Fee Payment","fee"],["Library","library"],
-    ["Placement Cell","placement"],["Course Registration","registration"],
-    ["Grievance","grievance"],["Feedback","feedback"],["Notices","notices"],
+    ["Placement Cell","placement"],["E-Learning","elearning"],
+    ["Transport","transport"],["Alumni Connect","alumni"],
+    ["Course Registration","registration"],["Grievance","grievance"],
+    ["Feedback","feedback"],["Profile","profile"],["Audit Log","auditlog"],["Notices","notices"],
   ];
   const facultySidebarLinks = [
     ["Dashboard","dashboard"],["Subjects & Students","subjects"],["Lab","lab"],
     ["Attendance","attendance"],["Evaluation","evaluation"],["Research","research"],
-    ["CO/PO Attainment","copo"],["Exam & Duty","duty"],["Feedback Results","feedback"],["Notices","notices"],
+    ["CO/PO Attainment","copo"],["Exam & Duty","duty"],["Feedback Results","feedback"],
+    ["My Profile","profile"],["Audit Log","auditlog"],["Notices","notices"],
   ];
 
   // Academic dropdown items
   const studentMenuItems = [
-    ["Student Information","dashboard"],["Registration","registration"],["Attendance and Leave","attendance"],
+    ["Student Information","profile"],["Registration","registration"],["Attendance and Leave","attendance"],
     ["Feedback / Assessment","feedback"],["Examination","exam"],["Fee Payment","fee"],
-    ["Hostel Management","fee"],["Thesis Submission","dashboard"],["Assignments","assignments"],
-    ["Research Scholars' Week","dashboard"],["SAC Election","dashboard"],["Student Project management","dashboard"],
-    ["Dissertation Template","dashboard"],["Scholarships","fee"],["Hall Ticket","hallticket"],
-    ["Library","library"],["Placement Cell","placement"],["Grievance Portal","grievance"],
+    ["Hostel Management","fee"],["Assignments","assignments"],
+    ["Hall Ticket","hallticket"],["Library","library"],["Placement Cell","placement"],
+    ["E-Learning","elearning"],["Transport","transport"],["Alumni Connect","alumni"],
+    ["Grievance Portal","grievance"],["Scholarships","fee"],["Audit Log","auditlog"],
   ];
   const facultyMenuItems = [
     ["Dashboard","dashboard"],["Subjects & Students","subjects"],["Lab Management","lab"],
     ["Attendance & Leave","attendance"],["Evaluation","evaluation"],
     ["Research Scholars","research"],["CO/PO Attainment","copo"],
-    ["Exam & Duty","duty"],["Feedback Results","feedback"],["Notices","notices"],
+    ["Exam & Duty","duty"],["Feedback Results","feedback"],
+    ["My Profile","profile"],["Audit Log","auditlog"],["Notices","notices"],
   ];
 
   // bg colours for dark mode
