@@ -142,36 +142,43 @@ function Login({ onLogin }) {
     if(!uid||!pass){setErr("Enter credentials");return;}
     if(role==="student"&&uid==="S001"&&pass==="student123") onLogin("student",{name:"SUBHASHISH NAYAK",roll:"520CS2008",dept:"CSE",year:"PhD Scholar",id:"S001"});
     else if(role==="faculty"&&uid==="F001"&&pass==="faculty123") onLogin("faculty",{name:"Dr. Priya Singh",dept:"CSE",designation:"Asst. Professor",id:"F001"});
-    else setErr("Invalid. Use S001/student123 or F001/faculty123");
+    else if(role==="admin"&&uid==="A001"&&pass==="admin123") onLogin("admin",{name:"Dr. R. K. Mohanty",designation:"Registrar",dept:"Administration",id:"A001"});
+    else setErr("Invalid credentials.");
   };
+  const roles = [{key:"student",label:"Student"},{key:"faculty",label:"Faculty"},{key:"admin",label:"Admin"}];
+  const placeholders = {student:"Roll Number (S001)",faculty:"Faculty ID (F001)",admin:"Admin ID (A001)"};
+  const demos = {student:"S001 / student123",faculty:"F001 / faculty123",admin:"A001 / admin123"};
   return (
-    <div style={{minHeight:"100vh",background:"#1a1a2e",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"'Segoe UI',sans-serif"}}>
-      <div style={{background:"#fff",borderRadius:4,padding:"40px 36px",width:380,boxShadow:"0 4px 24px rgba(0,0,0,0.3)"}}>
+    <div style={{minHeight:"100vh",background:"linear-gradient(135deg,#0f172a,#1e293b)",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"'Segoe UI',sans-serif"}}>
+      <div style={{background:"#fff",borderRadius:12,padding:"40px 36px",width:400,boxShadow:"0 8px 40px rgba(0,0,0,0.4)"}}>
         <div style={{textAlign:"center",marginBottom:28}}>
-          <div style={{fontSize:28,fontWeight:900,color:"#6366f1",letterSpacing:1}}>ITER ERP</div>
+          <div style={{width:56,height:56,borderRadius:14,background:"linear-gradient(135deg,#6366f1,#8b5cf6)",display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 12px",fontSize:24}}>🎓</div>
+          <div style={{fontSize:24,fontWeight:900,color:"#0f172a",letterSpacing:-0.5}}>ITER ERP</div>
           <div style={{fontSize:12,color:"#888",marginTop:2}}>Siksha 'O' Anusandhan University</div>
         </div>
-        <div style={{display:"flex",background:"#f5f5f5",borderRadius:4,marginBottom:20,padding:3}}>
-          {["student","faculty"].map(r=>(
-            <button key={r} onClick={()=>{setRole(r);setErr("");}} style={{flex:1,padding:"8px",border:"none",borderRadius:3,cursor:"pointer",fontSize:13,fontWeight:600,
-              background:role===r?"#6366f1":"transparent",color:role===r?"#fff":"#555"}}>
-              {r==="student"?"Student":"Faculty"}
+        {/* Role toggle */}
+        <div style={{display:"flex",background:"#f5f5f5",borderRadius:8,marginBottom:20,padding:3,gap:3}}>
+          {roles.map(r=>(
+            <button key={r.key} onClick={()=>{setRole(r.key);setErr("");setUid("");setPass("");}}
+              style={{flex:1,padding:"8px 0",border:"none",borderRadius:6,cursor:"pointer",fontSize:12,fontWeight:600,
+                background:role===r.key?"linear-gradient(135deg,#6366f1,#8b5cf6)":"transparent",
+                color:role===r.key?"#fff":"#555"}}>
+              {r.label}
             </button>
           ))}
         </div>
-        {[{ph:role==="student"?"Roll Number (S001)":"Faculty ID (F001)",val:uid,set:setUid,type:"text"},
-          {ph:"Password",val:pass,set:setPass,type:"password"}].map(({ph,val,set,type},i)=>(
+        {[{ph:placeholders[role],val:uid,set:setUid,type:"text"},{ph:"Password",val:pass,set:setPass,type:"password"}].map(({ph,val,set,type},i)=>(
           <input key={i} type={type} placeholder={ph} value={val}
             onChange={e=>{set(e.target.value);setErr("");}}
             onKeyDown={e=>e.key==="Enter"&&handle()}
-            style={{width:"100%",boxSizing:"border-box",padding:"10px 12px",border:"1px solid #ddd",borderRadius:3,fontSize:14,marginBottom:12,outline:"none",fontFamily:"inherit"}}/>
+            style={{width:"100%",boxSizing:"border-box",padding:"10px 12px",border:"1px solid #ddd",borderRadius:8,fontSize:14,marginBottom:12,outline:"none",fontFamily:"inherit"}}/>
         ))}
-        {err&&<div style={{color:"#c0392b",fontSize:13,marginBottom:10,padding:"7px 10px",background:"#fdf0f0",borderRadius:3}}>{err}</div>}
-        <button onClick={handle} style={{width:"100%",padding:"11px",background:"linear-gradient(135deg,#6366f1,#8b5cf6)",border:"none",borderRadius:3,color:"#fff",fontSize:14,fontWeight:600,cursor:"pointer"}}>
+        {err&&<div style={{color:"#c0392b",fontSize:13,marginBottom:10,padding:"7px 10px",background:"#fdf0f0",borderRadius:6}}>{err}</div>}
+        <button onClick={handle} style={{width:"100%",padding:"11px",background:"linear-gradient(135deg,#6366f1,#8b5cf6)",border:"none",borderRadius:8,color:"#fff",fontSize:14,fontWeight:600,cursor:"pointer"}}>
           Sign In
         </button>
         <div style={{color:"#aaa",fontSize:11,textAlign:"center",marginTop:16}}>
-          Demo: S001 / student123 &nbsp;|&nbsp; F001 / faculty123
+          Demo: <span style={{color:"#6366f1"}}>{demos[role]}</span>
         </div>
       </div>
     </div>
@@ -4750,6 +4757,424 @@ function MarksheetView({ user }) {
   );
 }
 
+// ─── ADMIN DASHBOARD ─────────────────────────────────────────────────────────
+function AdminDashboard({ user }) {
+  const stats = [
+    {label:"Total Students",value:"4,872",icon:"🎓",color:"#6366f1",sub:"+124 this year"},
+    {label:"Total Faculty",value:"312",icon:"👨‍🏫",color:"#10b981",sub:"28 departments"},
+    {label:"Courses Offered",value:"186",icon:"📚",color:"#f59e0b",sub:"UG + PG + PhD"},
+    {label:"Pending Approvals",value:"23",icon:"⏳",color:"#ef4444",sub:"Needs attention"},
+    {label:"Active Complaints",value:"8",icon:"🔧",color:"#8b5cf6",sub:"Infrastructure"},
+    {label:"Files in Transit",value:"15",icon:"📁",color:"#14b8a6",sub:"FTS active"},
+  ];
+  const recentActions = [
+    {action:"Leave approved for Dr. Priya Singh",type:"leave",time:"10 min ago"},
+    {action:"New student S-2026-001 registered",type:"student",time:"1 hr ago"},
+    {action:"Room booking confirmed — Seminar Hall A",type:"booking",time:"2 hr ago"},
+    {action:"Faculty appraisal submitted by Prof. S. Das",type:"appraisal",time:"3 hr ago"},
+    {action:"Vehicle requisition VR-045 assigned",type:"vehicle",time:"4 hr ago"},
+    {action:"Complaint CMP-012 resolved — Electrical Dept",type:"complaint",time:"5 hr ago"},
+  ];
+  const deptStats = [
+    {dept:"CSE",students:640,faculty:42,courses:28},
+    {dept:"ECE",students:520,faculty:38,courses:24},
+    {dept:"MECH",students:480,faculty:35,courses:22},
+    {dept:"CIVIL",students:400,faculty:30,courses:20},
+    {dept:"EEE",students:360,faculty:28,courses:18},
+    {dept:"MBA",students:240,faculty:22,courses:16},
+  ];
+  return (
+    <div>
+      <div style={{background:"linear-gradient(135deg,#6366f1,#8b5cf6)",borderRadius:12,padding:"16px 20px",marginBottom:16,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+        <div>
+          <div style={{color:"#fff",fontWeight:700,fontSize:18}}>Welcome, {user.name}</div>
+          <div style={{color:"rgba(255,255,255,0.8)",fontSize:13}}>{user.designation} · {user.dept}</div>
+        </div>
+        <div style={{color:"rgba(255,255,255,0.7)",fontSize:13,textAlign:"right"}}>
+          {new Date().toLocaleDateString("en-GB",{weekday:"long",day:"numeric",month:"long",year:"numeric"})}
+        </div>
+      </div>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:12,marginBottom:16}}>
+        {stats.map(s=>(
+          <div key={s.label} style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:10,padding:"14px 16px",borderLeft:`4px solid ${s.color}`}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
+              <div style={{fontSize:11,fontWeight:700,color:"#94a3b8"}}>{s.label.toUpperCase()}</div>
+              <span style={{fontSize:20}}>{s.icon}</span>
+            </div>
+            <div style={{fontSize:26,fontWeight:800,color:s.color}}>{s.value}</div>
+            <div style={{fontSize:11,color:"#94a3b8",marginTop:2}}>{s.sub}</div>
+          </div>
+        ))}
+      </div>
+      <div style={{display:"grid",gridTemplateColumns:"1.5fr 1fr",gap:14}}>
+        {/* Department overview */}
+        <div style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:12,overflow:"hidden"}}>
+          <div style={{background:"linear-gradient(135deg,#6366f1,#8b5cf6)",padding:"11px 16px",color:"#fff",fontWeight:700,fontSize:13}}>Department Overview</div>
+          <table style={{width:"100%",borderCollapse:"collapse",fontSize:13}}>
+            <thead><tr style={{background:"#f8fafc"}}>{["Dept","Students","Faculty","Courses"].map(h=><th key={h} style={{padding:"9px 12px",textAlign:"left",fontWeight:600,color:"#475569",fontSize:12,borderBottom:"1px solid #e2e8f0"}}>{h}</th>)}</tr></thead>
+            <tbody>{deptStats.map((d,i)=>(
+              <tr key={d.dept} style={{borderBottom:"1px solid #f1f5f9",background:i%2===0?"#fff":"#fafbff"}}>
+                <td style={{padding:"10px 12px",fontWeight:700,color:"#6366f1"}}>{d.dept}</td>
+                <td style={{padding:"10px 12px",color:"#334155"}}>{d.students}</td>
+                <td style={{padding:"10px 12px",color:"#334155"}}>{d.faculty}</td>
+                <td style={{padding:"10px 12px",color:"#334155"}}>{d.courses}</td>
+              </tr>
+            ))}</tbody>
+          </table>
+        </div>
+        {/* Recent actions */}
+        <div style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:12,overflow:"hidden"}}>
+          <div style={{background:"linear-gradient(135deg,#6366f1,#8b5cf6)",padding:"11px 16px",color:"#fff",fontWeight:700,fontSize:13}}>Recent Activity</div>
+          {recentActions.map((a,i)=>(
+            <div key={i} style={{padding:"10px 14px",borderBottom:"1px solid #f1f5f9",display:"flex",gap:10,alignItems:"flex-start"}}>
+              <div style={{fontSize:14,flexShrink:0}}>{{leave:"📋",student:"🎓",booking:"🏢",appraisal:"⭐",vehicle:"🚗",complaint:"🔧"}[a.type]||"📌"}</div>
+              <div style={{flex:1}}>
+                <div style={{fontSize:12,color:"#334155",fontWeight:500}}>{a.action}</div>
+                <div style={{fontSize:10,color:"#94a3b8"}}>{a.time}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function AdminStudents() {
+  const [search, setSearch] = useState("");
+  const [tab, setTab] = useState("list");
+  const [showAdd, setShowAdd] = useState(false);
+  const [addDone, setAddDone] = useState(false);
+  const [form, setForm] = useState({name:"",roll:"",dept:"CSE",year:"1st",email:"",phone:""});
+  const [students, setStudents] = useState([
+    {roll:"520CS2008",name:"Subhashish Nayak",dept:"CSE",year:"PhD",email:"subhashish@iter.ac.in",status:"Active",cgpa:8.6},
+    {roll:"22CS001",name:"Riya Patel",dept:"CSE",year:"3rd",email:"riya@iter.in",status:"Active",cgpa:8.8},
+    {roll:"22CS005",name:"Amit Kumar",dept:"CSE",year:"3rd",email:"amit@iter.in",status:"Active",cgpa:7.9},
+    {roll:"22CS012",name:"Priya Nair",dept:"CSE",year:"3rd",email:"priya@iter.in",status:"Active",cgpa:8.2},
+    {roll:"21EC001",name:"Rahul Das",dept:"ECE",year:"4th",email:"rahul@iter.in",status:"Active",cgpa:7.5},
+    {roll:"22ME003",name:"Sneha Panda",dept:"MECH",year:"3rd",email:"sneha@iter.in",status:"Detained",cgpa:5.8},
+  ]);
+  const filtered = students.filter(s=>!search||(s.name+s.roll+s.dept).toLowerCase().includes(search.toLowerCase()));
+  return (
+    <div>
+      <div style={{display:"flex",gap:8,marginBottom:14,justifyContent:"space-between",alignItems:"center"}}>
+        <div style={{display:"flex",gap:4,background:"#f1f5f9",borderRadius:8,padding:3}}>
+          {[["list","📋 Students"],["admit","🎓 Admissions"]].map(([t,l])=>(
+            <button key={t} onClick={()=>setTab(t)} style={{padding:"7px 16px",border:"none",borderRadius:6,cursor:"pointer",fontSize:12,fontWeight:600,background:tab===t?"linear-gradient(135deg,#6366f1,#8b5cf6)":"transparent",color:tab===t?"#fff":"#64748b"}}>{l}</button>
+          ))}
+        </div>
+        <div style={{display:"flex",gap:8}}>
+          <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search student..."
+            style={{padding:"8px 12px",border:"1px solid #e2e8f0",borderRadius:8,fontSize:12,outline:"none",width:200,fontFamily:"inherit"}}/>
+          <button onClick={()=>setShowAdd(true)} style={{padding:"8px 18px",background:"linear-gradient(135deg,#6366f1,#8b5cf6)",color:"#fff",border:"none",borderRadius:8,fontWeight:600,cursor:"pointer",fontSize:12}}>+ Add Student</button>
+        </div>
+      </div>
+      {tab==="list"&&(
+        <div style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:12,overflow:"hidden"}}>
+          <table style={{width:"100%",borderCollapse:"collapse",fontSize:13}}>
+            <thead><tr style={{background:"#f8fafc"}}>{["Roll No.","Name","Dept","Year","Email","CGPA","Status","Action"].map(h=><th key={h} style={{padding:"10px 12px",textAlign:"left",fontWeight:600,color:"#475569",fontSize:12,borderBottom:"1px solid #e2e8f0"}}>{h}</th>)}</tr></thead>
+            <tbody>{filtered.map((s,i)=>(
+              <tr key={s.roll} style={{borderBottom:"1px solid #f1f5f9",background:i%2===0?"#fff":"#fafbff"}}>
+                <td style={{padding:"10px 12px",color:"#6366f1",fontWeight:700}}>{s.roll}</td>
+                <td style={{padding:"10px 12px",fontWeight:600,color:"#0f172a"}}>{s.name}</td>
+                <td style={{padding:"10px 12px",color:"#64748b"}}>{s.dept}</td>
+                <td style={{padding:"10px 12px",color:"#64748b"}}>{s.year}</td>
+                <td style={{padding:"10px 12px",color:"#64748b",fontSize:12}}>{s.email}</td>
+                <td style={{padding:"10px 12px",fontWeight:700,color:s.cgpa>=7.5?"#10b981":"#f59e0b"}}>{s.cgpa}</td>
+                <td style={{padding:"10px 12px"}}><span style={{padding:"2px 8px",borderRadius:6,fontSize:11,fontWeight:700,background:s.status==="Active"?"#dcfce7":"#fee2e2",color:s.status==="Active"?"#16a34a":"#dc2626"}}>{s.status}</span></td>
+                <td style={{padding:"10px 12px",display:"flex",gap:6}}>
+                  <button style={{padding:"3px 10px",background:"#eef2ff",color:"#6366f1",border:"none",borderRadius:5,cursor:"pointer",fontSize:11,fontWeight:600}}>Edit</button>
+                  <button style={{padding:"3px 10px",background:"#fee2e2",color:"#dc2626",border:"none",borderRadius:5,cursor:"pointer",fontSize:11,fontWeight:600}}>Block</button>
+                </td>
+              </tr>
+            ))}</tbody>
+          </table>
+        </div>
+      )}
+      {tab==="admit"&&(
+        <div style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:12,padding:"18px 20px"}}>
+          <div style={{fontWeight:700,fontSize:15,color:"#0f172a",marginBottom:4}}>Admission Management — 2026-27</div>
+          <div style={{fontSize:13,color:"#64748b",marginBottom:14}}>Total applications: <strong style={{color:"#6366f1"}}>2,847</strong> · Seats: <strong>960</strong> · Confirmed: <strong style={{color:"#10b981"}}>412</strong></div>
+          {[{prog:"B.Tech CSE",apps:680,seats:120,confirmed:98,cutoff:"JEE 85%ile"},{prog:"B.Tech ECE",apps:520,seats:90,confirmed:76,cutoff:"JEE 78%ile"},{prog:"B.Tech MECH",apps:410,seats:90,confirmed:65,cutoff:"JEE 72%ile"},{prog:"MBA",apps:380,seats:60,confirmed:52,cutoff:"MAT 75%ile"},{prog:"M.Tech CSE",apps:280,seats:30,confirmed:28,cutoff:"GATE 450"},{prog:"PhD CSE",apps:95,seats:15,confirmed:12,cutoff:"NET/GATE"}].map((p,i)=>(
+            <div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"10px 0",borderBottom:"1px solid #f1f5f9",fontSize:13}}>
+              <div style={{fontWeight:600,color:"#0f172a",width:160}}>{p.prog}</div>
+              <div style={{color:"#64748b"}}>Apps: <strong>{p.apps}</strong></div>
+              <div style={{color:"#64748b"}}>Seats: <strong>{p.seats}</strong></div>
+              <div style={{color:"#10b981",fontWeight:600}}>Confirmed: {p.confirmed}</div>
+              <div style={{fontSize:11,color:"#6366f1",fontWeight:600}}>{p.cutoff}</div>
+            </div>
+          ))}
+        </div>
+      )}
+      {showAdd&&(
+        <div style={{position:"fixed",inset:0,background:"rgba(15,23,42,0.6)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center"}} onClick={()=>setShowAdd(false)}>
+          <div style={{background:"#fff",borderRadius:14,width:460,overflow:"hidden",boxShadow:"0 20px 60px rgba(0,0,0,0.25)"}} onClick={e=>e.stopPropagation()}>
+            <div style={{background:"linear-gradient(135deg,#6366f1,#8b5cf6)",padding:"13px 18px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+              <span style={{color:"#fff",fontWeight:700,fontSize:14}}>+ Add New Student</span>
+              <button onClick={()=>setShowAdd(false)} style={{background:"rgba(255,255,255,0.2)",border:"none",borderRadius:6,color:"#fff",width:24,height:24,cursor:"pointer"}}>✕</button>
+            </div>
+            {addDone?<div style={{padding:"32px",textAlign:"center"}}><div style={{fontSize:40}}>✅</div><div style={{fontWeight:700,marginTop:8}}>Student Added!</div></div>:(
+              <div style={{padding:"18px 20px",display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+                {[["Full Name","name","text"],["Roll Number","roll","text"],["Email","email","email"],["Phone","phone","text"]].map(([l,k,t])=>(
+                  <div key={k}><label style={{fontSize:11,fontWeight:700,color:"#475569",display:"block",marginBottom:3}}>{l.toUpperCase()}</label>
+                  <input type={t} value={form[k]} onChange={e=>setForm(f=>({...f,[k]:e.target.value}))} style={{width:"100%",boxSizing:"border-box",padding:"8px 10px",border:"1px solid #e2e8f0",borderRadius:8,fontSize:13,outline:"none",fontFamily:"inherit"}}/></div>
+                ))}
+                {[["Department","dept",["CSE","ECE","MECH","CIVIL","EEE","MBA"]],["Year","year",["1st","2nd","3rd","4th","PhD"]]].map(([l,k,opts])=>(
+                  <div key={k}><label style={{fontSize:11,fontWeight:700,color:"#475569",display:"block",marginBottom:3}}>{l.toUpperCase()}</label>
+                  <select value={form[k]} onChange={e=>setForm(f=>({...f,[k]:e.target.value}))} style={{width:"100%",padding:"8px 10px",border:"1px solid #e2e8f0",borderRadius:8,fontSize:13,outline:"none",fontFamily:"inherit"}}>{opts.map(o=><option key={o}>{o}</option>)}</select></div>
+                ))}
+                <button onClick={()=>{if(form.name&&form.roll){setStudents(p=>[...p,{...form,status:"Active",cgpa:0}]);setAddDone(true);setTimeout(()=>{setAddDone(false);setShowAdd(false);setForm({name:"",roll:"",dept:"CSE",year:"1st",email:"",phone:""});},1500);}}}
+                  style={{gridColumn:"1/-1",padding:"10px",background:"linear-gradient(135deg,#6366f1,#8b5cf6)",color:"#fff",border:"none",borderRadius:8,fontWeight:600,cursor:"pointer",fontSize:13,marginTop:4}}>
+                  Add Student
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function AdminFaculty() {
+  const [search, setSearch] = useState("");
+  const faculty = [
+    {id:"F001",name:"Dr. Priya Singh",dept:"CSE",designation:"Asst. Professor",exp:"8 yrs",email:"priya@iter.ac.in",status:"Active",pubs:4},
+    {id:"F002",name:"Prof. S. Das",dept:"CSE",designation:"Associate Professor",exp:"15 yrs",email:"sdas@iter.ac.in",status:"Active",pubs:12},
+    {id:"F003",name:"Dr. R. Panda",dept:"CSE",designation:"Asst. Professor",exp:"6 yrs",email:"rpanda@iter.ac.in",status:"Active",pubs:7},
+    {id:"F004",name:"Dr. A. Sharma",dept:"CSE",designation:"Professor",exp:"22 yrs",email:"asharma@iter.ac.in",status:"Active",pubs:28},
+    {id:"F005",name:"Prof. Sunita Das",dept:"ECE",designation:"Associate Professor",exp:"18 yrs",email:"sunita@iter.ac.in",status:"On Leave",pubs:15},
+  ];
+  const filtered = faculty.filter(f=>!search||(f.name+f.dept+f.designation).toLowerCase().includes(search.toLowerCase()));
+  return (
+    <div>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14,gap:8}}>
+        <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search faculty..."
+          style={{padding:"8px 12px",border:"1px solid #e2e8f0",borderRadius:8,fontSize:12,outline:"none",width:220,fontFamily:"inherit"}}/>
+        <button style={{padding:"8px 18px",background:"linear-gradient(135deg,#6366f1,#8b5cf6)",color:"#fff",border:"none",borderRadius:8,fontWeight:600,cursor:"pointer",fontSize:12}}>+ Add Faculty</button>
+      </div>
+      <div style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:12,overflow:"hidden"}}>
+        <table style={{width:"100%",borderCollapse:"collapse",fontSize:13}}>
+          <thead><tr style={{background:"#f8fafc"}}>{["ID","Name","Dept","Designation","Experience","Email","Publications","Status","Action"].map(h=><th key={h} style={{padding:"10px 12px",textAlign:"left",fontWeight:600,color:"#475569",fontSize:11,borderBottom:"1px solid #e2e8f0"}}>{h}</th>)}</tr></thead>
+          <tbody>{filtered.map((f,i)=>(
+            <tr key={f.id} style={{borderBottom:"1px solid #f1f5f9",background:i%2===0?"#fff":"#fafbff"}}>
+              <td style={{padding:"10px 12px",color:"#6366f1",fontWeight:700}}>{f.id}</td>
+              <td style={{padding:"10px 12px",fontWeight:600,color:"#0f172a"}}>{f.name}</td>
+              <td style={{padding:"10px 12px",color:"#64748b"}}>{f.dept}</td>
+              <td style={{padding:"10px 12px",color:"#475569",fontSize:12}}>{f.designation}</td>
+              <td style={{padding:"10px 12px",color:"#64748b"}}>{f.exp}</td>
+              <td style={{padding:"10px 12px",color:"#64748b",fontSize:11}}>{f.email}</td>
+              <td style={{padding:"10px 12px",textAlign:"center",fontWeight:700,color:"#6366f1"}}>{f.pubs}</td>
+              <td style={{padding:"10px 12px"}}><span style={{padding:"2px 8px",borderRadius:6,fontSize:11,fontWeight:700,background:f.status==="Active"?"#dcfce7":"#fef9c3",color:f.status==="Active"?"#16a34a":"#ca8a04"}}>{f.status}</span></td>
+              <td style={{padding:"10px 12px",display:"flex",gap:5}}>
+                <button style={{padding:"3px 8px",background:"#eef2ff",color:"#6366f1",border:"none",borderRadius:5,cursor:"pointer",fontSize:10,fontWeight:600}}>Edit</button>
+                <button style={{padding:"3px 8px",background:"#fee2e2",color:"#dc2626",border:"none",borderRadius:5,cursor:"pointer",fontSize:10,fontWeight:600}}>Block</button>
+              </td>
+            </tr>
+          ))}</tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+function AdminLeaveApprovals() {
+  const [leaves, setLeaves] = useState([
+    {id:"L001",name:"Dr. Priya Singh",type:"Faculty",leave:"Academic Leave",from:"Jun 15",to:"Jun 17",days:3,reason:"ICML 2026 Conference, Vienna",status:"Pending",role:"faculty"},
+    {id:"L002",name:"Subhashish Nayak",type:"Student",leave:"Medical Leave",from:"Jun 10",to:"Jun 12",days:3,reason:"Hospitalization",status:"Pending",role:"student"},
+    {id:"L003",name:"Prof. S. Das",type:"Faculty",leave:"Casual Leave",from:"Jun 20",to:"Jun 20",days:1,reason:"Family function",status:"Approved",role:"faculty"},
+    {id:"L004",name:"Riya Patel",type:"Student",leave:"Casual Leave",from:"Jun 8",to:"Jun 8",days:1,reason:"College fest",status:"Rejected",role:"student"},
+  ]);
+  const act = (id,status) => setLeaves(p=>p.map(l=>l.id===id?{...l,status}:l));
+  const statusColor = s=>s==="Approved"?{bg:"#dcfce7",c:"#16a34a"}:s==="Rejected"?{bg:"#fee2e2",c:"#dc2626"}:{bg:"#fef9c3",c:"#ca8a04"};
+  return (
+    <div>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:12,marginBottom:14}}>
+        {[["Pending",leaves.filter(l=>l.status==="Pending").length,"#f59e0b"],["Approved",leaves.filter(l=>l.status==="Approved").length,"#10b981"],["Rejected",leaves.filter(l=>l.status==="Rejected").length,"#ef4444"]].map(([l,v,c])=>(
+          <div key={l} style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:8,padding:"12px",textAlign:"center",borderTop:`3px solid ${c}`}}>
+            <div style={{fontSize:22,fontWeight:800,color:c}}>{v}</div><div style={{fontSize:12,color:"#64748b",fontWeight:600}}>{l}</div>
+          </div>
+        ))}
+      </div>
+      <div style={{display:"flex",flexDirection:"column",gap:10}}>
+        {leaves.map(l=>{const sc=statusColor(l.status);return(
+          <div key={l.id} style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:10,padding:"14px 16px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+            <div>
+              <div style={{display:"flex",gap:8,alignItems:"center",marginBottom:3}}>
+                <span style={{fontWeight:700,fontSize:14,color:"#0f172a"}}>{l.name}</span>
+                <span style={{fontSize:11,padding:"1px 7px",borderRadius:20,background:l.type==="Faculty"?"#eef2ff":"#f0fdf4",color:l.type==="Faculty"?"#6366f1":"#16a34a",fontWeight:700}}>{l.type}</span>
+                <span style={{fontSize:12,color:"#64748b"}}>{l.leave} · {l.days} day{l.days>1?"s":""}</span>
+              </div>
+              <div style={{fontSize:12,color:"#64748b"}}>{l.from} → {l.to} · Reason: {l.reason}</div>
+            </div>
+            <div style={{display:"flex",gap:8,alignItems:"center",flexShrink:0,marginLeft:12}}>
+              <span style={{padding:"3px 10px",borderRadius:6,fontSize:11,fontWeight:700,background:sc.bg,color:sc.c}}>{l.status}</span>
+              {l.status==="Pending"&&<>
+                <button onClick={()=>act(l.id,"Approved")} style={{padding:"5px 14px",background:"#10b981",color:"#fff",border:"none",borderRadius:7,cursor:"pointer",fontSize:12,fontWeight:600}}>✓ Approve</button>
+                <button onClick={()=>act(l.id,"Rejected")} style={{padding:"5px 14px",background:"#ef4444",color:"#fff",border:"none",borderRadius:7,cursor:"pointer",fontSize:12,fontWeight:600}}>✕ Reject</button>
+              </>}
+            </div>
+          </div>
+        );})}
+      </div>
+    </div>
+  );
+}
+
+function AdminReports() {
+  const reports = [
+    {title:"Student Strength Report",desc:"Dept-wise enrollment, gender ratio, category",icon:"📊",color:"#6366f1"},
+    {title:"Faculty Performance Summary",desc:"Appraisal scores, publications, feedback avg",icon:"👨‍🏫",color:"#10b981"},
+    {title:"Attendance Summary",desc:"Dept-wise attendance < 75% students list",icon:"📋",color:"#f59e0b"},
+    {title:"Fee Collection Report",desc:"Paid, pending, defaulters by department",icon:"💰",color:"#8b5cf6"},
+    {title:"Exam Result Analysis",desc:"Pass %, top scorers, backlogs by subject",icon:"🏆",color:"#ef4444"},
+    {title:"Research Output Report",desc:"Publications, patents, funded projects",icon:"🔬",color:"#14b8a6"},
+    {title:"Placement Statistics",desc:"Campus recruitment, CTC, company-wise",icon:"💼",color:"#f97316"},
+    {title:"Infrastructure Utilization",desc:"Lab usage, vehicle requisitions, complaints",icon:"🏢",color:"#64748b"},
+  ];
+  return (
+    <div>
+      <div style={{fontSize:13,color:"#64748b",marginBottom:14}}>Generate and download institute-wide reports</div>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:12}}>
+        {reports.map(r=>(
+          <div key={r.title} style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:12,padding:"16px",display:"flex",gap:14,alignItems:"center",cursor:"pointer",transition:"all .15s"}}
+            onMouseEnter={e=>{e.currentTarget.style.borderColor=r.color;e.currentTarget.style.boxShadow=`0 4px 16px ${r.color}20`;}}
+            onMouseLeave={e=>{e.currentTarget.style.borderColor="#e2e8f0";e.currentTarget.style.boxShadow="none";}}>
+            <div style={{width:48,height:48,borderRadius:12,background:r.color+"15",display:"flex",alignItems:"center",justifyContent:"center",fontSize:22,flexShrink:0}}>{r.icon}</div>
+            <div style={{flex:1}}>
+              <div style={{fontWeight:700,fontSize:13,color:"#0f172a"}}>{r.title}</div>
+              <div style={{fontSize:11,color:"#94a3b8",marginTop:2}}>{r.desc}</div>
+            </div>
+            <button style={{padding:"6px 14px",background:r.color,color:"#fff",border:"none",borderRadius:7,cursor:"pointer",fontSize:11,fontWeight:600,flexShrink:0}}>↓ Download</button>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function AdminTimetable() {
+  const depts = ["CSE","ECE","MECH","CIVIL","EEE"];
+  const sems  = ["1","2","3","4","5","6","7","8"];
+  const [selDept, setSelDept] = useState("CSE");
+  const [selSem,  setSelSem]  = useState("5");
+  const days = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+  const slots = ["9–10","10–11","11–12","12–1","2–3","3–4","4–5"];
+  const sample = {
+    "Monday":   ["CS301/Dr.A","CS301/Dr.A","—","CS302/Prof.S","BREAK","CS304/Dr.K","—"],
+    "Tuesday":  ["CS303/Dr.R","—","CS305/Prof.M","—","BREAK","CS301/Dr.A","—"],
+    "Wednesday":["—","CS302/Prof.S","CS302/Prof.S","—","BREAK","CS304/Dr.K","CS305/Prof.M"],
+    "Thursday": ["CS301/Dr.A","—","CS303/Dr.R","CS303/Dr.R","BREAK","—","CS302/Prof.S"],
+    "Friday":   ["CS305/Prof.M","CS304/Dr.K","—","CS301/Dr.A","BREAK","—","—"],
+    "Saturday": ["CS301L/Dr.A","CS301L/Dr.A","—","—","BREAK","—","—"],
+  };
+  return (
+    <div>
+      <div style={{display:"flex",gap:12,marginBottom:14,alignItems:"flex-end"}}>
+        {[["DEPARTMENT",depts,selDept,setSelDept],["SEMESTER",sems,selSem,setSelSem]].map(([l,opts,val,set])=>(
+          <div key={l}><label style={{fontSize:11,fontWeight:700,color:"#475569",display:"block",marginBottom:4}}>{l}</label>
+          <select value={val} onChange={e=>set(e.target.value)} style={{padding:"8px 12px",border:"1px solid #e2e8f0",borderRadius:8,fontSize:13,outline:"none",fontFamily:"inherit",minWidth:140}}>
+            {opts.map(o=><option key={o}>{l==="SEMESTER"?"Sem "+o:o}</option>)}</select></div>
+        ))}
+        <button style={{padding:"8px 18px",background:"linear-gradient(135deg,#6366f1,#8b5cf6)",color:"#fff",border:"none",borderRadius:8,fontWeight:600,cursor:"pointer",fontSize:12}}>📥 Download PDF</button>
+      </div>
+      <div style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:12,overflow:"hidden"}}>
+        <div style={{background:"linear-gradient(135deg,#6366f1,#8b5cf6)",padding:"11px 16px",color:"#fff",fontWeight:700,fontSize:13}}>
+          Timetable — {selDept} · Semester {selSem}
+        </div>
+        <div style={{overflowX:"auto",padding:12}}>
+          <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
+            <thead><tr style={{background:"#f8fafc"}}>
+              <th style={{padding:"8px 10px",fontWeight:600,color:"#475569",textAlign:"left",borderBottom:"2px solid #e2e8f0",minWidth:90}}>TIME</th>
+              {days.map(d=><th key={d} style={{padding:"8px 8px",fontWeight:600,color:"#475569",fontSize:11,borderBottom:"2px solid #e2e8f0",textAlign:"center"}}>{d.slice(0,3)}</th>)}
+            </tr></thead>
+            <tbody>{slots.map((slot,si)=>(
+              <tr key={slot} style={{borderBottom:"1px solid #f1f5f9",background:si%2===0?"#fff":"#fafbff"}}>
+                <td style={{padding:"7px 10px",fontWeight:600,color:"#64748b",fontSize:11}}>{slot}</td>
+                {days.map(d=>{
+                  const cell=(sample[d]||[])[si]||"—";
+                  if(cell==="BREAK") return <td key={d} style={{padding:"6px",textAlign:"center",background:"#fef9c3",fontSize:9,fontWeight:600,color:"#92400e"}}>BREAK</td>;
+                  if(cell==="—") return <td key={d} style={{padding:"6px",textAlign:"center",color:"#e2e8f0"}}>—</td>;
+                  const [code,fac]=cell.split("/");
+                  return <td key={d} style={{padding:"4px 5px"}}>
+                    <div style={{background:"#eef2ff",borderLeft:"3px solid #6366f1",borderRadius:3,padding:"3px 5px"}}>
+                      <div style={{fontWeight:700,fontSize:10,color:"#6366f1"}}>{code}</div>
+                      <div style={{fontSize:9,color:"#94a3b8"}}>{fac}</div>
+                    </div>
+                  </td>;
+                })}
+              </tr>
+            ))}</tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function AdminNotices() {
+  const [showForm, setShowForm] = useState(false);
+  const [done, setDone] = useState(false);
+  const [form, setForm] = useState({title:"",category:"General",audience:"All",body:""});
+  const [notices, setNotices] = useState([
+    {title:"End Semester Exam Schedule — June 2026",category:"Exam",audience:"All",date:"Jun 7",views:1240},
+    {title:"GATE 2027 Coaching Registration",category:"Academic",audience:"Students",date:"Jun 5",views:680},
+    {title:"Faculty Appraisal Deadline: Jun 30",category:"HR",audience:"Faculty",date:"Jun 3",views:312},
+    {title:"ITER Fest 2026 — Registration Open",category:"Cultural",audience:"Students",date:"Jun 1",views:2100},
+  ]);
+  return (
+    <div>
+      <div style={{display:"flex",justifyContent:"flex-end",marginBottom:14}}>
+        <button onClick={()=>setShowForm(true)} style={{padding:"8px 18px",background:"linear-gradient(135deg,#6366f1,#8b5cf6)",color:"#fff",border:"none",borderRadius:8,fontWeight:600,cursor:"pointer",fontSize:13}}>+ Post Notice</button>
+      </div>
+      <div style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:12,overflow:"hidden"}}>
+        <table style={{width:"100%",borderCollapse:"collapse",fontSize:13}}>
+          <thead><tr style={{background:"#f8fafc"}}>{["Title","Category","Audience","Date","Views","Action"].map(h=><th key={h} style={{padding:"10px 12px",textAlign:"left",fontWeight:600,color:"#475569",fontSize:12,borderBottom:"1px solid #e2e8f0"}}>{h}</th>)}</tr></thead>
+          <tbody>{notices.map((n,i)=>(
+            <tr key={i} style={{borderBottom:"1px solid #f1f5f9",background:i%2===0?"#fff":"#fafbff"}}>
+              <td style={{padding:"10px 12px",fontWeight:500,color:"#0f172a"}}>{n.title}</td>
+              <td style={{padding:"10px 12px"}}><span style={{padding:"2px 8px",borderRadius:6,fontSize:11,fontWeight:700,background:"#eef2ff",color:"#6366f1"}}>{n.category}</span></td>
+              <td style={{padding:"10px 12px",color:"#64748b"}}>{n.audience}</td>
+              <td style={{padding:"10px 12px",color:"#64748b"}}>{n.date}</td>
+              <td style={{padding:"10px 12px",fontWeight:600,color:"#334155"}}>{n.views.toLocaleString()}</td>
+              <td style={{padding:"10px 12px",display:"flex",gap:5}}>
+                <button style={{padding:"3px 8px",background:"#eef2ff",color:"#6366f1",border:"none",borderRadius:5,cursor:"pointer",fontSize:10,fontWeight:600}}>Edit</button>
+                <button style={{padding:"3px 8px",background:"#fee2e2",color:"#dc2626",border:"none",borderRadius:5,cursor:"pointer",fontSize:10,fontWeight:600}}>Delete</button>
+              </td>
+            </tr>
+          ))}</tbody>
+        </table>
+      </div>
+      {showForm&&(
+        <div style={{position:"fixed",inset:0,background:"rgba(15,23,42,0.6)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center"}} onClick={()=>setShowForm(false)}>
+          <div style={{background:"#fff",borderRadius:14,width:500,overflow:"hidden",boxShadow:"0 20px 60px rgba(0,0,0,0.25)"}} onClick={e=>e.stopPropagation()}>
+            <div style={{background:"linear-gradient(135deg,#6366f1,#8b5cf6)",padding:"13px 18px",display:"flex",justifyContent:"space-between"}}>
+              <span style={{color:"#fff",fontWeight:700,fontSize:14}}>Post New Notice</span>
+              <button onClick={()=>setShowForm(false)} style={{background:"rgba(255,255,255,0.2)",border:"none",borderRadius:6,color:"#fff",width:24,height:24,cursor:"pointer"}}>✕</button>
+            </div>
+            {done?<div style={{padding:"32px",textAlign:"center"}}><div style={{fontSize:40}}>✅</div><div style={{fontWeight:700,marginTop:8}}>Notice Published!</div></div>:(
+              <div style={{padding:"18px 20px",display:"flex",flexDirection:"column",gap:10}}>
+                <div><label style={{fontSize:11,fontWeight:700,color:"#475569",display:"block",marginBottom:3}}>TITLE</label>
+                <input value={form.title} onChange={e=>setForm(f=>({...f,title:e.target.value}))} style={{width:"100%",boxSizing:"border-box",padding:"8px 10px",border:"1px solid #e2e8f0",borderRadius:8,fontSize:13,outline:"none",fontFamily:"inherit"}}/></div>
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+                  {[["Category","category",["General","Exam","Academic","HR","Cultural","Research"]],["Audience","audience",["All","Students","Faculty","Admin"]]].map(([l,k,opts])=>(
+                    <div key={k}><label style={{fontSize:11,fontWeight:700,color:"#475569",display:"block",marginBottom:3}}>{l.toUpperCase()}</label>
+                    <select value={form[k]} onChange={e=>setForm(f=>({...f,[k]:e.target.value}))} style={{width:"100%",padding:"8px",border:"1px solid #e2e8f0",borderRadius:8,fontSize:13,outline:"none",fontFamily:"inherit"}}>{opts.map(o=><option key={o}>{o}</option>)}</select></div>
+                  ))}
+                </div>
+                <div><label style={{fontSize:11,fontWeight:700,color:"#475569",display:"block",marginBottom:3}}>BODY</label>
+                <textarea rows={4} value={form.body} onChange={e=>setForm(f=>({...f,body:e.target.value}))} style={{width:"100%",boxSizing:"border-box",padding:"8px 10px",border:"1px solid #e2e8f0",borderRadius:8,fontSize:13,outline:"none",resize:"none",fontFamily:"inherit"}}/></div>
+                <button onClick={()=>{if(form.title&&form.body){setNotices(p=>[{...form,date:"Jun 12",views:0},...p]);setDone(true);setTimeout(()=>{setDone(false);setShowForm(false);setForm({title:"",category:"General",audience:"All",body:""});},1500);}}}
+                  style={{padding:"10px",background:"linear-gradient(135deg,#6366f1,#8b5cf6)",color:"#fff",border:"none",borderRadius:8,fontWeight:600,cursor:"pointer",fontSize:14}}>Publish Notice</button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function NoticesView() {
   const notices=[
     {title:"End-Semester Examination Schedule June 2024",date:"Jun 7",cat:"Exam",body:"The schedule for End-Semester examinations is now published. Students are requested to check their hall tickets on the portal."},
@@ -5552,7 +5977,15 @@ export default function App() {
     health:<HealthCentreView/>, guesthouse:<GuestHouseView/>, purchase:<PurchaseView/>,
     internship:<InternshipView/>, sricce:<SRICCEView/>,
   };
-  const views = role==="student" ? studentViews : facultyViews;
+  const adminViews = {
+    dashboard:<AdminDashboard user={auth}/>, students:<AdminStudents/>,
+    faculty:<AdminFaculty/>, leaves:<AdminLeaveApprovals/>,
+    reports:<AdminReports/>, timetable:<AdminTimetable/>, notices:<AdminNotices/>,
+    fts:<FileTrackingSystem user={auth}/>, complaint:<ComplaintManagement/>,
+    groupemail:<GroupEmail/>, vehicle:<VehicleRequisition/>, purchase:<PurchaseView/>,
+    auditorium:<AuditoriumBooking/>, guesthouse:<GuestHouseView/>,
+  };
+  const views = role==="student" ? studentViews : role==="faculty" ? facultyViews : adminViews;
 
   const studentSidebarLinks = [
     ["Dashboard","dashboard"],["Attendance","attendance"],
@@ -5586,6 +6019,16 @@ export default function App() {
     ["Research Scholars","research"],["CO/PO Attainment","copo"],
     ["Exam & Duty","duty"],["Feedback Results","feedback"],
     ["My Profile","profile"],["Audit Log","auditlog"],["Notices","notices"],
+  ];
+
+  const adminMenuItems = [
+    ["Dashboard","dashboard"],["Students","students"],["Faculty","faculty"],
+    ["Leave Approvals","leaves"],["Timetable","timetable"],["Notices","notices"],["Reports","reports"],
+  ];
+  const adminServiceItems = [
+    ["File Tracking","fts"],["Complaint Management","complaint"],["Group Email","groupemail"],
+    ["Vehicle Requisition","vehicle"],["Purchase & Store","purchase"],
+    ["Auditorium Booking","auditorium"],["Guest House","guesthouse"],
   ];
 
   // bg colours for dark mode
@@ -5673,7 +6116,7 @@ export default function App() {
         {academicOpen&&(
           <div style={{position:"absolute",top:56,left:0,right:0,background:mbg,borderBottom:"2px solid #ddd",boxShadow:"0 4px 12px rgba(0,0,0,0.1)",padding:"18px 32px",zIndex:200}}>
             <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:"10px 24px"}}>
-              {(role==="student"?studentMenuItems:facultyMenuItems).map(([label,key])=>(
+              {(role==="student"?studentMenuItems:role==="faculty"?facultyMenuItems:adminMenuItems).map(([label,key])=>(
                 <div key={label} style={{display:"flex",alignItems:"center",gap:8,padding:"6px 0",borderBottom:"1px solid #f5f5f5",cursor:"pointer",fontSize:13,color:mtxt,fontWeight:500}}
                   onClick={()=>{setActive(key);setAcademicOpen(false);}}>
                   <span style={{color:"#6366f1",fontSize:14}}>●</span> {label}
@@ -5688,7 +6131,8 @@ export default function App() {
             <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:"10px 24px"}}>
               {(role==="student"
                 ?[["Hall Ticket","hallticket"],["Library","library"],["Placement Cell","placement"],["E-Learning","elearning"],["Transport","transport"],["Alumni Connect","alumni"],["Course Registration","registration"],["Grievance Portal","grievance"],["Feedback","feedback"],["Profile","profile"],["Audit Log","auditlog"],["Notices","notices"]]
-                :[["Appraisal & Assessment","appraisal"],["Auditorium / LA Booking","auditorium"],["Guest House","guesthouse"],["Health Centre","health"],["Purchase & Store","purchase"],["Vehicle Requisition","vehicle"],["Complaint Management","complaint"],["Group Email","groupemail"],["Summer Internship","internship"],["SRICCE","sricce"],["Best Performance Award","bestaward"],["File Tracking","fts"],["My Profile","profile"],["Audit Log","auditlog"]]
+                :role==="faculty"?[["Appraisal & Assessment","appraisal"],["Auditorium / LA Booking","auditorium"],["Guest House","guesthouse"],["Health Centre","health"],["Purchase & Store","purchase"],["Vehicle Requisition","vehicle"],["Complaint Management","complaint"],["Group Email","groupemail"],["Summer Internship","internship"],["SRICCE","sricce"],["Best Performance Award","bestaward"],["File Tracking","fts"],["My Profile","profile"],["Audit Log","auditlog"]]
+                :adminServiceItems
               ).map(([label,key])=>(
                 <div key={label} style={{display:"flex",alignItems:"center",gap:8,padding:"6px 0",borderBottom:"1px solid #f5f5f5",cursor:"pointer",fontSize:13,color:mtxt,fontWeight:500}}
                   onClick={()=>{setActive(key);setServicesOpen(false);}}>
@@ -5704,7 +6148,7 @@ export default function App() {
       <div style={{background:"#6366f1",color:"#fff",padding:"6px 20px",fontSize:12,display:"flex",gap:8,alignItems:"center"}}>
         <span style={{opacity:0.7}}>Home</span><span style={{opacity:0.5}}>›</span>
         <span style={{fontWeight:600}}>
-          {role==="student"?`Welcome ${auth.name} — ${auth.dept} · ${auth.year}`:`Welcome ${auth.name} — ${auth.designation} · Dept. of ${auth.dept}`}
+          {role==="student"?`Welcome ${auth.name} — ${auth.dept} · ${auth.year}`:role==="faculty"?`Welcome ${auth.name} — ${auth.designation} · Dept. of ${auth.dept}`:`Admin Panel — ${auth.name} · ${auth.designation}`}
         </span>
       </div>
 
