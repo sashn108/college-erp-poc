@@ -5518,6 +5518,7 @@ export default function App() {
   const [role,setRole]=useState(null);
   const [active,setActive]=useState("dashboard");
   const [academicOpen,setAcademicOpen]=useState(false);
+  const [servicesOpen,setServicesOpen]=useState(false);
   const [darkMode, setDarkMode] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
   const [readNotifs, setReadNotifs] = useState([]);
@@ -5594,7 +5595,7 @@ export default function App() {
   const mtxt = darkMode?"#e2e8f0":"#0f172a";
 
   return (
-    <div style={{minHeight:"100vh",background:bg,fontFamily:"'Segoe UI',sans-serif",transition:"background .2s"}} onClick={()=>{if(notifOpen)setNotifOpen(false);}}>
+    <div style={{minHeight:"100vh",background:bg,fontFamily:"'Segoe UI',sans-serif",transition:"background .2s"}} onClick={()=>{if(notifOpen)setNotifOpen(false);if(academicOpen)setAcademicOpen(false);if(servicesOpen)setServicesOpen(false);}}>
 
       {/* ── TOP HEADER ── */}
       <div style={{position:"relative",zIndex:100}}>
@@ -5605,10 +5606,17 @@ export default function App() {
           </div>
           <div style={{cursor:"pointer",fontSize:20,color:"#555"}}>☰</div>
           {/* Academic dropdown */}
-          <div style={{position:"relative"}}>
-            <button onClick={e=>{e.stopPropagation();setAcademicOpen(o=>!o);setNotifOpen(false);}}
-              style={{background:"none",border:"none",cursor:"pointer",fontSize:14,fontWeight:600,color:mtxt,display:"flex",alignItems:"center",gap:4,padding:"6px 10px"}}>
+          <div style={{position:"relative"}} onClick={e=>e.stopPropagation()}>
+            <button onClick={()=>{setAcademicOpen(o=>!o);setServicesOpen(false);setNotifOpen(false);}}
+              style={{background:"none",border:"none",cursor:"pointer",fontSize:14,fontWeight:600,color:academicOpen?"#6366f1":mtxt,display:"flex",alignItems:"center",gap:4,padding:"6px 10px"}}>
               Academic <span style={{fontSize:10,color:"#6366f1"}}>▼</span>
+            </button>
+          </div>
+          {/* Services dropdown */}
+          <div style={{position:"relative"}} onClick={e=>e.stopPropagation()}>
+            <button onClick={()=>{setServicesOpen(o=>!o);setAcademicOpen(false);setNotifOpen(false);}}
+              style={{background:"none",border:"none",cursor:"pointer",fontSize:14,fontWeight:600,color:servicesOpen?"#8b5cf6":mtxt,display:"flex",alignItems:"center",gap:4,padding:"6px 10px"}}>
+              Services <span style={{fontSize:10,color:"#8b5cf6"}}>▼</span>
             </button>
           </div>
           <div style={{flex:1}}/>
@@ -5619,7 +5627,7 @@ export default function App() {
           </button>
           {/* Notification bell */}
           <div style={{position:"relative"}} onClick={e=>e.stopPropagation()}>
-            <button onClick={()=>{setNotifOpen(o=>!o);setAcademicOpen(false);}}
+            <button onClick={()=>{setNotifOpen(o=>!o);setAcademicOpen(false);setServicesOpen(false);}}
               style={{width:36,height:36,borderRadius:10,background:"#f8fafc",border:"1px solid #e2e8f0",display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",fontSize:16,position:"relative"}}>
               🔔
               {unreadCount>0&&<span style={{position:"absolute",top:4,right:4,width:8,height:8,background:"#ef4444",borderRadius:"50%",border:"2px solid #fff"}}/>}
@@ -5674,6 +5682,22 @@ export default function App() {
             </div>
           </div>
         )}
+        {/* Services dropdown menu */}
+        {servicesOpen&&(
+          <div style={{position:"absolute",top:56,left:0,right:0,background:mbg,borderBottom:"2px solid #ddd",boxShadow:"0 4px 12px rgba(0,0,0,0.1)",padding:"18px 32px",zIndex:200}}>
+            <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:"10px 24px"}}>
+              {(role==="student"
+                ?[["Hall Ticket","hallticket"],["Library","library"],["Placement Cell","placement"],["E-Learning","elearning"],["Transport","transport"],["Alumni Connect","alumni"],["Course Registration","registration"],["Grievance Portal","grievance"],["Feedback","feedback"],["Profile","profile"],["Audit Log","auditlog"],["Notices","notices"]]
+                :[["Appraisal & Assessment","appraisal"],["Auditorium / LA Booking","auditorium"],["Guest House","guesthouse"],["Health Centre","health"],["Purchase & Store","purchase"],["Vehicle Requisition","vehicle"],["Complaint Management","complaint"],["Group Email","groupemail"],["Summer Internship","internship"],["SRICCE","sricce"],["Best Performance Award","bestaward"],["File Tracking","fts"],["My Profile","profile"],["Audit Log","auditlog"]]
+              ).map(([label,key])=>(
+                <div key={label} style={{display:"flex",alignItems:"center",gap:8,padding:"6px 0",borderBottom:"1px solid #f5f5f5",cursor:"pointer",fontSize:13,color:mtxt,fontWeight:500}}
+                  onClick={()=>{setActive(key);setServicesOpen(false);}}>
+                  <span style={{color:"#8b5cf6",fontSize:14}}>●</span> {label}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Breadcrumb */}
@@ -5688,17 +5712,6 @@ export default function App() {
         {/* ── SIDEBAR ── */}
         <div style={{width:200,flexShrink:0,background:sbg,minHeight:"calc(100vh - 90px)",paddingTop:4,overflowY:"auto"}} className="erp-sidebar">
           <div className="sidebar-calendar"><MiniCalendar/></div>
-          <div style={{borderTop:"1px solid #444",marginTop:8,padding:"10px 10px 0"}} className="sidebar-links">
-            <div style={{fontSize:11,color:"#888",fontWeight:700,marginBottom:6,letterSpacing:0.5}}>QUICK LINKS</div>
-            {(role==="student"?studentSidebarLinks:facultySidebarLinks).map(([label,key])=>(
-              <div key={key} onClick={()=>setActive(key)}
-                style={{padding:"7px 8px",borderRadius:4,cursor:"pointer",fontSize:12,marginBottom:2,
-                  background:active===key?"#6366f1":"transparent",
-                  color:active===key?"#fff":"#bbb",fontWeight:active===key?600:400}}>
-                {label}
-              </div>
-            ))}
-          </div>
           {role==="faculty"&&(
             <div style={{borderTop:"1px solid #444",marginTop:10,padding:"10px 10px 0"}} className="sidebar-birthdays">
               <div style={{fontSize:11,color:"#888",fontWeight:700,marginBottom:8,letterSpacing:0.5}}>🎂 BIRTHDAYS</div>
