@@ -1,4 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { FirebaseLogin, RealtimeChat, LiveFeedbackView, LiveFacultyFeedback, useFirebaseAuth } from "./FirebaseApp.jsx";
+import { logOut } from "./firebase.js";
 
 // ─── Odisha Holidays 2026 ─────────────────────────────────────────────────────
 const ODISHA_HOLIDAYS = {
@@ -5939,16 +5941,52 @@ function FacultyFeedbackView() {
 
 // ─── MAIN APP ─────────────────────────────────────────────────────────────────
 export default function App() {
-  const [auth,setAuth]=useState(null);
-  const [role,setRole]=useState(null);
-  const [active,setActive]=useState("dashboard");
-  const [academicOpen,setAcademicOpen]=useState(false);
-  const [servicesOpen,setServicesOpen]=useState(false);
+  // ── Firebase auth state ──
+  const { fbUser, profile: fbProfile, loading: fbLoading } = useFirebaseAuth();
+
+  // ── Local auth state (used for demo fallback + Firebase) ──
+  const [auth, setAuth] = useState(null);
+  const [role, setRole] = useState(null);
+  const [uid, setUid] = useState(null);
+  const [active, setActive] = useState("dashboard");
+  const [academicOpen, setAcademicOpen] = useState(false);
+  const [servicesOpen, setServicesOpen] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
   const [readNotifs, setReadNotifs] = useState([]);
+  const [chatOpen, setChatOpen] = useState(null); // {otherUid, otherName}
 
-  if(!auth) return <Login onLogin={(r,u)=>{setRole(r);setAuth(u);setActive("dashboard");}}/>;
+  // ── Sync Firebase auth into local state ──
+  useEffect(() => {
+    if (fbUser && fbProfile) {
+      setAuth(fbProfile);
+      setRole(fbProfile.role);
+      setUid(fbUser.uid);
+    }
+  }, [fbUser, fbProfile]);
+
+  // ── Loading screen ──
+  if (fbLoading) return (
+    <div style={{minHeight:"100vh",background:"linear-gradient(135deg,#0f172a,#1e293b)",display:"flex",alignItems:"center",justifyContent:"center"}}>
+      <div style={{textAlign:"center",color:"#fff"}}>
+        <div style={{fontSize:48,marginBottom:16}}>🎓</div>
+        <div style={{fontSize:18,fontWeight:700}}>ITER ERP</div>
+        <div style={{fontSize:13,color:"#94a3b8",marginTop:4}}>Loading...</div>
+      </div>
+    </div>
+  );
+
+  // ── Not logged in → show Firebase Login ──
+  if (!auth) return (
+    <FirebaseLogin onLogin={(r, u, firebaseUid) => {
+      setRole(r); setAuth(u); setUid(firebaseUid); setActive("dashboard");
+    }}/>
+  );
+
+  const handleLogout = async () => {
+    await logOut();
+    setAuth(null); setRole(null); setUid(null);
+  };
 
   const notifs = useNotifications(role);
   const unreadCount = notifs.filter(n=>!n.read&&!readNotifs.includes(n.id)).length;
@@ -5959,7 +5997,8 @@ export default function App() {
     timetable:<StudentTimetable/>, papers:<QuestionPapers/>,
     hallticket:<HallTicket user={auth}/>, grievance:<GrievancePortal/>,
     library:<LibraryView/>, placement:<PlacementView/>,
-    registration:<CourseRegistration/>, feedback:<FeedbackView/>,
+    registration:<CourseRegistration/>,
+    feedback: uid ? <LiveFeedbackView uid={uid}/> : <FeedbackView/>,
     profile:<StudentProfile user={auth}/>, auditlog:<AuditLog role="student"/>,
     transport:<TransportView/>, alumni:<AlumniConnect user={auth}/>, elearning:<ELearningView/>,
     marksheet:<MarksheetView user={auth}/>,
@@ -5968,7 +6007,8 @@ export default function App() {
     dashboard:<FacultyDashboard user={auth}/>, subjects:<FacultySubjectsView/>,
     lab:<LabView/>, attendance:<AttendanceView/>, evaluation:<EvaluationView/>,
     research:<ResearchView/>, duty:<DutyView/>, notices:<NoticesView/>,
-    copo:<COPOView/>, feedback:<FacultyFeedbackView/>,
+    copo:<COPOView/>,
+    feedback: uid ? <LiveFacultyFeedback/> : <FacultyFeedbackView/>,
     profile:<FacultyProfile user={auth}/>, auditlog:<AuditLog role="faculty"/>,
     syllabus:<SyllabusTracker/>, qpaper:<QuestionPaperSubmission/>, fts:<FileTrackingSystem user={auth}/>,
     services:<ServicesHub setActive={setActive}/>,
@@ -6107,7 +6147,7 @@ export default function App() {
           </div>
           {/* User avatar */}
           <div style={{width:34,height:34,borderRadius:"50%",background:"linear-gradient(135deg,#6366f1,#8b5cf6)",display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",fontWeight:700,fontSize:14,cursor:"pointer"}}
-            onClick={()=>{setAuth(null);setRole(null);}}>
+            onClick={handleLogout}>
             {auth.name[0]}
           </div>
         </div>
