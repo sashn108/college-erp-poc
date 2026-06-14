@@ -1,6 +1,6 @@
 import { initializeApp } from "firebase/app";
 import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "firebase/auth";
-import { getFirestore, collection, doc, setDoc, getDoc, addDoc, onSnapshot, query, orderBy, serverTimestamp, updateDoc, where } from "firebase/firestore";
+import { getFirestore, collection, doc, setDoc, getDoc, addDoc, onSnapshot, query, orderBy, serverTimestamp, updateDoc, where, getDocs } from "firebase/firestore";
 
 const firebaseConfig = {
   apiKey: "AIzaSyCTQvdFAqV2yDQLz3Q2nUuIFFV5MWgjXLA",
@@ -16,89 +16,67 @@ export const auth = getAuth(app);
 export const db = getFirestore(app);
 export const googleProvider = new GoogleAuthProvider();
 
-// ── Auth helpers ──────────────────────────────────────────────────────────────
 export const signInWithGoogle = () => signInWithPopup(auth, googleProvider);
 export const logOut = () => signOut(auth);
-export { onAuthStateChanged };
+export { onAuthStateChanged, serverTimestamp };
 
-// ── User profile helpers ──────────────────────────────────────────────────────
+// ── User profile ──────────────────────────────────────────────────────────────
 export const saveUserProfile = async (uid, data) => {
   await setDoc(doc(db, "users", uid), data, { merge: true });
 };
-
 export const getUserProfile = async (uid) => {
   const snap = await getDoc(doc(db, "users", uid));
   return snap.exists() ? snap.data() : null;
 };
 
-// ── Messages helpers ──────────────────────────────────────────────────────────
-// conversationId = sorted join of two uids e.g. "uid1_uid2"
+// ── Pending users (admin approval) ───────────────────────────────────────────
+export const getPendingUsers = (callback) => {
+  const q = query(collection(db, "users"), where("status", "==", "pending"));
+  return onSnapshot(q, snap => callback(snap.docs.map(d => ({ id: d.id, ...d.data() }))));
+};
+export const approveUser = async (uid, role, extraData = {}) => {
+  await updateDoc(doc(db, "users", uid), { status: "approved", role, ...extraData });
+};
+export const rejectUser = async (uid) => {
+  await updateDoc(doc(db, "users", uid), { status: "rejected" });
+};
+
+// ── Messages ──────────────────────────────────────────────────────────────────
 export const sendMessage = async (conversationId, message) => {
   await addDoc(collection(db, "messages", conversationId, "msgs"), {
-    ...message,
-    timestamp: serverTimestamp(),
+    ...message, timestamp: serverTimestamp(),
   });
 };
-
 export const subscribeToMessages = (conversationId, callback) => {
-  const q = query(
-    collection(db, "messages", conversationId, "msgs"),
-    orderBy("timestamp", "asc")
-  );
-  return onSnapshot(q, (snap) => {
-    callback(snap.docs.map(d => ({ id: d.id, ...d.data() })));
-  });
+  const q = query(collection(db, "messages", conversationId, "msgs"), orderBy("timestamp", "asc"));
+  return onSnapshot(q, snap => callback(snap.docs.map(d => ({ id: d.id, ...d.data() }))));
 };
 
-// ── Feedback helpers ──────────────────────────────────────────────────────────
+// ── Feedback ──────────────────────────────────────────────────────────────────
 export const submitFeedback = async (studentUid, subjectCode, ratings) => {
   await setDoc(doc(db, "feedback", `${subjectCode}_${studentUid}`), {
-    studentUid, subjectCode, ratings,
-    submittedAt: serverTimestamp(),
+    studentUid, subjectCode, ratings, submittedAt: serverTimestamp(),
   });
 };
-
 export const subscribeFeedbackAggregates = (subjectCode, callback) => {
   const q = query(collection(db, "feedback"), where("subjectCode", "==", subjectCode));
-  return onSnapshot(q, (snap) => {
+  return onSnapshot(q, snap => {
     const all = snap.docs.map(d => d.data());
     if (!all.length) { callback(null); return; }
     const keys = Object.keys(all[0].ratings || {});
     const avg = {};
-    keys.forEach(k => {
-      avg[k] = +(all.reduce((s, d) => s + (d.ratings[k] || 0), 0) / all.length).toFixed(1);
-    });
+    keys.forEach(k => { avg[k] = +(all.reduce((s, d) => s + (d.ratings[k] || 0), 0) / all.length).toFixed(1); });
     callback({ avg, count: all.length });
   });
 };
 
-// ── Grievance helpers ─────────────────────────────────────────────────────────
-export const submitGrievance = async (data) => {
-  return await addDoc(collection(db, "grievances"), {
-    ...data,
-    createdAt: serverTimestamp(),
-    status: "Pending",
-  });
-};
-
-export const subscribeGrievances = (uid, callback) => {
-  const q = query(collection(db, "grievances"), where("uid", "==", uid));
-  return onSnapshot(q, snap => callback(snap.docs.map(d => ({ id: d.id, ...d.data() }))));
-};
-
-// ── Notifications helper ──────────────────────────────────────────────────────
+// ── Notifications ─────────────────────────────────────────────────────────────
 export const pushNotification = async (toUid, notif) => {
   await addDoc(collection(db, "notifications", toUid, "items"), {
-    ...notif,
-    read: false,
-    timestamp: serverTimestamp(),
+    ...notif, read: false, timestamp: serverTimestamp(),
   });
 };
-
 export const subscribeNotifications = (uid, callback) => {
-  const q = query(
-    collection(db, "notifications", uid, "items"),
-    orderBy("timestamp", "desc")
-  );
+  const q = query(collection(db, "notifications", uid, "items"), orderBy("timestamp", "desc"));
   return onSnapshot(q, snap => callback(snap.docs.map(d => ({ id: d.id, ...d.data() }))));
 };

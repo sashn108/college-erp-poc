@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
-import { FirebaseLogin, RealtimeChat, LiveFeedbackView, LiveFacultyFeedback, useFirebaseAuth } from "./FirebaseApp.jsx";
-import { logOut } from "./firebase.js";
+import { FirebaseLogin, RealtimeChat, LiveFeedbackView, LiveFacultyFeedback, useFirebaseAuth, AdminUserApprovals } from "./FirebaseApp.jsx";
+import { logOut, getPendingUsers } from "./firebase.js";
 
 // ─── Odisha Holidays 2026 ─────────────────────────────────────────────────────
 const ODISHA_HOLIDAYS = {
@@ -4760,12 +4760,17 @@ function MarksheetView({ user }) {
 }
 
 // ─── ADMIN DASHBOARD ─────────────────────────────────────────────────────────
-function AdminDashboard({ user }) {
+function AdminDashboard({ user, setActive }) {
+  const [pendingCount, setPendingCount] = useState("...");
+  useEffect(() => {
+    const unsub = getPendingUsers(users => setPendingCount(users.length));
+    return () => unsub();
+  }, []);
   const stats = [
     {label:"Total Students",value:"4,872",icon:"🎓",color:"#6366f1",sub:"+124 this year"},
     {label:"Total Faculty",value:"312",icon:"👨‍🏫",color:"#10b981",sub:"28 departments"},
     {label:"Courses Offered",value:"186",icon:"📚",color:"#f59e0b",sub:"UG + PG + PhD"},
-    {label:"Pending Approvals",value:"23",icon:"⏳",color:"#ef4444",sub:"Needs attention"},
+    {label:"🔐 Pending Approvals",value:pendingCount,icon:"⏳",color:"#ef4444",sub:"Click to review →",link:"approvals"},
     {label:"Active Complaints",value:"8",icon:"🔧",color:"#8b5cf6",sub:"Infrastructure"},
     {label:"Files in Transit",value:"15",icon:"📁",color:"#14b8a6",sub:"FTS active"},
   ];
@@ -4798,13 +4803,14 @@ function AdminDashboard({ user }) {
       </div>
       <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:12,marginBottom:16}}>
         {stats.map(s=>(
-          <div key={s.label} style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:10,padding:"14px 16px",borderLeft:`4px solid ${s.color}`}}>
+          <div key={s.label} onClick={()=>s.link&&setActive&&setActive(s.link)}
+            style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:10,padding:"14px 16px",borderLeft:`4px solid ${s.color}`,cursor:s.link?"pointer":"default"}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
               <div style={{fontSize:11,fontWeight:700,color:"#94a3b8"}}>{s.label.toUpperCase()}</div>
               <span style={{fontSize:20}}>{s.icon}</span>
             </div>
             <div style={{fontSize:26,fontWeight:800,color:s.color}}>{s.value}</div>
-            <div style={{fontSize:11,color:"#94a3b8",marginTop:2}}>{s.sub}</div>
+            <div style={{fontSize:11,color:s.link?"#6366f1":"#94a3b8",marginTop:2,fontWeight:s.link?600:400}}>{s.sub}</div>
           </div>
         ))}
       </div>
@@ -6018,12 +6024,13 @@ export default function App() {
     internship:<InternshipView/>, sricce:<SRICCEView/>,
   };
   const adminViews = {
-    dashboard:<AdminDashboard user={auth}/>, students:<AdminStudents/>,
+    dashboard:<AdminDashboard user={auth} setActive={setActive}/>, students:<AdminStudents/>,
     faculty:<AdminFaculty/>, leaves:<AdminLeaveApprovals/>,
     reports:<AdminReports/>, timetable:<AdminTimetable/>, notices:<AdminNotices/>,
     fts:<FileTrackingSystem user={auth}/>, complaint:<ComplaintManagement/>,
     groupemail:<GroupEmail/>, vehicle:<VehicleRequisition/>, purchase:<PurchaseView/>,
     auditorium:<AuditoriumBooking/>, guesthouse:<GuestHouseView/>,
+    approvals:<AdminUserApprovals/>,
   };
   const views = role==="student" ? studentViews : role==="faculty" ? facultyViews : adminViews;
 
@@ -6062,7 +6069,7 @@ export default function App() {
   ];
 
   const adminMenuItems = [
-    ["Dashboard","dashboard"],["Students","students"],["Faculty","faculty"],
+    ["Dashboard","dashboard"],["🔐 User Approvals","approvals"],["Students","students"],["Faculty","faculty"],
     ["Leave Approvals","leaves"],["Timetable","timetable"],["Notices","notices"],["Reports","reports"],
   ];
   const adminServiceItems = [
