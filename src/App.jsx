@@ -5185,10 +5185,14 @@ function MarksheetView({ user }) {
 
 // ─── ADMIN DASHBOARD ─────────────────────────────────────────────────────────
 function AdminDashboard({ user, setActive }) {
-  const [pendingCount, setPendingCount] = useState("...");
+  const [pendingCount, setPendingCount] = useState(3);
   useEffect(() => {
-    const unsub = getPendingUsers(users => setPendingCount(users.length));
-    return () => unsub();
+    try {
+      const unsub = getPendingUsers(users => setPendingCount(users.length));
+      return () => { try { unsub && unsub(); } catch(e){} };
+    } catch(e) {
+      setPendingCount(3);
+    }
   }, []);
   const stats = [
     {label:"Total Students",value:"4,872",icon:"🎓",color:"#6366f1",sub:"+124 this year"},

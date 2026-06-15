@@ -122,6 +122,34 @@ export function FirebaseLogin({ onLogin }) {
           <div style={{fontSize:12,color:"#888",marginTop:2}}>Siksha 'O' Anusandhan University</div>
         </div>
 
+        {/* Demo Quick Login — PoC */}
+        <div style={{marginBottom:18,background:"#f8fafc",border:"1px solid #e2e8f0",borderRadius:10,padding:"12px 14px"}}>
+          <div style={{fontSize:11,fontWeight:700,color:"#94a3b8",marginBottom:8}}>⚡ QUICK DEMO LOGIN (PoC)</div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:6}}>
+            {[
+              {role:"student",label:"Student",id:"S001",pass:"student123",icon:"🎓",color:"#6366f1"},
+              {role:"faculty",label:"Faculty",id:"F001",pass:"faculty123",icon:"👨‍🏫",color:"#10b981"},
+              {role:"admin",label:"Admin",id:"A001",pass:"admin123",icon:"⚙️",color:"#f59e0b"},
+            ].map(d=>(
+              <button key={d.role} onClick={()=>{
+                const profiles = {
+                  student:{name:"Subhashish Nayak",role:"student",id:"S001",dept:"CSE",year:"3rd",status:"approved",email:"s001@iter.ac.in"},
+                  faculty:{name:"Dr. Priya Singh",role:"faculty",id:"F001",dept:"CSE",designation:"Asst. Professor",status:"approved",email:"f001@iter.ac.in"},
+                  admin:{name:"Dr. R. K. Mohanty",role:"admin",id:"A001",dept:"Administration",designation:"Registrar",status:"approved",email:"admin@iter.ac.in"},
+                };
+                onLogin(d.role, profiles[d.role], d.id);
+              }}
+                style={{padding:"8px 4px",border:`2px solid ${d.color}20`,borderRadius:8,cursor:"pointer",background:`${d.color}08`,display:"flex",flexDirection:"column",alignItems:"center",gap:3,transition:"all .15s"}}
+                onMouseEnter={e=>{e.currentTarget.style.background=`${d.color}18`;e.currentTarget.style.borderColor=d.color;}}
+                onMouseLeave={e=>{e.currentTarget.style.background=`${d.color}08`;e.currentTarget.style.borderColor=`${d.color}20`;}}>
+                <span style={{fontSize:20}}>{d.icon}</span>
+                <span style={{fontSize:11,fontWeight:700,color:d.color}}>{d.label}</span>
+                <span style={{fontSize:9,color:"#94a3b8"}}>{d.id}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
         {/* Mode toggle */}
         <div style={{display:"flex",background:"#f1f5f9",borderRadius:8,padding:3,marginBottom:18,gap:3}}>
           {[["google","🔵 Google"],["email","✉ Email"]].map(([m,l])=>(
