@@ -39,94 +39,6 @@ const ODISHA_HOLIDAYS = {
   "2026-12-25":"Christmas Day",
 };
 
-// ─── Global Search ────────────────────────────────────────────────────────────
-const SEARCH_INDEX = [
-  // Students
-  {type:"student",label:"Riya Patel",sub:"CSE · 3rd Year · Roll: 22CS001",key:"students"},
-  {type:"student",label:"Amit Kumar",sub:"CSE · 3rd Year · Roll: 22CS005",key:"students"},
-  {type:"student",label:"Priya Nair",sub:"CSE · 3rd Year · Roll: 22CS012",key:"students"},
-  {type:"student",label:"Rahul Das",sub:"ECE · 4th Year · Roll: 21EC001",key:"students"},
-  {type:"student",label:"Sneha Panda",sub:"MECH · 3rd Year · Roll: 22ME003",key:"students"},
-  // Faculty
-  {type:"faculty",label:"Dr. Priya Singh",sub:"CSE · Asst. Professor",key:"faculty"},
-  {type:"faculty",label:"Prof. Ramesh Panda",sub:"ECE · Professor",key:"faculty"},
-  {type:"faculty",label:"Dr. Sunita Das",sub:"MECH · Assoc. Professor",key:"faculty"},
-  // Notices
-  {type:"notice",label:"Exam Schedule Released",sub:"Notice · Jun 2026",key:"notices"},
-  {type:"notice",label:"Fee Payment Deadline",sub:"Notice · Jun 2026",key:"notices"},
-  {type:"notice",label:"Cultural Fest Announcement",sub:"Notice · Jun 2026",key:"notices"},
-  // Subjects
-  {type:"subject",label:"Database Management Systems",sub:"CS301 · CSE · 5th Sem",key:"subjects"},
-  {type:"subject",label:"Operating Systems",sub:"CS302 · CSE · 5th Sem",key:"subjects"},
-  {type:"subject",label:"Computer Networks",sub:"CS303 · CSE · 5th Sem",key:"subjects"},
-  {type:"subject",label:"Theory of Computation",sub:"CS304 · CSE · 5th Sem",key:"subjects"},
-  // Question Papers
-  {type:"paper",label:"DBMS End Sem 2024",sub:"CSE · 5th Sem · 2024",key:"papers"},
-  {type:"paper",label:"OS Mid Sem 2025",sub:"CSE · 5th Sem · 2025",key:"papers"},
-  {type:"paper",label:"CN End Sem 2023",sub:"CSE · 5th Sem · 2023",key:"papers"},
-];
-const TYPE_ICON = {student:"👤",faculty:"🧑‍🏫",notice:"📢",subject:"📚",paper:"📄"};
-const TYPE_COLOR = {student:"#6366f1",faculty:"#10b981",notice:"#f59e0b",subject:"#8b5cf6",paper:"#ec4899"};
-
-function GlobalSearch({ setActive }) {
-  const [query, setQuery] = useState("");
-  const [open, setOpen] = useState(false);
-  const ref = React.useRef(null);
-
-  const results = query.trim().length > 1
-    ? SEARCH_INDEX.filter(item =>
-        (item.label + item.sub).toLowerCase().includes(query.toLowerCase())
-      ).slice(0, 8)
-    : [];
-
-  useEffect(() => {
-    const handler = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, []);
-
-  return (
-    <div ref={ref} style={{position:"relative",flex:1,maxWidth:380}}>
-      <div style={{display:"flex",alignItems:"center",background:"#f8fafc",border:"1px solid #e2e8f0",borderRadius:10,padding:"0 10px",gap:8}}>
-        <span style={{color:"#94a3b8",fontSize:14}}>🔍</span>
-        <input
-          value={query}
-          onChange={e=>{ setQuery(e.target.value); setOpen(true); }}
-          onFocus={()=>setOpen(true)}
-          placeholder="Search student, faculty, notice, subject, papers..."
-          style={{flex:1,border:"none",background:"transparent",outline:"none",fontSize:13,padding:"8px 0",fontFamily:"inherit",color:"#334155"}}
-        />
-        {query && <span onClick={()=>{setQuery("");setOpen(false);}} style={{cursor:"pointer",color:"#94a3b8",fontSize:16,lineHeight:1}}>✕</span>}
-      </div>
-      {open && results.length > 0 && (
-        <div style={{position:"absolute",top:"100%",left:0,right:0,background:"#fff",border:"1px solid #e2e8f0",borderRadius:10,boxShadow:"0 8px 32px rgba(0,0,0,0.12)",zIndex:500,marginTop:4,overflow:"hidden"}}>
-          {results.map((r,i)=>(
-            <div key={i} onClick={()=>{ setActive(r.key); setOpen(false); setQuery(""); }}
-              style={{display:"flex",alignItems:"center",gap:10,padding:"9px 14px",cursor:"pointer",borderBottom:"1px solid #f8fafc",transition:"background .1s"}}
-              onMouseEnter={e=>e.currentTarget.style.background="#f8fafc"}
-              onMouseLeave={e=>e.currentTarget.style.background="#fff"}>
-              <span style={{fontSize:18,width:28,textAlign:"center"}}>{TYPE_ICON[r.type]}</span>
-              <div style={{flex:1}}>
-                <div style={{fontSize:13,fontWeight:600,color:"#0f172a"}}>{r.label}</div>
-                <div style={{fontSize:11,color:"#94a3b8"}}>{r.sub}</div>
-              </div>
-              <span style={{fontSize:10,fontWeight:700,color:TYPE_COLOR[r.type],background:TYPE_COLOR[r.type]+"15",padding:"2px 8px",borderRadius:10}}>{r.type}</span>
-            </div>
-          ))}
-          <div style={{padding:"7px 14px",fontSize:11,color:"#94a3b8",borderTop:"1px solid #f1f5f9",textAlign:"center"}}>
-            Press Enter or click a result to navigate
-          </div>
-        </div>
-      )}
-      {open && query.trim().length > 1 && results.length === 0 && (
-        <div style={{position:"absolute",top:"100%",left:0,right:0,background:"#fff",border:"1px solid #e2e8f0",borderRadius:10,boxShadow:"0 8px 32px rgba(0,0,0,0.12)",zIndex:500,marginTop:4,padding:"16px",textAlign:"center",color:"#94a3b8",fontSize:13}}>
-          No results found for "{query}"
-        </div>
-      )}
-    </div>
-  );
-}
-
 // ─── Mini Calendar ────────────────────────────────────────────────────────────
 function MiniCalendar() {
   const today = new Date();
@@ -351,96 +263,6 @@ function Widget({ title, children, style={} }) {
 }
 
 // ─── Student Dashboard ────────────────────────────────────────────────────────
-// ─── CSV Student Upload ───────────────────────────────────────────────────────
-function CSVStudentUpload() {
-  const [students, setStudents] = useState([]);
-  const [error, setError] = useState("");
-  const [dragging, setDragging] = useState(false);
-
-  const parseCSV = (text) => {
-    setError("");
-    const lines = text.trim().split("\n").filter(Boolean);
-    if (lines.length < 2) { setError("CSV must have a header row and at least one data row."); return; }
-    const headers = lines[0].split(",").map(h => h.trim().toLowerCase().replace(/\s+/g,"_"));
-    const nameCol = headers.findIndex(h => h.includes("name"));
-    const rollCol = headers.findIndex(h => h.includes("roll") || h.includes("reg") || h.includes("id"));
-    const deptCol = headers.findIndex(h => h.includes("dept") || h.includes("branch"));
-    const yearCol = headers.findIndex(h => h.includes("year") || h.includes("sem"));
-    if (nameCol === -1 || rollCol === -1) { setError("CSV must have 'name' and 'roll/reg' columns."); return; }
-    const parsed = lines.slice(1).map((line, i) => {
-      const cols = line.split(",").map(c => c.trim());
-      return {
-        id: i + 1,
-        name: cols[nameCol] || "—",
-        roll: cols[rollCol] || "—",
-        dept: deptCol !== -1 ? cols[deptCol] : "—",
-        year: yearCol !== -1 ? cols[yearCol] : "—",
-      };
-    }).filter(s => s.name !== "—" || s.roll !== "—");
-    setStudents(parsed);
-  };
-
-  const handleFile = (file) => {
-    if (!file) return;
-    if (!file.name.endsWith(".csv")) { setError("Please upload a .csv file."); return; }
-    const reader = new FileReader();
-    reader.onload = e => parseCSV(e.target.result);
-    reader.readAsText(file);
-  };
-
-  const handleDrop = (e) => {
-    e.preventDefault(); setDragging(false);
-    handleFile(e.dataTransfer.files[0]);
-  };
-
-  return (
-    <Widget title="📤 CSV Student Upload — Auto Display">
-      {students.length === 0 ? (
-        <div
-          onDragOver={e=>{e.preventDefault();setDragging(true);}}
-          onDragLeave={()=>setDragging(false)}
-          onDrop={handleDrop}
-          style={{border:`2px dashed ${dragging?"#6366f1":"#e2e8f0"}`,borderRadius:10,padding:"28px 20px",textAlign:"center",background:dragging?"#eef2ff":"#fafafa",transition:"all .2s",cursor:"pointer"}}
-          onClick={()=>document.getElementById("csv-upload-input").click()}>
-          <div style={{fontSize:36,marginBottom:8}}>📂</div>
-          <div style={{fontWeight:600,color:"#334155",fontSize:14,marginBottom:4}}>Drag & Drop CSV file here</div>
-          <div style={{fontSize:12,color:"#94a3b8",marginBottom:14}}>or click to browse · Columns: Name, Roll/Reg No, Dept, Year</div>
-          <button style={{padding:"8px 20px",background:"linear-gradient(135deg,#6366f1,#8b5cf6)",color:"#fff",border:"none",borderRadius:8,fontWeight:600,cursor:"pointer",fontSize:13}}>Choose File</button>
-          <input id="csv-upload-input" type="file" accept=".csv" style={{display:"none"}} onChange={e=>handleFile(e.target.files[0])}/>
-          {error && <div style={{marginTop:10,color:"#ef4444",fontSize:12,fontWeight:600}}>{error}</div>}
-        </div>
-      ) : (
-        <div>
-          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
-            <div style={{fontSize:13,fontWeight:700,color:"#0f172a"}}>✅ {students.length} students loaded from CSV</div>
-            <button onClick={()=>setStudents([])} style={{padding:"5px 14px",background:"#fee2e2",color:"#dc2626",border:"none",borderRadius:7,fontWeight:600,cursor:"pointer",fontSize:12}}>Clear</button>
-          </div>
-          <div style={{overflowX:"auto",maxHeight:260,overflowY:"auto"}}>
-            <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
-              <thead style={{position:"sticky",top:0}}>
-                <tr style={{background:"#6366f1",color:"#fff"}}>
-                  {["#","Name","Roll / Reg No","Dept","Year"].map(h=><th key={h} style={{padding:"7px 10px",textAlign:"left",fontSize:11}}>{h}</th>)}
-                </tr>
-              </thead>
-              <tbody>
-                {students.map((s,i)=>(
-                  <tr key={s.id} style={{borderBottom:"1px solid #f1f5f9",background:i%2===0?"#fff":"#fafbff"}}>
-                    <td style={{padding:"6px 10px",color:"#94a3b8",fontSize:11}}>{s.id}</td>
-                    <td style={{padding:"6px 10px",fontWeight:600,color:"#0f172a"}}>{s.name}</td>
-                    <td style={{padding:"6px 10px",color:"#6366f1",fontWeight:700}}>{s.roll}</td>
-                    <td style={{padding:"6px 10px",color:"#64748b"}}>{s.dept}</td>
-                    <td style={{padding:"6px 10px",color:"#64748b"}}>{s.year}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
-    </Widget>
-  );
-}
-
 function StudentDashboard({ user }) {
   const importantDates = [
     ["Research Scholars' Week (Abstract Submission)","Apr 29, 2026"],
@@ -583,9 +405,6 @@ function StudentDashboard({ user }) {
           );
         })()}
       </Widget>
-
-      {/* CSV Student Upload (Admin uploads, reflects here) */}
-      <CSVStudentUpload/>
 
       {/* Important Dates */}
       <Widget title="Important Dates">
@@ -1917,181 +1736,44 @@ function FeeView() {
 }
 
 // ─── Assignments View ─────────────────────────────────────────────────────────
-function AssignmentsView({ role }) {
-  const [assignments, setAssignments] = useState([
-    {id:1,sub:"DBMS",title:"ER Diagram for Hospital DB",due:"2026-06-20",marks:20,status:"Pending",desc:"Design a complete ER diagram for a hospital management system including entities, relationships, and cardinalities."},
-    {id:2,sub:"OS",title:"CPU Scheduling Algorithms",due:"2026-06-18",marks:15,status:"Submitted",desc:"Implement FCFS, SJF, and Round Robin scheduling algorithms in C and compare their performance."},
-    {id:3,sub:"CN",title:"Subnetting Practice",due:"2026-06-08",marks:10,status:"Evaluated",score:9,desc:"Solve 10 subnetting problems for Class B and Class C networks."},
-    {id:4,sub:"TOC",title:"NFA to DFA Conversion",due:"2026-06-25",marks:25,status:"Pending",desc:"Convert given NFA to equivalent DFA using subset construction method."},
-  ]);
-  const [showCreate, setShowCreate] = useState(false);
-  const [bulkForm, setBulkForm] = useState({title:"",subjects:[],desc:"",due:"",marks:"",sendToAll:true});
-  const [bulkDone, setBulkDone] = useState(false);
-  const [detail, setDetail] = useState(null);
-  const subjects = ["DBMS","OS","CN","TOC","SE","DS","ALGO"];
-
-  const isFaculty = role === "faculty";
-
-  const toggleSubject = (s) => {
-    setBulkForm(f=>({...f,subjects:f.subjects.includes(s)?f.subjects.filter(x=>x!==s):[...f.subjects,s]}));
-  };
-
-  const createBulk = () => {
-    if (!bulkForm.title || !bulkForm.due || bulkForm.subjects.length === 0) return;
-    const newAssignments = bulkForm.subjects.map((sub,i) => ({
-      id: Date.now()+i, sub, title:bulkForm.title, due:bulkForm.due,
-      marks:parseInt(bulkForm.marks)||10, status:"Pending", desc:bulkForm.desc
-    }));
-    setAssignments(p=>[...p,...newAssignments]);
-    setBulkDone(true);
-    setTimeout(()=>{ setBulkDone(false); setShowCreate(false); setBulkForm({title:"",subjects:[],desc:"",due:"",marks:"",sendToAll:true}); }, 1800);
-  };
-
-  const getDueStatus = (due) => {
-    const d = new Date(due), now = new Date();
-    const diff = Math.ceil((d-now)/(1000*60*60*24));
-    if(diff < 0) return {label:"Overdue",color:"#ef4444",bg:"#fee2e2"};
-    if(diff <= 2) return {label:`Due in ${diff}d`,color:"#f59e0b",bg:"#fef3c7"};
-    return {label:`Due ${d.toLocaleDateString("en-GB",{day:"numeric",month:"short"})}`,color:"#10b981",bg:"#dcfce7"};
-  };
-
+function AssignmentsView() {
+  const data=[
+    {sub:"DBMS",title:"ER Diagram for Hospital DB",due:"Jun 12",marks:20,status:"Pending"},
+    {sub:"OS",title:"CPU Scheduling Algorithms",due:"Jun 10",marks:15,status:"Submitted"},
+    {sub:"CN",title:"Subnetting Practice",due:"Jun 8",marks:10,status:"Evaluated",score:9},
+    {sub:"TOC",title:"NFA to DFA Conversion",due:"Jun 15",marks:25,status:"Pending"},
+  ];
   return (
-    <div>
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
-        <div style={{fontSize:18,fontWeight:700,color:"#0f172a"}}>📝 Assignments</div>
-        {isFaculty && (
-          <button onClick={()=>setShowCreate(true)}
-            style={{padding:"8px 18px",background:"linear-gradient(135deg,#6366f1,#8b5cf6)",color:"#fff",border:"none",borderRadius:8,fontWeight:600,cursor:"pointer",fontSize:13,display:"flex",alignItems:"center",gap:6}}>
-            📤 Bulk Create Assignment
-          </button>
-        )}
-      </div>
-      <div style={{display:"grid",gap:12}}>
-        {assignments.map(a => {
-          const due = getDueStatus(a.due);
-          return (
-            <div key={a.id} style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:12,padding:"14px 16px",display:"flex",alignItems:"center",gap:14,cursor:"pointer",transition:"box-shadow .15s"}}
-              onClick={()=>setDetail(a)}
-              onMouseEnter={e=>e.currentTarget.style.boxShadow="0 4px 16px rgba(99,102,241,0.12)"}
-              onMouseLeave={e=>e.currentTarget.style.boxShadow="none"}>
-              <div style={{width:44,height:44,borderRadius:10,background:"#eef2ff",display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,flexShrink:0}}>📋</div>
-              <div style={{flex:1}}>
-                <div style={{fontWeight:700,color:"#0f172a",fontSize:14}}>{a.title}</div>
-                <div style={{fontSize:12,color:"#6366f1",fontWeight:600,marginTop:2}}>{a.sub}</div>
-              </div>
-              <div style={{textAlign:"right",flexShrink:0}}>
-                <span style={{padding:"3px 10px",borderRadius:8,fontSize:11,fontWeight:700,background:due.bg,color:due.color}}>{due.label}</span>
-                <div style={{fontSize:11,color:"#94a3b8",marginTop:4}}>Max: {a.marks} marks</div>
-              </div>
-              <div style={{flexShrink:0}}>
-                <span style={{padding:"3px 10px",borderRadius:8,fontSize:11,fontWeight:700,
-                  background:a.status==="Submitted"?"#e8f0ff":a.status==="Evaluated"?"#dcfce7":"#fff8e1",
-                  color:a.status==="Submitted"?"#6366f1":a.status==="Evaluated"?"#16a34a":"#f59e0b"}}>
-                  {a.status==="Evaluated"?`✅ ${a.score}/${a.marks}`:a.status}
-                </span>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-
-      {/* Detail Modal */}
-      {detail && (
-        <div style={{position:"fixed",inset:0,background:"rgba(15,23,42,0.6)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center"}} onClick={()=>setDetail(null)}>
-          <div style={{background:"#fff",borderRadius:14,width:520,overflow:"hidden",boxShadow:"0 20px 60px rgba(0,0,0,0.25)"}} onClick={e=>e.stopPropagation()}>
-            <div style={{background:"linear-gradient(135deg,#6366f1,#8b5cf6)",padding:"16px 20px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-              <div><div style={{color:"#fff",fontWeight:700,fontSize:15}}>{detail.title}</div>
-              <div style={{color:"rgba(255,255,255,0.8)",fontSize:12,marginTop:2}}>{detail.sub} · Max {detail.marks} marks</div></div>
-              <button onClick={()=>setDetail(null)} style={{background:"rgba(255,255,255,0.2)",border:"none",borderRadius:6,color:"#fff",width:28,height:28,cursor:"pointer",fontSize:16}}>✕</button>
-            </div>
-            <div style={{padding:"20px 24px"}}>
-              <div style={{fontSize:13,color:"#475569",lineHeight:1.7,marginBottom:16}}>{detail.desc}</div>
-              <div style={{display:"flex",gap:12,marginBottom:18}}>
-                <div style={{flex:1,background:"#f8fafc",borderRadius:8,padding:"10px 14px"}}>
-                  <div style={{fontSize:11,color:"#94a3b8",fontWeight:600}}>DEADLINE</div>
-                  <div style={{fontSize:13,fontWeight:700,color:"#0f172a",marginTop:2}}>{new Date(detail.due).toLocaleDateString("en-GB",{day:"numeric",month:"long",year:"numeric"})}</div>
-                </div>
-                <div style={{flex:1,background:"#f8fafc",borderRadius:8,padding:"10px 14px"}}>
-                  <div style={{fontSize:11,color:"#94a3b8",fontWeight:600}}>STATUS</div>
-                  <div style={{fontSize:13,fontWeight:700,color:"#6366f1",marginTop:2}}>{detail.status}</div>
-                </div>
-              </div>
-              {detail.status === "Pending" && (
-                <button onClick={()=>{ setAssignments(p=>p.map(a=>a.id===detail.id?{...a,status:"Submitted"}:a)); setDetail(null); }}
-                  style={{width:"100%",padding:"10px",background:"linear-gradient(135deg,#6366f1,#8b5cf6)",color:"#fff",border:"none",borderRadius:8,fontWeight:600,cursor:"pointer",fontSize:14}}>
-                  📎 Upload Submission
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Bulk Create Modal */}
-      {showCreate && (
-        <div style={{position:"fixed",inset:0,background:"rgba(15,23,42,0.6)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center"}} onClick={()=>setShowCreate(false)}>
-          <div style={{background:"#fff",borderRadius:14,width:540,overflow:"hidden",boxShadow:"0 20px 60px rgba(0,0,0,0.25)"}} onClick={e=>e.stopPropagation()}>
-            <div style={{background:"linear-gradient(135deg,#6366f1,#8b5cf6)",padding:"14px 18px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-              <span style={{color:"#fff",fontWeight:700,fontSize:15}}>📤 Bulk Assignment Creation</span>
-              <button onClick={()=>setShowCreate(false)} style={{background:"rgba(255,255,255,0.2)",border:"none",borderRadius:6,color:"#fff",width:28,height:28,cursor:"pointer",fontSize:16}}>✕</button>
-            </div>
-            {bulkDone ? (
-              <div style={{padding:"40px",textAlign:"center"}}>
-                <div style={{fontSize:48,marginBottom:12}}>✅</div>
-                <div style={{fontWeight:700,fontSize:16,color:"#0f172a"}}>Assignments Created!</div>
-                <div style={{fontSize:13,color:"#64748b",marginTop:6}}>Sent to all students in selected subjects.</div>
-              </div>
-            ) : (
-              <div style={{padding:"20px 22px",display:"grid",gap:14}}>
-                <div>
-                  <label style={{fontSize:11,fontWeight:700,color:"#475569",display:"block",marginBottom:4}}>ASSIGNMENT TITLE *</label>
-                  <input value={bulkForm.title} onChange={e=>setBulkForm(f=>({...f,title:e.target.value}))}
-                    placeholder="e.g. End Term Project Submission"
-                    style={{width:"100%",boxSizing:"border-box",padding:"9px 12px",border:"1px solid #e2e8f0",borderRadius:8,fontSize:13,outline:"none",fontFamily:"inherit"}}/>
-                </div>
-                <div>
-                  <label style={{fontSize:11,fontWeight:700,color:"#475569",display:"block",marginBottom:6}}>SELECT SUBJECTS * <span style={{fontSize:10,color:"#94a3b8",fontWeight:400}}>(select multiple)</span></label>
-                  <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
-                    {subjects.map(s=>(
-                      <button key={s} onClick={()=>toggleSubject(s)}
-                        style={{padding:"5px 14px",border:`1px solid ${bulkForm.subjects.includes(s)?"#6366f1":"#e2e8f0"}`,borderRadius:20,fontSize:12,fontWeight:600,cursor:"pointer",background:bulkForm.subjects.includes(s)?"#eef2ff":"#fff",color:bulkForm.subjects.includes(s)?"#6366f1":"#475569",transition:"all .15s"}}>
-                        {s}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
-                  <div>
-                    <label style={{fontSize:11,fontWeight:700,color:"#475569",display:"block",marginBottom:4}}>DEADLINE *</label>
-                    <input type="date" value={bulkForm.due} onChange={e=>setBulkForm(f=>({...f,due:e.target.value}))}
-                      style={{width:"100%",boxSizing:"border-box",padding:"9px 12px",border:"1px solid #e2e8f0",borderRadius:8,fontSize:13,outline:"none",fontFamily:"inherit"}}/>
-                  </div>
-                  <div>
-                    <label style={{fontSize:11,fontWeight:700,color:"#475569",display:"block",marginBottom:4}}>MAX MARKS</label>
-                    <input type="number" value={bulkForm.marks} onChange={e=>setBulkForm(f=>({...f,marks:e.target.value}))}
-                      placeholder="10"
-                      style={{width:"100%",boxSizing:"border-box",padding:"9px 12px",border:"1px solid #e2e8f0",borderRadius:8,fontSize:13,outline:"none",fontFamily:"inherit"}}/>
-                  </div>
-                </div>
-                <div>
-                  <label style={{fontSize:11,fontWeight:700,color:"#475569",display:"block",marginBottom:4}}>DESCRIPTION / INSTRUCTIONS</label>
-                  <textarea value={bulkForm.desc} onChange={e=>setBulkForm(f=>({...f,desc:e.target.value}))} rows={3}
-                    placeholder="Describe the assignment requirements..."
-                    style={{width:"100%",boxSizing:"border-box",padding:"9px 12px",border:"1px solid #e2e8f0",borderRadius:8,fontSize:13,outline:"none",resize:"vertical",fontFamily:"inherit"}}/>
-                </div>
-                <div style={{background:"#f0f4ff",borderRadius:8,padding:"10px 12px",fontSize:12,color:"#6366f1",fontWeight:600}}>
-                  📢 Will be sent to ALL students in: {bulkForm.subjects.length > 0 ? bulkForm.subjects.join(", ") : "no subjects selected"}
-                </div>
-                <button onClick={createBulk} disabled={!bulkForm.title||!bulkForm.due||bulkForm.subjects.length===0}
-                  style={{padding:"11px",background:(!bulkForm.title||!bulkForm.due||bulkForm.subjects.length===0)?"#c7d2fe":"linear-gradient(135deg,#6366f1,#8b5cf6)",color:"#fff",border:"none",borderRadius:8,fontWeight:700,cursor:(!bulkForm.title||!bulkForm.due||bulkForm.subjects.length===0)?"not-allowed":"pointer",fontSize:14}}>
-                  🚀 Create & Send to All Students
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-    </div>
+    <Widget title="Assignments">
+      <table style={{width:"100%",borderCollapse:"collapse",fontSize:13}}>
+        <thead>
+          <tr style={{background:"#6366f1",color:"#fff"}}>
+            {["Subject","Title","Due","Max Marks","Status","Action"].map(h=>(
+              <th key={h} style={{padding:"7px 10px",textAlign:"left",fontSize:12}}>{h}</th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {data.map((a,i)=>(
+            <tr key={i} style={{borderBottom:"1px solid #eee",background:i%2===0?"#f9f9f9":"#fff"}}>
+              <td style={{padding:"9px 10px",color:"#6366f1",fontWeight:700}}>{a.sub}</td>
+              <td style={{padding:"9px 10px",color:"#333",fontWeight:500}}>{a.title}</td>
+              <td style={{padding:"9px 10px",color:"#555"}}>{a.due}</td>
+              <td style={{padding:"9px 10px",textAlign:"center"}}>{a.marks}</td>
+              <td style={{padding:"9px 10px"}}>
+                <span style={{padding:"2px 8px",borderRadius:2,fontSize:11,fontWeight:700,
+                  background:a.status==="Submitted"?"#e8f0ff":a.status==="Evaluated"?"#e8f8f0":"#fff8e1",
+                  color:a.status==="Submitted"?"#6366f1":a.status==="Evaluated"?"#27ae60":"#f39c12"}}>{a.status}</span>
+              </td>
+              <td style={{padding:"9px 10px"}}>
+                {a.status==="Pending"&&<button style={{padding:"4px 12px",background:"#6366f1",color:"#fff",border:"none",borderRadius:2,cursor:"pointer",fontSize:11,fontWeight:600}}>Upload</button>}
+                {a.status==="Evaluated"&&<span style={{fontWeight:700,color:"#27ae60"}}>{a.score}/{a.marks}</span>}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </Widget>
   );
 }
 
@@ -6147,119 +5829,6 @@ function useNotifications(role) {
 }
 
 // ─── STUDENT FEEDBACK VIEW ────────────────────────────────────────────────────
-// ─── Student Messaging ────────────────────────────────────────────────────────
-function StudentMessaging({ user }) {
-  const faculty = [
-    {id:"F001",name:"Dr. Priya Singh",dept:"CSE",subject:"DBMS",avatar:"P"},
-    {id:"F002",name:"Prof. Ramesh Panda",dept:"CSE",subject:"OS",avatar:"R"},
-    {id:"F003",name:"Dr. Sunita Das",dept:"CSE",subject:"CN",avatar:"S"},
-    {id:"F004",name:"Dr. K. Rath",dept:"CSE",subject:"TOC",avatar:"K"},
-    {id:"F005",name:"Prof. M. Behera",dept:"CSE",subject:"SE",avatar:"M"},
-  ];
-  const [selected, setSelected] = useState(faculty[0]);
-  const [conversations, setConversations] = useState({
-    F001:[
-      {id:1,from:"student",text:"Sir, I have a doubt in ER diagram normalization.",time:"10:20 AM",date:"Today"},
-      {id:2,from:"faculty",text:"Sure, which normal form are you having trouble with?",time:"10:35 AM",date:"Today"},
-    ],
-    F002:[
-      {id:1,from:"faculty",text:"Please submit the CPU scheduling assignment by tomorrow.",time:"9:00 AM",date:"Yesterday"},
-    ],
-  });
-  const [msg, setMsg] = useState("");
-  const msgEnd = React.useRef(null);
-
-  useEffect(()=>{ msgEnd.current?.scrollIntoView({behavior:"smooth"}); },[selected,conversations]);
-
-  const sendMsg = () => {
-    if (!msg.trim()) return;
-    const now = new Date();
-    const timeStr = now.toLocaleTimeString("en-GB",{hour:"2-digit",minute:"2-digit"});
-    setConversations(prev=>({
-      ...prev,
-      [selected.id]: [...(prev[selected.id]||[]),{id:Date.now(),from:"student",text:msg.trim(),time:timeStr,date:"Today"}]
-    }));
-    setMsg("");
-    // Simulate faculty reply
-    setTimeout(()=>{
-      setConversations(prev=>({
-        ...prev,
-        [selected.id]: [...(prev[selected.id]||[]),{id:Date.now()+1,from:"faculty",text:"Thanks for reaching out! I'll get back to you soon.",time:new Date().toLocaleTimeString("en-GB",{hour:"2-digit",minute:"2-digit"}),date:"Today"}]
-      }));
-    }, 2000);
-  };
-
-  const msgs = conversations[selected.id] || [];
-
-  return (
-    <div style={{background:"#fff",borderRadius:14,border:"1px solid #e2e8f0",overflow:"hidden",height:560,display:"flex"}}>
-      {/* Faculty list */}
-      <div style={{width:220,borderRight:"1px solid #e2e8f0",flexShrink:0,overflowY:"auto"}}>
-        <div style={{padding:"12px 14px",borderBottom:"1px solid #f1f5f9",fontWeight:700,fontSize:13,color:"#0f172a",background:"#f8fafc"}}>
-          💬 Message Faculty
-        </div>
-        {faculty.map(f=>{
-          const unread = !conversations[f.id] || conversations[f.id].every(m=>m.from==="student");
-          const last = conversations[f.id]?.slice(-1)[0];
-          return (
-            <div key={f.id} onClick={()=>setSelected(f)}
-              style={{padding:"10px 14px",cursor:"pointer",borderBottom:"1px solid #f8fafc",background:selected.id===f.id?"#eef2ff":"#fff",transition:"background .1s"}}
-              onMouseEnter={e=>{ if(selected.id!==f.id) e.currentTarget.style.background="#fafbff"; }}
-              onMouseLeave={e=>{ if(selected.id!==f.id) e.currentTarget.style.background="#fff"; }}>
-              <div style={{display:"flex",alignItems:"center",gap:9}}>
-                <div style={{width:36,height:36,borderRadius:"50%",background:"linear-gradient(135deg,#6366f1,#8b5cf6)",display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",fontWeight:700,fontSize:14,flexShrink:0}}>{f.avatar}</div>
-                <div style={{flex:1,minWidth:0}}>
-                  <div style={{fontWeight:600,fontSize:12,color:"#0f172a",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{f.name}</div>
-                  <div style={{fontSize:10,color:"#94a3b8"}}>{f.subject}</div>
-                  {last && <div style={{fontSize:10,color:"#64748b",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",marginTop:1}}>{last.text.slice(0,28)}...</div>}
-                </div>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-      {/* Chat area */}
-      <div style={{flex:1,display:"flex",flexDirection:"column"}}>
-        <div style={{padding:"12px 16px",borderBottom:"1px solid #f1f5f9",background:"#f8fafc",display:"flex",alignItems:"center",gap:10}}>
-          <div style={{width:34,height:34,borderRadius:"50%",background:"linear-gradient(135deg,#6366f1,#8b5cf6)",display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",fontWeight:700,fontSize:14}}>{selected.avatar}</div>
-          <div>
-            <div style={{fontWeight:700,fontSize:13,color:"#0f172a"}}>{selected.name}</div>
-            <div style={{fontSize:11,color:"#94a3b8"}}>{selected.subject} · {selected.dept}</div>
-          </div>
-        </div>
-        <div style={{flex:1,overflowY:"auto",padding:"16px",display:"flex",flexDirection:"column",gap:10}}>
-          {msgs.length === 0 && (
-            <div style={{textAlign:"center",color:"#94a3b8",fontSize:13,marginTop:40}}>
-              No messages yet. Start the conversation!
-            </div>
-          )}
-          {msgs.map(m=>(
-            <div key={m.id} style={{display:"flex",justifyContent:m.from==="student"?"flex-end":"flex-start"}}>
-              <div style={{maxWidth:"70%"}}>
-                <div style={{background:m.from==="student"?"linear-gradient(135deg,#6366f1,#8b5cf6)":"#f1f5f9",color:m.from==="student"?"#fff":"#0f172a",padding:"9px 13px",borderRadius:m.from==="student"?"12px 12px 2px 12px":"12px 12px 12px 2px",fontSize:13,lineHeight:1.5}}>
-                  {m.text}
-                </div>
-                <div style={{fontSize:10,color:"#94a3b8",marginTop:3,textAlign:m.from==="student"?"right":"left"}}>{m.time}</div>
-              </div>
-            </div>
-          ))}
-          <div ref={msgEnd}/>
-        </div>
-        <div style={{padding:"12px 16px",borderTop:"1px solid #f1f5f9",display:"flex",gap:8"}}>
-          <input value={msg} onChange={e=>setMsg(e.target.value)}
-            onKeyDown={e=>{ if(e.key==="Enter"&&!e.shiftKey){ e.preventDefault(); sendMsg(); }}}
-            placeholder={`Message ${selected.name}...`}
-            style={{flex:1,padding:"9px 13px",border:"1px solid #e2e8f0",borderRadius:10,fontSize:13,outline:"none",fontFamily:"inherit"}}/>
-          <button onClick={sendMsg} disabled={!msg.trim()}
-            style={{padding:"9px 16px",background:msg.trim()?"linear-gradient(135deg,#6366f1,#8b5cf6)":"#e2e8f0",color:msg.trim()?"#fff":"#94a3b8",border:"none",borderRadius:10,fontWeight:600,cursor:msg.trim()?"pointer":"not-allowed",fontSize:13,transition:"all .15s"}}>
-            Send ➤
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 function FeedbackView() {
   const [submitted, setSubmitted] = useState({});
   const [ratings, setRatings] = useState({});
@@ -6430,20 +5999,18 @@ export default function App() {
 
   const studentViews = {
     dashboard:<StudentDashboard user={auth}/>, attendance:<AttendanceView/>,
-    exam:<ExamView/>, fee:<FeeView/>, assignments:<AssignmentsView role="student"/>, notices:<NoticesView/>,
+    exam:<ExamView/>, fee:<FeeView/>, assignments:<AssignmentsView/>, notices:<NoticesView/>,
     timetable:<StudentTimetable/>, papers:<QuestionPapers/>,
     hallticket:<HallTicket user={auth}/>, grievance:<GrievancePortal/>,
     library:<LibraryView/>, placement:<PlacementView/>,
     registration:<CourseRegistration/>,
     feedback: uid ? <LiveFeedbackView uid={uid}/> : <FeedbackView/>,
-    messages:<StudentMessaging user={auth}/>,
     profile:<StudentProfile user={auth}/>, auditlog:<AuditLog role="student"/>,
     transport:<TransportView/>, alumni:<AlumniConnect user={auth}/>, elearning:<ELearningView/>,
     marksheet:<MarksheetView user={auth}/>,
   };
   const facultyViews = {
     dashboard:<FacultyDashboard user={auth}/>, subjects:<FacultySubjectsView/>,
-    assignments:<AssignmentsView role="faculty"/>,
     lab:<LabView/>, attendance:<AttendanceView/>, evaluation:<EvaluationView/>,
     research:<ResearchView/>, duty:<DutyView/>, notices:<NoticesView/>,
     copo:<COPOView/>,
@@ -6474,11 +6041,11 @@ export default function App() {
     ["Library","library"],["Placement Cell","placement"],["E-Learning","elearning"],
     ["Transport","transport"],["Alumni Connect","alumni"],
     ["Course Registration","registration"],["Grievance","grievance"],
-    ["Feedback","feedback"],["Messages","messages"],["Profile","profile"],["Audit Log","auditlog"],["Notices","notices"],
+    ["Feedback","feedback"],["Profile","profile"],["Audit Log","auditlog"],["Notices","notices"],
   ];
   const facultySidebarLinks = [
     ["Dashboard","dashboard"],["Subjects & Students","subjects"],["Lab","lab"],
-    ["Attendance","attendance"],["Evaluation","evaluation"],["Assignments","assignments"],["Research","research"],
+    ["Attendance","attendance"],["Evaluation","evaluation"],["Research","research"],
     ["CO/PO Attainment","copo"],["Syllabus Tracker","syllabus"],["Question Paper","qpaper"],["File Tracking","fts"],["Services","services"],
     ["Exam & Duty","duty"],["Feedback Results","feedback"],
     ["My Profile","profile"],["Audit Log","auditlog"],["Notices","notices"],
@@ -6542,7 +6109,7 @@ export default function App() {
               Services <span style={{fontSize:10,color:"#8b5cf6"}}>▼</span>
             </button>
           </div>
-          <GlobalSearch setActive={setActive}/>
+          <div style={{flex:1}}/>
           {/* Dark mode */}
           <button onClick={()=>setDarkMode(d=>!d)}
             style={{background:"none",border:"1px solid #e2e8f0",borderRadius:8,padding:"5px 10px",cursor:"pointer",fontSize:16,color:darkMode?"#fbbf24":"#475569"}}>
