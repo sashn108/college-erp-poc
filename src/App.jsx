@@ -4420,52 +4420,158 @@ function StudentProfile({ user }) {
 
 // ─── AUDIT LOG ────────────────────────────────────────────────────────────────
 function AuditLog({ role }) {
+  const [filter, setFilter] = useState("all");
+  const [search, setSearch] = useState("");
+
   const studentLogs = [
-    { action:"Logged in", detail:"Chrome on Windows · 103.21.58.142", time:"Today 9:42 AM", type:"auth" },
-    { action:"Viewed Hall Ticket", detail:"Sem 5 End Semester Exam", time:"Today 9:44 AM", type:"view" },
-    { action:"Submitted Assignment", detail:"CS301 — ER Diagram uploaded", time:"Today 9:50 AM", type:"submit" },
-    { action:"Applied for Leave", detail:"Medical Leave Jun 1–2, sent to HOD", time:"Jun 9, 3:15 PM", type:"leave" },
-    { action:"Fee Payment", detail:"Sem 5 partial fee ₹15,000 via UPI", time:"Jun 8, 11:00 AM", type:"payment" },
-    { action:"Logged in", detail:"Mobile Android · 103.21.58.143", time:"Jun 8, 10:55 AM", type:"auth" },
-    { action:"Downloaded Question Paper", detail:"CS301 DBMS 2024", time:"Jun 7, 6:30 PM", type:"download" },
-    { action:"Course Registered", detail:"CS306E Machine Learning added", time:"Jun 6, 2:00 PM", type:"register" },
-    { action:"Grievance Filed", detail:"GR003 — Water supply C Block", time:"Jun 5, 4:00 PM", type:"grievance" },
-    { action:"Password Changed", detail:"Password updated successfully", time:"Jun 3, 8:00 PM", type:"security" },
-    { action:"Logged out", detail:"Session ended", time:"Jun 3, 8:05 PM", type:"auth" },
+    {id:1, action:"Logged in to portal", module:"Auth", detail:"Chrome · Windows · 103.21.58.142", time:"2026-06-16 9:42 AM", type:"auth", ip:"103.21.58.142"},
+    {id:2, action:"Viewed Hall Ticket", module:"Examination", detail:"Sem 5 End Semester 2026 hall ticket downloaded", time:"2026-06-16 9:44 AM", type:"view", ip:"103.21.58.142"},
+    {id:3, action:"Submitted Assignment", module:"Assignments", detail:"CS301 — ER Diagram for Hospital DB uploaded (2.3 MB)", time:"2026-06-16 9:50 AM", type:"submit", ip:"103.21.58.142"},
+    {id:4, action:"Sent message to faculty", module:"Messages", detail:"Dr. Priya Singh — 'Doubt in ER Diagram normalization'", time:"2026-06-16 10:05 AM", type:"message", ip:"103.21.58.142"},
+    {id:5, action:"Viewed Internal Marks", module:"Marks", detail:"Sem 5 CT marks viewed — all subjects", time:"2026-06-16 10:12 AM", type:"view", ip:"103.21.58.142"},
+    {id:6, action:"Viewed Live Attendance", module:"Attendance", detail:"Today's class tracker accessed", time:"2026-06-16 10:20 AM", type:"view", ip:"103.21.58.142"},
+    {id:7, action:"Applied for Leave", module:"Leave", detail:"Medical Leave Jun 1–2, sent to HOD · 2 days", time:"2026-06-09 3:15 PM", type:"leave", ip:"103.21.58.143"},
+    {id:8, action:"Fee Payment", module:"Fee", detail:"Sem 5 partial fee ₹15,000 via UPI · Ref#TXN2026061501", time:"2026-06-08 11:00 AM", type:"payment", ip:"103.21.58.143"},
+    {id:9, action:"Logged in to portal", module:"Auth", detail:"Mobile Android · 103.21.58.143", time:"2026-06-08 10:55 AM", type:"auth", ip:"103.21.58.143"},
+    {id:10, action:"Downloaded Question Paper", module:"Papers", detail:"CS301 DBMS End Sem 2024 — PDF (1.1 MB)", time:"2026-06-07 6:30 PM", type:"download", ip:"103.21.58.142"},
+    {id:11, action:"Course Registered", module:"Registration", detail:"CS306E Machine Learning (Elective) — Sem 5", time:"2026-06-06 2:00 PM", type:"register", ip:"103.21.58.142"},
+    {id:12, action:"Grievance Filed", module:"Grievance", detail:"GR003 — Water supply issue C Block Hostel", time:"2026-06-05 4:00 PM", type:"grievance", ip:"103.21.58.142"},
+    {id:13, action:"Feedback Submitted", module:"Feedback", detail:"CS301 DBMS — Dr. Priya Singh · 4.2/5 rating", time:"2026-06-04 5:30 PM", type:"submit", ip:"103.21.58.142"},
+    {id:14, action:"Password Changed", module:"Security", detail:"Password updated successfully from profile settings", time:"2026-06-03 8:00 PM", type:"security", ip:"103.21.58.142"},
+    {id:15, action:"Logged out", module:"Auth", detail:"Session ended · Duration 47 minutes", time:"2026-06-03 8:05 PM", type:"auth", ip:"103.21.58.142"},
   ];
+
   const facultyLogs = [
-    { action:"Logged in", detail:"Chrome on Windows · 122.170.45.21", time:"Today 8:30 AM", type:"auth" },
-    { action:"Attendance Saved", detail:"CS301 CSE5A — Jun 10 (48 students)", time:"Today 10:15 AM", type:"submit" },
-    { action:"Marks Updated", detail:"CS301 Mid-1 marks entered for 52 students", time:"Today 11:00 AM", type:"submit" },
-    { action:"Message Sent", detail:"Broadcast to CS301 CSE5A — Exam reminder", time:"Today 11:45 AM", type:"message" },
-    { action:"Leave Request Approved", detail:"Priya Nair — Jun 10-12 Medical Leave", time:"Jun 9, 3:00 PM", type:"leave" },
-    { action:"Publication Added", detail:"Hybrid Clustering paper — Expert Systems", time:"Jun 8, 2:00 PM", type:"submit" },
-    { action:"Research Milestone Updated", detail:"Rohit Sharma — Ch.4 deadline set Jun 20", time:"Jun 7, 4:00 PM", type:"submit" },
-    { action:"Logged in", detail:"Mobile · 103.21.45.67", time:"Jun 6, 9:00 AM", type:"auth" },
+    {id:1, action:"Logged in to portal", module:"Auth", detail:"Chrome · Windows · 122.170.45.21", time:"2026-06-16 8:30 AM", type:"auth", ip:"122.170.45.21"},
+    {id:2, action:"Attendance Uploaded", module:"Attendance", detail:"CS301 CSE5A — Jun 16 · 43 Present, 5 Absent", time:"2026-06-16 10:15 AM", type:"upload", ip:"122.170.45.21"},
+    {id:3, action:"Internal Marks Entered", module:"Evaluation", detail:"CS301 CT-2 — 48 students marked", time:"2026-06-16 11:00 AM", type:"submit", ip:"122.170.45.21"},
+    {id:4, action:"Bulk Message Sent", module:"Messaging", detail:"CS301 CSE5A — 'Assignment deadline extended to Jun 22'", time:"2026-06-16 11:45 AM", type:"message", ip:"122.170.45.21"},
+    {id:5, action:"Assignment Created", module:"Assignments", detail:"Bulk: NFA to DFA Conversion for TOC, OS, CN — deadline Jun 25", time:"2026-06-16 12:00 PM", type:"create", ip:"122.170.45.21"},
+    {id:6, action:"Attendance CSV Exported", module:"Attendance", detail:"CS301 DBMS attendance — Jun 2026 downloaded", time:"2026-06-16 12:10 PM", type:"download", ip:"122.170.45.21"},
+    {id:7, action:"Replied to student message", module:"Messages", detail:"Riya Patel — DBMS normalization doubt resolved", time:"2026-06-15 4:00 PM", type:"message", ip:"122.170.45.21"},
+    {id:8, action:"Student Leave Approved", module:"Leave", detail:"Priya Nair — Medical Leave Jun 10–12 · Approved", time:"2026-06-09 3:00 PM", type:"leave", ip:"122.170.45.21"},
+    {id:9, action:"Publication Added", module:"Research", detail:"'Hybrid Clustering in IoT' — Expert Systems Journal 2026", time:"2026-06-08 2:00 PM", type:"submit", ip:"122.170.45.21"},
+    {id:10, action:"Research Milestone Updated", module:"Research", detail:"Scholar: Rohit Sharma — Ch.4 submission deadline Jun 20", time:"2026-06-07 4:00 PM", type:"update", ip:"122.170.45.21"},
+    {id:11, action:"Syllabus Updated", module:"Syllabus Tracker", detail:"CS301 Unit 3 — Query Optimization marked completed (85%)", time:"2026-06-06 10:30 AM", type:"update", ip:"122.170.45.21"},
+    {id:12, action:"Feedback Results Viewed", module:"Feedback", detail:"CS301 DBMS — 42 responses, avg 4.1/5", time:"2026-06-05 9:00 AM", type:"view", ip:"122.170.45.21"},
+    {id:13, action:"Question Paper Uploaded", module:"Question Paper", detail:"CS301 DBMS Mid-2 2026 — PDF submitted for review", time:"2026-06-04 3:00 PM", type:"upload", ip:"122.170.45.21"},
+    {id:14, action:"Student Leave Rejected", module:"Leave", detail:"Amit Kumar — Casual Leave Jun 8 · Rejected (insufficient reason)", time:"2026-06-03 11:00 AM", type:"reject", ip:"122.170.45.21"},
+    {id:15, action:"Logged out", module:"Auth", detail:"Session ended · Duration 3h 12m", time:"2026-06-16 12:30 PM", type:"auth", ip:"122.170.45.21"},
   ];
-  const logs = role==="student"?studentLogs:facultyLogs;
-  const iconMap = { auth:"🔐", view:"👁", submit:"✅", leave:"📋", payment:"💳", download:"📥", register:"📝", grievance:"⚠️", security:"🔒", message:"✉️" };
-  const colorMap = { auth:"#6366f1", view:"#64748b", submit:"#10b981", leave:"#f59e0b", payment:"#8b5cf6", download:"#14b8a6", register:"#6366f1", grievance:"#ef4444", security:"#ef4444", message:"#6366f1" };
+
+  const logs = role === "student" ? studentLogs : facultyLogs;
+
+  const typeConfig = {
+    auth:     {bg:"#eef2ff",c:"#6366f1",icon:"🔐"},
+    view:     {bg:"#f1f5f9",c:"#475569",icon:"👁"},
+    submit:   {bg:"#dcfce7",c:"#16a34a",icon:"✅"},
+    upload:   {bg:"#dbeafe",c:"#2563eb",icon:"📤"},
+    message:  {bg:"#fef3c7",c:"#d97706",icon:"✉️"},
+    leave:    {bg:"#f3e8ff",c:"#9333ea",icon:"📋"},
+    payment:  {bg:"#e0f2fe",c:"#0284c7",icon:"💳"},
+    download: {bg:"#ecfdf5",c:"#059669",icon:"📥"},
+    register: {bg:"#eef2ff",c:"#6366f1",icon:"📝"},
+    grievance:{bg:"#fee2e2",c:"#dc2626",icon:"⚠️"},
+    security: {bg:"#fee2e2",c:"#dc2626",icon:"🔒"},
+    create:   {bg:"#dcfce7",c:"#16a34a",icon:"➕"},
+    update:   {bg:"#e0f2fe",c:"#0284c7",icon:"✏️"},
+    reject:   {bg:"#fee2e2",c:"#dc2626",icon:"✕"},
+  };
+
+  const allTypes = [...new Set(logs.map(l => l.type))];
+
+  const filtered = logs.filter(l =>
+    (filter === "all" || l.type === filter) &&
+    (search === "" || l.action.toLowerCase().includes(search.toLowerCase()) ||
+     l.module.toLowerCase().includes(search.toLowerCase()) ||
+     l.detail.toLowerCase().includes(search.toLowerCase()))
+  );
+
+  const exportCSV = () => {
+    const header = ["#","Action","Module","Detail","Time","IP"];
+    const rows = filtered.map(l => [l.id, `"${l.action}"`, l.module, `"${l.detail}"`, l.time, l.ip]);
+    const csv = [header, ...rows].map(r => r.join(",")).join("\n");
+    const blob = new Blob([csv], {type:"text/csv"});
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = `AuditLog_${role}_${new Date().toISOString().slice(0,10)}.csv`;
+    a.click();
+  };
 
   return (
-    <div style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:12,overflow:"hidden"}}>
-      <div style={{background:"linear-gradient(135deg,#6366f1,#8b5cf6)",padding:"12px 16px",color:"#fff",fontWeight:700,fontSize:14,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-        <span>🗃 Activity & Audit Log</span>
-        <span style={{fontSize:12,opacity:0.8}}>Last 30 days</span>
-      </div>
-      <div style={{padding:"8px 0"}}>
-        {logs.map((l,i)=>(
-          <div key={i} style={{display:"flex",gap:12,padding:"10px 16px",borderBottom:"1px solid #f8fafc",alignItems:"flex-start"}}>
-            <div style={{width:34,height:34,borderRadius:"50%",background:(colorMap[l.type]||"#6366f1")+"15",display:"flex",alignItems:"center",justifyContent:"center",fontSize:15,flexShrink:0}}>
-              {iconMap[l.type]||"📌"}
-            </div>
-            <div style={{flex:1}}>
-              <div style={{fontWeight:600,fontSize:13,color:"#0f172a"}}>{l.action}</div>
-              <div style={{fontSize:12,color:"#64748b",marginTop:1}}>{l.detail}</div>
-            </div>
-            <div style={{fontSize:11,color:"#94a3b8",whiteSpace:"nowrap",marginTop:2}}>{l.time}</div>
+    <div>
+      {/* Stats row */}
+      <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10,marginBottom:14}}>
+        {[
+          {label:"Total Actions",value:logs.length,icon:"📋",color:"#6366f1"},
+          {label:"Today",value:logs.filter(l=>l.time.startsWith("2026-06-16")).length,icon:"📅",color:"#10b981"},
+          {label:"Auth Events",value:logs.filter(l=>l.type==="auth").length,icon:"🔐",color:"#f59e0b"},
+          {label:"Security Alerts",value:logs.filter(l=>l.type==="security"||l.type==="reject").length,icon:"🛡️",color:"#ef4444"},
+        ].map(s=>(
+          <div key={s.label} style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:10,padding:"12px 14px",borderLeft:`4px solid ${s.color}`}}>
+            <div style={{fontSize:18,marginBottom:2}}>{s.icon}</div>
+            <div style={{fontSize:20,fontWeight:800,color:s.color}}>{s.value}</div>
+            <div style={{fontSize:11,color:"#94a3b8",fontWeight:600}}>{s.label}</div>
           </div>
         ))}
+      </div>
+
+      {/* Search + filter + export */}
+      <div style={{display:"flex",gap:8,marginBottom:12,alignItems:"center",flexWrap:"wrap",justifyContent:"space-between"}}>
+        <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
+          <input value={search} onChange={e=>setSearch(e.target.value)}
+            placeholder="🔍 Search actions, modules..."
+            style={{padding:"8px 12px",border:"1px solid #e2e8f0",borderRadius:8,fontSize:12,outline:"none",width:220,fontFamily:"inherit"}}/>
+          <div style={{display:"flex",gap:4,background:"#f1f5f9",borderRadius:8,padding:3,flexWrap:"wrap"}}>
+            <button onClick={()=>setFilter("all")} style={{padding:"5px 10px",border:"none",borderRadius:5,cursor:"pointer",fontSize:11,fontWeight:600,background:filter==="all"?"linear-gradient(135deg,#6366f1,#8b5cf6)":"transparent",color:filter==="all"?"#fff":"#64748b"}}>All</button>
+            {allTypes.map(t=>(
+              <button key={t} onClick={()=>setFilter(t)}
+                style={{padding:"5px 10px",border:"none",borderRadius:5,cursor:"pointer",fontSize:11,fontWeight:600,
+                  background:filter===t?(typeConfig[t]?.c||"#6366f1"):"transparent",
+                  color:filter===t?"#fff":"#64748b"}}>
+                {typeConfig[t]?.icon} {t.charAt(0).toUpperCase()+t.slice(1)}
+              </button>
+            ))}
+          </div>
+        </div>
+        <button onClick={exportCSV}
+          style={{padding:"7px 16px",background:"#f0fdf4",color:"#16a34a",border:"1px solid #86efac",borderRadius:8,fontWeight:600,cursor:"pointer",fontSize:12,whiteSpace:"nowrap"}}>
+          📥 Export CSV
+        </button>
+      </div>
+
+      {/* Log entries */}
+      <div style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:12,overflow:"hidden"}}>
+        <div style={{background:"linear-gradient(135deg,#6366f1,#8b5cf6)",padding:"10px 16px",color:"#fff",fontWeight:700,fontSize:13,display:"flex",justifyContent:"space-between"}}>
+          <span>🗃 Activity & Audit Log — Last 30 days</span>
+          <span style={{fontSize:11,opacity:0.8}}>{filtered.length} entries</span>
+        </div>
+        {filtered.length === 0 ? (
+          <div style={{padding:"32px",textAlign:"center",color:"#94a3b8",fontSize:13}}>No logs match your filter.</div>
+        ) : (
+          filtered.map((l,i)=>{
+            const tc = typeConfig[l.type] || {bg:"#f1f5f9",c:"#475569",icon:"📌"};
+            return (
+              <div key={l.id} style={{display:"flex",alignItems:"flex-start",gap:12,padding:"11px 16px",borderBottom:"1px solid #f1f5f9",background:i%2===0?"#fff":"#fafbff"}}>
+                <div style={{width:34,height:34,borderRadius:"50%",background:tc.bg,display:"flex",alignItems:"center",justifyContent:"center",fontSize:15,flexShrink:0}}>
+                  {tc.icon}
+                </div>
+                <div style={{flex:1,minWidth:0}}>
+                  <div style={{display:"flex",alignItems:"center",gap:7,marginBottom:2,flexWrap:"wrap"}}>
+                    <span style={{fontWeight:700,fontSize:13,color:"#0f172a"}}>{l.action}</span>
+                    <span style={{padding:"2px 7px",borderRadius:5,fontSize:10,fontWeight:700,background:tc.bg,color:tc.c,whiteSpace:"nowrap"}}>{l.type.toUpperCase()}</span>
+                    <span style={{fontSize:10,color:"#94a3b8",fontWeight:600}}>· {l.module}</span>
+                  </div>
+                  <div style={{fontSize:12,color:"#64748b",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{l.detail}</div>
+                </div>
+                <div style={{textAlign:"right",flexShrink:0}}>
+                  <div style={{fontSize:11,color:"#64748b",whiteSpace:"nowrap"}}>{l.time.replace("2026-06-","Jun ").replace("2026-06-","Jun ")}</div>
+                  <div style={{fontSize:10,color:"#cbd5e1",marginTop:2}}>IP: {l.ip}</div>
+                </div>
+              </div>
+            );
+          })
+        )}
       </div>
     </div>
   );
