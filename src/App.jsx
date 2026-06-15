@@ -5347,6 +5347,474 @@ function AdminLeaveApprovals() {
   );
 }
 
+// ─── Phase 2: Internal Marks View (Student) ──────────────────────────────────
+function InternalMarksView() {
+  const [selSem, setSelSem] = useState("5");
+  const sems = {
+    "5": {
+      session:"Autumn 2025–26",
+      subjects:[
+        {code:"CS301",name:"Database Management Systems",ct1:17,ct2:19,ct3:18,assign:9,attend:5,max:{ct:20,assign:10,attend:5},faculty:"Dr. A. Sharma"},
+        {code:"CS302",name:"Operating Systems",ct1:14,ct2:16,ct3:null,assign:8,attend:4,max:{ct:20,assign:10,attend:5},faculty:"Prof. S. Das"},
+        {code:"CS303",name:"Computer Networks",ct1:18,ct2:17,ct3:19,assign:10,attend:5,max:{ct:20,assign:10,attend:5},faculty:"Dr. R. Panda"},
+        {code:"CS304",name:"Theory of Computation",ct1:12,ct2:14,ct3:null,assign:7,attend:3,max:{ct:20,assign:10,attend:5},faculty:"Dr. K. Rath"},
+        {code:"CS305",name:"Software Engineering",ct1:16,ct2:18,ct3:null,assign:9,attend:4,max:{ct:20,assign:10,attend:5},faculty:"Prof. M. Behera"},
+        {code:"CS301L",name:"DBMS Lab",ct1:null,ct2:null,ct3:null,assign:18,attend:5,max:{ct:null,assign:25,attend:5},faculty:"Dr. A. Sharma"},
+      ]
+    },
+    "4": {
+      session:"Spring 2024–25",
+      subjects:[
+        {code:"CS211",name:"Design & Analysis of Algorithms",ct1:18,ct2:19,ct3:17,assign:9,attend:5,max:{ct:20,assign:10,attend:5},faculty:"Dr. V. Kumar"},
+        {code:"CS212",name:"Database Management Systems",ct1:20,ct2:18,ct3:19,assign:10,attend:5,max:{ct:20,assign:10,attend:5},faculty:"Dr. A. Sharma"},
+        {code:"CS213",name:"Software Engineering",ct1:16,ct2:17,ct3:16,assign:8,attend:4,max:{ct:20,assign:10,attend:5},faculty:"Prof. M. Behera"},
+        {code:"CS214E",name:"Web Technologies",ct1:19,ct2:20,ct3:18,assign:10,attend:5,max:{ct:20,assign:10,attend:5},faculty:"Dr. R. Nair"},
+      ]
+    }
+  };
+  const current = sems[selSem];
+  const getBestTwo = (ct1,ct2,ct3) => {
+    const scores = [ct1,ct2,ct3].filter(v=>v!==null);
+    if(scores.length===0) return null;
+    if(scores.length===1) return scores[0];
+    return scores.sort((a,b)=>b-a).slice(0,2).reduce((a,b)=>a+b,0);
+  };
+  const getTotal = s => {
+    const ct = getBestTwo(s.ct1,s.ct2,s.ct3);
+    if(ct===null && s.code.endsWith("L")) return (s.assign||0)+(s.attend||0);
+    return (ct||0)+(s.assign||0)+(s.attend||0);
+  };
+  const getMax = s => {
+    if(s.code.endsWith("L")) return (s.max.assign||0)+(s.max.attend||0);
+    return (s.max.ct?s.max.ct*2:0)+(s.max.assign||0)+(s.max.attend||0);
+  };
+  const getPct = s => { const m=getMax(s); return m>0?Math.round(getTotal(s)/m*100):0; };
+
+  return (
+    <div>
+      {/* Summary cards */}
+      <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:12,marginBottom:16}}>
+        {[
+          {label:"Subjects",value:current.subjects.length,icon:"📚",color:"#6366f1"},
+          {label:"Avg Internal",value:Math.round(current.subjects.reduce((a,s)=>a+getPct(s),0)/current.subjects.length)+"%",icon:"📊",color:"#10b981"},
+          {label:"Below 50%",value:current.subjects.filter(s=>getPct(s)<50).length,icon:"⚠️",color:"#ef4444"},
+          {label:"Session",value:current.session,icon:"📅",color:"#f59e0b"},
+        ].map(c=>(
+          <div key={c.label} style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:12,padding:"14px 16px",borderLeft:`4px solid ${c.color}`}}>
+            <div style={{fontSize:20,marginBottom:4}}>{c.icon}</div>
+            <div style={{fontSize:18,fontWeight:800,color:c.color}}>{c.value}</div>
+            <div style={{fontSize:11,color:"#94a3b8",fontWeight:600,marginTop:2}}>{c.label}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Sem selector */}
+      <div style={{display:"flex",gap:6,marginBottom:12,alignItems:"center"}}>
+        <span style={{fontSize:12,fontWeight:700,color:"#475569"}}>SEMESTER:</span>
+        {Object.keys(sems).map(s=>(
+          <button key={s} onClick={()=>setSelSem(s)}
+            style={{padding:"5px 14px",borderRadius:8,border:"none",cursor:"pointer",fontSize:12,fontWeight:600,
+              background:selSem===s?"linear-gradient(135deg,#6366f1,#8b5cf6)":"#f1f5f9",
+              color:selSem===s?"#fff":"#475569"}}>
+            Sem {s}
+          </button>
+        ))}
+      </div>
+
+      <div style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:12,overflow:"hidden"}}>
+        <div style={{background:"linear-gradient(135deg,#6366f1,#8b5cf6)",padding:"12px 16px",color:"#fff",fontWeight:700,fontSize:13}}>
+          📊 Internal Assessment Marks — Sem {selSem} ({current.session})
+        </div>
+        <div style={{overflowX:"auto"}}>
+          <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
+            <thead>
+              <tr style={{background:"#f8fafc"}}>
+                {["Code","Subject","Faculty","CT-1","CT-2","CT-3","Best 2","Assignment","Attend","Total","Status"].map(h=>(
+                  <th key={h} style={{padding:"9px 12px",textAlign:"center",fontWeight:700,color:"#475569",fontSize:11,borderBottom:"1px solid #e2e8f0",whiteSpace:"nowrap"}}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {current.subjects.map((s,i)=>{
+                const best2 = getBestTwo(s.ct1,s.ct2,s.ct3);
+                const total = getTotal(s);
+                const maxTotal = getMax(s);
+                const pct = getPct(s);
+                const isLab = s.code.endsWith("L");
+                return (
+                  <tr key={s.code} style={{borderBottom:"1px solid #f1f5f9",background:i%2===0?"#fff":"#fafbff"}}>
+                    <td style={{padding:"10px 12px",color:"#6366f1",fontWeight:700,textAlign:"center"}}>{s.code}</td>
+                    <td style={{padding:"10px 12px",fontWeight:600,color:"#0f172a"}}>{s.name}</td>
+                    <td style={{padding:"10px 12px",color:"#64748b",fontSize:11}}>{s.faculty}</td>
+                    {isLab ? (
+                      <><td colSpan={3} style={{padding:"10px 12px",textAlign:"center",color:"#94a3b8",fontSize:11}}>— Lab —</td><td style={{padding:"10px 12px",textAlign:"center",color:"#94a3b8"}}>—</td></>
+                    ) : (
+                      <>
+                        {[s.ct1,s.ct2,s.ct3].map((v,j)=>(
+                          <td key={j} style={{padding:"10px 12px",textAlign:"center",fontWeight:600,color:v===null?"#94a3b8":v>=16?"#10b981":v>=12?"#f59e0b":"#ef4444"}}>
+                            {v===null?"—":v+"/20"}
+                          </td>
+                        ))}
+                        <td style={{padding:"10px 12px",textAlign:"center",fontWeight:700,color:"#6366f1"}}>{best2!==null?best2+"/40":"—"}</td>
+                      </>
+                    )}
+                    <td style={{padding:"10px 12px",textAlign:"center",fontWeight:600,color:"#334155"}}>{s.assign}/{s.max.assign}</td>
+                    <td style={{padding:"10px 12px",textAlign:"center",fontWeight:600,color:"#334155"}}>{s.attend}/{s.max.attend}</td>
+                    <td style={{padding:"10px 12px",textAlign:"center"}}>
+                      <div style={{fontWeight:800,fontSize:14,color:pct>=60?"#10b981":pct>=40?"#f59e0b":"#ef4444"}}>{total}/{maxTotal}</div>
+                      <div style={{fontSize:10,color:"#94a3b8"}}>{pct}%</div>
+                    </td>
+                    <td style={{padding:"10px 12px",textAlign:"center"}}>
+                      <span style={{padding:"3px 8px",borderRadius:6,fontSize:10,fontWeight:700,
+                        background:pct>=60?"#dcfce7":pct>=40?"#fef9c3":"#fee2e2",
+                        color:pct>=60?"#16a34a":pct>=40?"#ca8a04":"#dc2626"}}>
+                        {pct>=60?"Good":pct>=40?"Average":"Low"}
+                      </span>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+        <div style={{padding:"10px 16px",background:"#f8fafc",borderTop:"1px solid #e2e8f0",fontSize:11,color:"#94a3b8"}}>
+          ℹ️ Best 2 out of 3 Class Tests (CT) are counted. Internal marks are subject to verification before finalization.
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Phase 2: Real-time Attendance View (Student) ────────────────────────────
+function RealTimeAttendanceView() {
+  const [liveDate] = useState(new Date().toLocaleDateString("en-GB",{weekday:"long",day:"numeric",month:"long",year:"numeric"}));
+  const [lastUpdate, setLastUpdate] = useState(new Date());
+  const [tick, setTick] = useState(0);
+
+  // Simulate real-time updates every 8 seconds
+  useEffect(()=>{
+    const interval = setInterval(()=>{
+      setLastUpdate(new Date());
+      setTick(t=>t+1);
+    }, 8000);
+    return ()=>clearInterval(interval);
+  },[]);
+
+  const todayClasses = [
+    {time:"8:00–9:00 AM",code:"CS301",name:"Database Management Systems",room:"201-A",faculty:"Dr. A. Sharma",status:"present",marked:"8:02 AM"},
+    {time:"9:00–10:00 AM",code:"CS302",name:"Operating Systems",room:"202-B",faculty:"Prof. S. Das",status:"present",marked:"9:04 AM"},
+    {time:"10:00–11:00 AM",code:"CS303",name:"Computer Networks",room:"201-A",faculty:"Dr. R. Panda",status:"absent",marked:null},
+    {time:"11:00–12:00 PM",code:"CS304",name:"Theory of Computation",room:"203-C",faculty:"Dr. K. Rath",status:"ongoing",marked:null},
+    {time:"2:00–3:00 PM",code:"CS305",name:"Software Engineering",room:"201-A",faculty:"Prof. M. Behera",status:"upcoming",marked:null},
+    {time:"3:00–5:00 PM",code:"CS301L",name:"DBMS Lab",room:"DB Lab",faculty:"Dr. A. Sharma",status:"upcoming",marked:null},
+  ];
+  const statusMap = {
+    present:{label:"Present",bg:"#dcfce7",color:"#16a34a",icon:"✅"},
+    absent:{label:"Absent",bg:"#fee2e2",color:"#dc2626",icon:"❌"},
+    ongoing:{label:"Ongoing",bg:"#fef3c7",color:"#d97706",icon:"🔴"},
+    upcoming:{label:"Upcoming",bg:"#f1f5f9",color:"#64748b",icon:"🕐"},
+  };
+
+  const subjects = [
+    {code:"CS301",name:"DBMS",present:36,total:40},
+    {code:"CS302",name:"OS",present:31,total:42},
+    {code:"CS303",name:"CN",present:32,total:38},
+    {code:"CS304",name:"TOC",present:23,total:35},
+    {code:"CS305",name:"SE",present:32,total:40},
+  ];
+
+  return (
+    <div>
+      {/* Live header */}
+      <div style={{background:"linear-gradient(135deg,#0f172a,#1e293b)",borderRadius:12,padding:"16px 20px",marginBottom:16,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+        <div>
+          <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:4}}>
+            <div style={{width:8,height:8,borderRadius:"50%",background:"#10b981",animation:"pulse 2s infinite"}}/>
+            <span style={{color:"#10b981",fontSize:12,fontWeight:700}}>LIVE ATTENDANCE</span>
+          </div>
+          <div style={{color:"#fff",fontWeight:700,fontSize:15}}>{liveDate}</div>
+        </div>
+        <div style={{textAlign:"right"}}>
+          <div style={{color:"#94a3b8",fontSize:11}}>Last updated</div>
+          <div style={{color:"#e2e8f0",fontSize:13,fontWeight:600}}>{lastUpdate.toLocaleTimeString("en-GB",{hour:"2-digit",minute:"2-digit",second:"2-digit"})}</div>
+          <div style={{color:"#6366f1",fontSize:10,marginTop:2}}>Auto-refresh every 8s</div>
+        </div>
+      </div>
+
+      {/* Today's classes */}
+      <div style={{marginBottom:16}}>
+        <div style={{fontSize:13,fontWeight:700,color:"#0f172a",marginBottom:10}}>📅 Today's Classes</div>
+        <div style={{display:"flex",flexDirection:"column",gap:8}}>
+          {todayClasses.map((c,i)=>{
+            const st = statusMap[c.status];
+            return (
+              <div key={i} style={{background:"#fff",border:`1px solid ${c.status==="ongoing"?"#fcd34d":"#e2e8f0"}`,borderRadius:10,padding:"12px 16px",display:"flex",alignItems:"center",gap:12,
+                boxShadow:c.status==="ongoing"?"0 0 0 2px #fef3c7":undefined}}>
+                <div style={{fontSize:22,width:32,textAlign:"center",flexShrink:0}}>{st.icon}</div>
+                <div style={{flex:1}}>
+                  <div style={{fontWeight:700,fontSize:13,color:"#0f172a"}}>{c.name}</div>
+                  <div style={{fontSize:11,color:"#94a3b8",marginTop:2}}>{c.time} · {c.room} · {c.faculty}</div>
+                </div>
+                <div style={{textAlign:"right",flexShrink:0}}>
+                  <span style={{padding:"3px 10px",borderRadius:8,fontSize:11,fontWeight:700,background:st.bg,color:st.color}}>{st.label}</span>
+                  {c.marked && <div style={{fontSize:10,color:"#94a3b8",marginTop:3}}>Marked at {c.marked}</div>}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Running totals */}
+      <div style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:12,overflow:"hidden"}}>
+        <div style={{background:"linear-gradient(135deg,#6366f1,#8b5cf6)",padding:"10px 16px",color:"#fff",fontWeight:700,fontSize:13,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+          <span>📊 Running Attendance Totals</span>
+          <span style={{fontSize:11,opacity:0.8}}>Updated live</span>
+        </div>
+        <div style={{padding:16,display:"flex",flexDirection:"column",gap:10}}>
+          {subjects.map(s=>{
+            const pct = Math.round(s.present/s.total*100);
+            const color = pct>=75?"#10b981":pct>=65?"#f59e0b":"#ef4444";
+            return (
+              <div key={s.code} style={{display:"flex",alignItems:"center",gap:12}}>
+                <div style={{width:60,fontSize:11,fontWeight:700,color:"#6366f1",flexShrink:0}}>{s.code}</div>
+                <div style={{flex:1,fontSize:12,color:"#334155",minWidth:0,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{s.name}</div>
+                <div style={{width:120,flexShrink:0}}>
+                  <div style={{display:"flex",justifyContent:"space-between",fontSize:11,marginBottom:3}}>
+                    <span style={{color:"#94a3b8"}}>{s.present}/{s.total}</span>
+                    <span style={{fontWeight:700,color}}>{pct}%</span>
+                  </div>
+                  <div style={{height:6,background:"#f1f5f9",borderRadius:3}}>
+                    <div style={{width:pct+"%",height:"100%",background:color,borderRadius:3,transition:"width 1s ease"}}/>
+                  </div>
+                </div>
+                <span style={{width:64,textAlign:"center",fontSize:10,fontWeight:700,padding:"2px 6px",borderRadius:6,flexShrink:0,
+                  background:pct>=75?"#dcfce7":pct>=65?"#fef9c3":"#fee2e2",
+                  color:pct>=75?"#16a34a":pct>=65?"#ca8a04":"#dc2626"}}>
+                  {pct>=75?"Safe":pct>=65?"Warn":"Risk"}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+        <div style={{padding:"8px 16px",background:"#f8fafc",borderTop:"1px solid #e2e8f0",fontSize:11,color:"#94a3b8"}}>
+          🔴 Live: TOC class is currently ongoing — attendance not yet marked
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Phase 2: Bulk Messaging (Faculty/Admin) ──────────────────────────────────
+function BulkMessagingView({ role }) {
+  const [tab, setTab] = useState("compose");
+  const [form, setForm] = useState({to:"all",subject:"",message:"",priority:"normal"});
+  const [sent, setSent] = useState(false);
+  const [sentLog, setSentLog] = useState([
+    {id:1,to:"All CSE 3rd Year",subject:"Assignment Deadline Extended",time:"Jun 14, 10:20 AM",count:87,priority:"normal"},
+    {id:2,to:"Students with <75% attendance",subject:"⚠️ Attendance Warning",time:"Jun 13, 3:00 PM",count:23,priority:"urgent"},
+    {id:3,to:"All Students",subject:"Exam Hall Ticket Release",time:"Jun 12, 9:00 AM",count:420,priority:"normal"},
+  ]);
+
+  const targets = role==="admin" ? [
+    {value:"all",label:"All Students (420)",icon:"👥"},
+    {value:"cse3",label:"CSE 3rd Year (87)",icon:"🎓"},
+    {value:"att",label:"Students <75% Attendance (23)",icon:"⚠️"},
+    {value:"fee",label:"Fee Defaulters (18)",icon:"💰"},
+    {value:"faculty",label:"All Faculty (62)",icon:"🧑‍🏫"},
+    {value:"dept",label:"CSE Department — All (149)",icon:"🏛️"},
+  ] : [
+    {value:"all",label:"All My Students (87)",icon:"👥"},
+    {value:"cs301",label:"DBMS Class (43)",icon:"📚"},
+    {value:"cs302",label:"OS Class (38)",icon:"📚"},
+    {value:"att",label:"Absent Today (8)",icon:"⚠️"},
+    {value:"low",label:"Low Attendance (<75%) (15)",icon:"🔴"},
+  ];
+
+  const sendMessage = () => {
+    if(!form.subject||!form.message) return;
+    const target = targets.find(t=>t.value===form.to);
+    const count = parseInt(target.label.match(/\((\d+)\)/)?.[1]||"0");
+    setSentLog(p=>[{id:Date.now(),to:target.label,subject:form.subject,time:new Date().toLocaleString("en-GB",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"}),count,priority:form.priority},...p]);
+    setSent(true);
+    setTimeout(()=>{setSent(false);setForm({to:"all",subject:"",message:"",priority:"normal"});},2000);
+  };
+
+  return (
+    <div>
+      <div style={{display:"flex",gap:4,background:"#f1f5f9",borderRadius:8,padding:3,marginBottom:14,width:"fit-content"}}>
+        {[["compose","✍️ Compose"],["log","📤 Sent Log"]].map(([t,l])=>(
+          <button key={t} onClick={()=>setTab(t)} style={{padding:"7px 18px",border:"none",borderRadius:6,cursor:"pointer",fontSize:13,fontWeight:600,
+            background:tab===t?"linear-gradient(135deg,#6366f1,#8b5cf6)":"transparent",color:tab===t?"#fff":"#64748b"}}>
+            {l}
+          </button>
+        ))}
+      </div>
+
+      {tab==="compose" && (
+        <div style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:12,overflow:"hidden"}}>
+          <div style={{background:"linear-gradient(135deg,#6366f1,#8b5cf6)",padding:"12px 18px",color:"#fff",fontWeight:700,fontSize:14}}>
+            📢 Bulk Message — Send to Group
+          </div>
+          {sent ? (
+            <div style={{padding:"48px",textAlign:"center"}}>
+              <div style={{fontSize:52,marginBottom:12}}>✅</div>
+              <div style={{fontWeight:700,fontSize:16,color:"#0f172a"}}>Message Sent!</div>
+              <div style={{fontSize:13,color:"#64748b",marginTop:6}}>Delivered to {targets.find(t=>t.value===form.to)?.label}</div>
+            </div>
+          ) : (
+            <div style={{padding:"20px 22px",display:"grid",gap:14}}>
+              {/* Target audience */}
+              <div>
+                <label style={{fontSize:11,fontWeight:700,color:"#475569",display:"block",marginBottom:8}}>SEND TO *</label>
+                <div style={{display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:8}}>
+                  {targets.map(t=>(
+                    <div key={t.value} onClick={()=>setForm(f=>({...f,to:t.value}))}
+                      style={{display:"flex",alignItems:"center",gap:8,padding:"10px 14px",border:`2px solid ${form.to===t.value?"#6366f1":"#e2e8f0"}`,borderRadius:10,cursor:"pointer",background:form.to===t.value?"#eef2ff":"#fff",transition:"all .15s"}}>
+                      <span style={{fontSize:18}}>{t.icon}</span>
+                      <span style={{fontSize:12,fontWeight:form.to===t.value?700:500,color:form.to===t.value?"#6366f1":"#334155"}}>{t.label}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              {/* Priority */}
+              <div>
+                <label style={{fontSize:11,fontWeight:700,color:"#475569",display:"block",marginBottom:6}}>PRIORITY</label>
+                <div style={{display:"flex",gap:8}}>
+                  {[["normal","Normal","#6366f1"],["urgent","🚨 Urgent","#ef4444"],["info","ℹ️ Info","#10b981"]].map(([v,l,c])=>(
+                    <button key={v} onClick={()=>setForm(f=>({...f,priority:v}))}
+                      style={{padding:"6px 16px",border:`2px solid ${form.priority===v?c:"#e2e8f0"}`,borderRadius:20,fontSize:12,fontWeight:600,cursor:"pointer",background:form.priority===v?c+"15":"#fff",color:form.priority===v?c:"#64748b",transition:"all .15s"}}>
+                      {l}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              {/* Subject */}
+              <div>
+                <label style={{fontSize:11,fontWeight:700,color:"#475569",display:"block",marginBottom:4}}>SUBJECT *</label>
+                <input value={form.subject} onChange={e=>setForm(f=>({...f,subject:e.target.value}))}
+                  placeholder="e.g. Assignment Deadline Extended"
+                  style={{width:"100%",boxSizing:"border-box",padding:"9px 12px",border:"1px solid #e2e8f0",borderRadius:8,fontSize:13,outline:"none",fontFamily:"inherit"}}/>
+              </div>
+              {/* Message */}
+              <div>
+                <label style={{fontSize:11,fontWeight:700,color:"#475569",display:"block",marginBottom:4}}>MESSAGE *</label>
+                <textarea value={form.message} onChange={e=>setForm(f=>({...f,message:e.target.value}))} rows={5}
+                  placeholder="Type your message here..."
+                  style={{width:"100%",boxSizing:"border-box",padding:"9px 12px",border:"1px solid #e2e8f0",borderRadius:8,fontSize:13,outline:"none",resize:"vertical",fontFamily:"inherit"}}/>
+              </div>
+              {/* Preview */}
+              {form.subject && form.message && (
+                <div style={{background:"#f8fafc",border:"1px solid #e2e8f0",borderRadius:10,padding:"12px 16px"}}>
+                  <div style={{fontSize:11,fontWeight:700,color:"#94a3b8",marginBottom:6}}>PREVIEW</div>
+                  <div style={{fontSize:12,fontWeight:700,color:"#0f172a",marginBottom:4}}>📢 {form.subject}</div>
+                  <div style={{fontSize:12,color:"#475569",lineHeight:1.6}}>{form.message}</div>
+                  <div style={{fontSize:11,color:"#94a3b8",marginTop:6}}>→ To: {targets.find(t=>t.value===form.to)?.label}</div>
+                </div>
+              )}
+              <button onClick={sendMessage} disabled={!form.subject||!form.message}
+                style={{padding:"12px",background:(!form.subject||!form.message)?"#e2e8f0":"linear-gradient(135deg,#6366f1,#8b5cf6)",color:(!form.subject||!form.message)?"#94a3b8":"#fff",border:"none",borderRadius:8,fontWeight:700,cursor:(!form.subject||!form.message)?"not-allowed":"pointer",fontSize:14}}>
+                🚀 Send Message
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {tab==="log" && (
+        <div style={{display:"flex",flexDirection:"column",gap:10}}>
+          {sentLog.map(m=>(
+            <div key={m.id} style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:10,padding:"14px 16px",display:"flex",gap:14,alignItems:"center"}}>
+              <div style={{width:44,height:44,borderRadius:10,background:"#eef2ff",display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,flexShrink:0}}>📤</div>
+              <div style={{flex:1}}>
+                <div style={{fontWeight:700,fontSize:13,color:"#0f172a"}}>{m.subject}</div>
+                <div style={{fontSize:12,color:"#64748b",marginTop:2}}>To: {m.to} · {m.time}</div>
+              </div>
+              <div style={{textAlign:"right",flexShrink:0}}>
+                <div style={{fontWeight:700,fontSize:14,color:"#6366f1"}}>{m.count}</div>
+                <div style={{fontSize:10,color:"#94a3b8"}}>recipients</div>
+                {m.priority==="urgent" && <span style={{fontSize:10,fontWeight:700,color:"#ef4444",background:"#fee2e2",padding:"2px 6px",borderRadius:4}}>URGENT</span>}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Phase 2: Attendance Export ───────────────────────────────────────────────
+function AttendanceExport() {
+  const [exported, setExported] = useState(false);
+  const [selSubject, setSelSubject] = useState("CS301");
+  const subjects = [
+    {code:"CS301",name:"DBMS",students:[
+      {roll:"22CS001",name:"Riya Patel",present:36,total:40},
+      {roll:"22CS005",name:"Amit Kumar",present:30,total:40},
+      {roll:"22CS012",name:"Priya Nair",present:38,total:40},
+      {roll:"21CS019",name:"Rahul Gupta",present:28,total:40},
+      {roll:"22CS021",name:"Ananya Das",present:35,total:40},
+    ]},
+    {code:"CS302",name:"OS",students:[
+      {roll:"22CS001",name:"Riya Patel",present:31,total:42},
+      {roll:"22CS005",name:"Amit Kumar",present:28,total:42},
+      {roll:"22CS012",name:"Priya Nair",present:39,total:42},
+    ]},
+  ];
+  const sel = subjects.find(s=>s.code===selSubject);
+
+  const exportCSV = () => {
+    const header = ["Roll No","Name","Present","Total","Percentage","Status"];
+    const rows = sel.students.map(s=>{
+      const pct = Math.round(s.present/s.total*100);
+      return [s.roll,s.name,s.present,s.total,pct+"%",pct>=75?"Safe":pct>=65?"Warning":"Shortage"];
+    });
+    const csv = [header,...rows].map(r=>r.join(",")).join("\n");
+    const blob = new Blob([csv],{type:"text/csv"});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href=url; a.download=`Attendance_${selSubject}_${new Date().toISOString().slice(0,10)}.csv`;
+    a.click(); URL.revokeObjectURL(url);
+    setExported(true); setTimeout(()=>setExported(false),2000);
+  };
+
+  return (
+    <Widget title="📥 Export Attendance CSV">
+      <div style={{display:"flex",gap:10,marginBottom:14,alignItems:"center",flexWrap:"wrap"}}>
+        <div>
+          <label style={{fontSize:11,fontWeight:700,color:"#475569",display:"block",marginBottom:4}}>SELECT SUBJECT</label>
+          <select value={selSubject} onChange={e=>setSelSubject(e.target.value)}
+            style={{padding:"8px 12px",border:"1px solid #e2e8f0",borderRadius:8,fontSize:13,fontFamily:"inherit",outline:"none"}}>
+            {subjects.map(s=><option key={s.code} value={s.code}>{s.code} — {s.name}</option>)}
+          </select>
+        </div>
+        <button onClick={exportCSV}
+          style={{padding:"9px 20px",background:exported?"#10b981":"linear-gradient(135deg,#6366f1,#8b5cf6)",color:"#fff",border:"none",borderRadius:8,fontWeight:700,cursor:"pointer",fontSize:13,marginTop:16,transition:"background .2s"}}>
+          {exported?"✅ Downloaded!":"📥 Download CSV"}
+        </button>
+      </div>
+      <div style={{overflowX:"auto"}}>
+        <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
+          <thead><tr style={{background:"#6366f1",color:"#fff"}}>
+            {["Roll No","Name","Present","Total","Percentage","Status"].map(h=><th key={h} style={{padding:"8px 10px",textAlign:"left",fontSize:11}}>{h}</th>)}
+          </tr></thead>
+          <tbody>{sel.students.map((s,i)=>{
+            const pct=Math.round(s.present/s.total*100);
+            return (<tr key={s.roll} style={{borderBottom:"1px solid #f1f5f9",background:i%2===0?"#fff":"#fafbff"}}>
+              <td style={{padding:"8px 10px",color:"#6366f1",fontWeight:700}}>{s.roll}</td>
+              <td style={{padding:"8px 10px",fontWeight:600,color:"#0f172a"}}>{s.name}</td>
+              <td style={{padding:"8px 10px",textAlign:"center"}}>{s.present}</td>
+              <td style={{padding:"8px 10px",textAlign:"center",color:"#64748b"}}>{s.total}</td>
+              <td style={{padding:"8px 10px",textAlign:"center",fontWeight:700,color:pct>=75?"#10b981":pct>=65?"#f59e0b":"#ef4444"}}>{pct}%</td>
+              <td style={{padding:"8px 10px"}}><span style={{padding:"2px 8px",borderRadius:6,fontSize:10,fontWeight:700,background:pct>=75?"#dcfce7":pct>=65?"#fef9c3":"#fee2e2",color:pct>=75?"#16a34a":pct>=65?"#ca8a04":"#dc2626"}}>{pct>=75?"Safe":pct>=65?"Warning":"Shortage"}</span></td>
+            </tr>);
+          })}</tbody>
+        </table>
+      </div>
+    </Widget>
+  );
+}
+
 function AdminReports() {
   const reports = [
     {title:"Student Strength Report",desc:"Dept-wise enrollment, gender ratio, category",icon:"📊",color:"#6366f1"},
@@ -6437,6 +6905,8 @@ export default function App() {
     registration:<CourseRegistration/>,
     feedback: uid ? <LiveFeedbackView uid={uid}/> : <FeedbackView/>,
     messages:<StudentMessaging user={auth}/>,
+    internalmarks:<InternalMarksView/>,
+    liveattendance:<RealTimeAttendanceView/>,
     profile:<StudentProfile user={auth}/>, auditlog:<AuditLog role="student"/>,
     transport:<TransportView/>, alumni:<AlumniConnect user={auth}/>, elearning:<ELearningView/>,
     marksheet:<MarksheetView user={auth}/>,
@@ -6444,6 +6914,8 @@ export default function App() {
   const facultyViews = {
     dashboard:<FacultyDashboard user={auth}/>, subjects:<FacultySubjectsView/>,
     assignments:<AssignmentsView role="faculty"/>,
+    bulkmessage:<BulkMessagingView role="faculty"/>,
+    attendanceexport:<AttendanceExport/>,
     lab:<LabView/>, attendance:<AttendanceView/>, evaluation:<EvaluationView/>,
     research:<ResearchView/>, duty:<DutyView/>, notices:<NoticesView/>,
     copo:<COPOView/>,
@@ -6459,6 +6931,7 @@ export default function App() {
   const adminViews = {
     dashboard:<AdminDashboard user={auth} setActive={setActive}/>, students:<AdminStudents/>,
     faculty:<AdminFaculty/>, leaves:<AdminLeaveApprovals/>,
+    bulkmessage:<BulkMessagingView role="admin"/>,
     reports:<AdminReports/>, timetable:<AdminTimetable/>, notices:<AdminNotices/>,
     fts:<FileTrackingSystem user={auth}/>, complaint:<ComplaintManagement/>,
     groupemail:<GroupEmail/>, vehicle:<VehicleRequisition/>, purchase:<PurchaseView/>,
@@ -6474,11 +6947,15 @@ export default function App() {
     ["Library","library"],["Placement Cell","placement"],["E-Learning","elearning"],
     ["Transport","transport"],["Alumni Connect","alumni"],
     ["Course Registration","registration"],["Grievance","grievance"],
-    ["Feedback","feedback"],["Messages","messages"],["Profile","profile"],["Audit Log","auditlog"],["Notices","notices"],
+    ["Feedback","feedback"],["Messages","messages"],
+    ["Internal Marks","internalmarks"],["Live Attendance","liveattendance"],
+    ["Profile","profile"],["Audit Log","auditlog"],["Notices","notices"],
   ];
   const facultySidebarLinks = [
     ["Dashboard","dashboard"],["Subjects & Students","subjects"],["Lab","lab"],
-    ["Attendance","attendance"],["Evaluation","evaluation"],["Assignments","assignments"],["Research","research"],
+    ["Attendance","attendance"],["Evaluation","evaluation"],["Assignments","assignments"],
+    ["Bulk Message","bulkmessage"],["Attendance Export","attendanceexport"],
+    ["Research","research"],
     ["CO/PO Attainment","copo"],["Syllabus Tracker","syllabus"],["Question Paper","qpaper"],["File Tracking","fts"],["Services","services"],
     ["Exam & Duty","duty"],["Feedback Results","feedback"],
     ["My Profile","profile"],["Audit Log","auditlog"],["Notices","notices"],
@@ -6487,15 +6964,18 @@ export default function App() {
   // Academic dropdown items
   const studentMenuItems = [
     ["Student Information","profile"],["Registration","registration"],["Attendance and Leave","attendance"],
+    ["📡 Live Attendance","liveattendance"],["📊 Internal Marks","internalmarks"],
     ["Feedback / Assessment","feedback"],["Examination","exam"],["Fee Payment","fee"],
-    ["Hostel Management","fee"],["Assignments","assignments"],
+    ["Hostel Management","fee"],["Assignments","assignments"],["💬 Messages","messages"],
     ["Hall Ticket","hallticket"],["Library","library"],["Placement Cell","placement"],
     ["E-Learning","elearning"],["Transport","transport"],["Alumni Connect","alumni"],
     ["Grievance Portal","grievance"],["Scholarships","fee"],["Audit Log","auditlog"],
   ];
   const facultyMenuItems = [
     ["Dashboard","dashboard"],["Subjects & Students","subjects"],["Lab Management","lab"],
-    ["Attendance & Leave","attendance"],["Evaluation","evaluation"],
+    ["Attendance & Leave","attendance"],["📤 Bulk Message","bulkmessage"],
+    ["📥 Attendance Export","attendanceexport"],["Assignments","assignments"],
+    ["Evaluation","evaluation"],
     ["Research Scholars","research"],["CO/PO Attainment","copo"],
     ["Exam & Duty","duty"],["Feedback Results","feedback"],
     ["My Profile","profile"],["Audit Log","auditlog"],["Notices","notices"],
@@ -6503,7 +6983,8 @@ export default function App() {
 
   const adminMenuItems = [
     ["Dashboard","dashboard"],["🔐 User Approvals","approvals"],["Students","students"],["Faculty","faculty"],
-    ["Leave Approvals","leaves"],["Timetable","timetable"],["Notices","notices"],["Reports","reports"],
+    ["Leave Approvals","leaves"],["📢 Bulk Message","bulkmessage"],
+    ["Timetable","timetable"],["Notices","notices"],["Reports","reports"],
   ];
   const adminServiceItems = [
     ["File Tracking","fts"],["Complaint Management","complaint"],["Group Email","groupemail"],
