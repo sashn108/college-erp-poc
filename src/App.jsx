@@ -5847,6 +5847,341 @@ function AdminReports() {
   );
 }
 
+// ─── Phase 3: Academic Calendar ───────────────────────────────────────────────
+function AcademicCalendar() {
+  const [selMonth, setSelMonth] = useState(5);
+  const year = 2026;
+  const events = {
+    "2026-06-01":["Semester begins"],"2026-06-05":["Last date for course add/drop"],
+    "2026-06-10":["Fee payment deadline"],"2026-06-15":["CT-1 week begins"],
+    "2026-06-20":["CT-1 results declared"],"2026-06-25":["Mid-semester project submission"],
+    "2026-07-04":["CT-2 week begins"],"2026-07-15":["Last date for withdrawal"],
+    "2026-07-22":["CT-3 week begins"],"2026-07-28":["End-sem exam form submission"],
+    "2026-08-01":["End-semester exams begin"],"2026-08-15":["Independence Day — Holiday"],
+    "2026-08-20":["End-semester exams end"],"2026-08-28":["Results declaration"],
+    "2026-09-01":["New semester registration opens"],
+  };
+  const months=["January","February","March","April","May","June","July","August","September","October","November","December"];
+  const daysInMonth=new Date(year,selMonth+1,0).getDate();
+  const firstDay=new Date(year,selMonth,1).getDay();
+  const days=[]; for(let i=0;i<firstDay;i++) days.push(null); for(let i=1;i<=daysInMonth;i++) days.push(i);
+  const getKey=d=>`${year}-${String(selMonth+1).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
+  const today=new Date();
+  const upcomingEvents=Object.entries(events).filter(([k])=>new Date(k)>=today).sort(([a],[b])=>new Date(a)-new Date(b)).slice(0,6);
+  return (
+    <div>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 300px",gap:14}}>
+        <div style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:12,overflow:"hidden"}}>
+          <div style={{background:"linear-gradient(135deg,#6366f1,#8b5cf6)",padding:"12px 16px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+            <button onClick={()=>setSelMonth(m=>(m-1+12)%12)} style={{background:"rgba(255,255,255,0.2)",border:"none",color:"#fff",borderRadius:6,padding:"4px 10px",cursor:"pointer",fontSize:16}}>‹</button>
+            <span style={{color:"#fff",fontWeight:700,fontSize:15}}>{months[selMonth]} {year}</span>
+            <button onClick={()=>setSelMonth(m=>(m+1)%12)} style={{background:"rgba(255,255,255,0.2)",border:"none",color:"#fff",borderRadius:6,padding:"4px 10px",cursor:"pointer",fontSize:16}}>›</button>
+          </div>
+          <div style={{padding:14}}>
+            <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:4,marginBottom:6}}>
+              {["Sun","Mon","Tue","Wed","Thu","Fri","Sat"].map(d=><div key={d} style={{textAlign:"center",fontSize:10,fontWeight:700,color:"#94a3b8",padding:"4px 0"}}>{d}</div>)}
+            </div>
+            <div style={{display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:4}}>
+              {days.map((d,i)=>{
+                if(!d) return <div key={i}/>;
+                const key=getKey(d); const hasEvent=events[key];
+                const isToday=today.getFullYear()===year&&today.getMonth()===selMonth&&today.getDate()===d;
+                return (<div key={i} title={hasEvent?hasEvent.join(", "):""} style={{textAlign:"center",padding:"7px 2px",borderRadius:8,fontSize:12,fontWeight:isToday||hasEvent?700:400,
+                  background:isToday?"#6366f1":hasEvent?"#eef2ff":"transparent",color:isToday?"#fff":hasEvent?"#6366f1":"#334155",
+                  border:hasEvent&&!isToday?"1px solid #c7d2fe":"1px solid transparent",cursor:hasEvent?"pointer":"default"}}>
+                  {d}
+                  {hasEvent&&<div style={{width:5,height:5,borderRadius:"50%",background:isToday?"rgba(255,255,255,0.8)":"#6366f1",margin:"2px auto 0"}}/>}
+                </div>);
+              })}
+            </div>
+          </div>
+        </div>
+        <div style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:12,overflow:"hidden"}}>
+          <div style={{background:"linear-gradient(135deg,#6366f1,#8b5cf6)",padding:"12px 16px",color:"#fff",fontWeight:700,fontSize:13}}>📅 Upcoming Events</div>
+          <div style={{padding:12,display:"flex",flexDirection:"column",gap:8}}>
+            {upcomingEvents.map(([date,evts])=>(
+              <div key={date} style={{display:"flex",gap:10,padding:"8px 10px",background:"#f8fafc",borderRadius:8,border:"1px solid #e2e8f0"}}>
+                <div style={{textAlign:"center",background:"#6366f1",borderRadius:8,padding:"4px 8px",flexShrink:0}}>
+                  <div style={{color:"rgba(255,255,255,0.8)",fontSize:9,fontWeight:700}}>{months[new Date(date).getMonth()].slice(0,3).toUpperCase()}</div>
+                  <div style={{color:"#fff",fontWeight:800,fontSize:16,lineHeight:1}}>{new Date(date).getDate()}</div>
+                </div>
+                <div>{evts.map((e,i)=><div key={i} style={{fontSize:12,fontWeight:600,color:"#0f172a",lineHeight:1.4}}>{e}</div>)}
+                  <div style={{fontSize:10,color:"#94a3b8",marginTop:2}}>{new Date(date).toLocaleDateString("en-GB",{weekday:"long"})}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Phase 3: Department Management ──────────────────────────────────────────
+function DepartmentManagement() {
+  const [depts,setDepts]=useState([
+    {id:1,name:"Computer Science & Engineering",code:"CSE",hod:"Dr. A.K. Sharma",students:640,faculty:42,courses:28,estd:1994},
+    {id:2,name:"Electronics & Communication Engg",code:"ECE",hod:"Prof. R.K. Panda",students:520,faculty:38,courses:24,estd:1994},
+    {id:3,name:"Mechanical Engineering",code:"MECH",hod:"Dr. S. Das",students:480,faculty:35,courses:22,estd:1994},
+    {id:4,name:"Civil Engineering",code:"CIVIL",hod:"Dr. M. Behera",students:400,faculty:30,courses:20,estd:1996},
+    {id:5,name:"Electrical & Electronics Engg",code:"EEE",hod:"Prof. K. Nair",students:360,faculty:28,courses:18,estd:1998},
+    {id:6,name:"Master of Business Administration",code:"MBA",hod:"Dr. P. Singh",students:240,faculty:22,courses:16,estd:2002},
+  ]);
+  const [show,setShow]=useState(false);
+  const [form,setForm]=useState({name:"",code:"",hod:"",estd:""});
+  const [search,setSearch]=useState("");
+  const addDept=()=>{ if(!form.name||!form.code) return; setDepts(p=>[...p,{id:Date.now(),...form,students:0,faculty:0,courses:0}]); setForm({name:"",code:"",hod:"",estd:""}); setShow(false); };
+  const filtered=depts.filter(d=>d.name.toLowerCase().includes(search.toLowerCase())||d.code.toLowerCase().includes(search.toLowerCase()));
+  return (
+    <div>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
+        <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="🔍 Search department..." style={{padding:"8px 14px",border:"1px solid #e2e8f0",borderRadius:8,fontSize:13,outline:"none",width:240,fontFamily:"inherit"}}/>
+        <button onClick={()=>setShow(true)} style={{padding:"9px 18px",background:"linear-gradient(135deg,#6366f1,#8b5cf6)",color:"#fff",border:"none",borderRadius:8,fontWeight:700,cursor:"pointer",fontSize:13}}>+ Add Department</button>
+      </div>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:12}}>
+        {filtered.map(d=>(
+          <div key={d.id} style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:12,padding:"16px 18px",borderLeft:"4px solid #6366f1"}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:10}}>
+              <div>
+                <div style={{fontWeight:800,fontSize:15,color:"#0f172a"}}>{d.code}</div>
+                <div style={{fontSize:12,color:"#64748b",marginTop:2}}>{d.name}</div>
+                <div style={{fontSize:11,color:"#94a3b8",marginTop:2}}>HOD: {d.hod} · Est. {d.estd}</div>
+              </div>
+              <span style={{padding:"3px 10px",background:"#dcfce7",color:"#16a34a",borderRadius:8,fontSize:10,fontWeight:700}}>ACTIVE</span>
+            </div>
+            <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8}}>
+              {[["Students",d.students,"🎓"],["Faculty",d.faculty,"👨‍🏫"],["Courses",d.courses,"📚"]].map(([l,v,ic])=>(
+                <div key={l} style={{background:"#f8fafc",borderRadius:8,padding:"8px 10px",textAlign:"center"}}>
+                  <div style={{fontSize:16}}>{ic}</div>
+                  <div style={{fontWeight:800,fontSize:15,color:"#6366f1"}}>{v}</div>
+                  <div style={{fontSize:10,color:"#94a3b8"}}>{l}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+      {show&&(
+        <div style={{position:"fixed",inset:0,background:"rgba(15,23,42,0.6)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center"}} onClick={()=>setShow(false)}>
+          <div style={{background:"#fff",borderRadius:14,width:440,overflow:"hidden",boxShadow:"0 20px 60px rgba(0,0,0,0.25)"}} onClick={e=>e.stopPropagation()}>
+            <div style={{background:"linear-gradient(135deg,#6366f1,#8b5cf6)",padding:"14px 18px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+              <span style={{color:"#fff",fontWeight:700,fontSize:15}}>Add Department</span>
+              <button onClick={()=>setShow(false)} style={{background:"rgba(255,255,255,0.2)",border:"none",color:"#fff",borderRadius:6,width:28,height:28,cursor:"pointer",fontSize:16}}>✕</button>
+            </div>
+            <div style={{padding:"20px 22px",display:"grid",gap:12}}>
+              {[["Department Name","name","e.g. Biotechnology"],["Short Code","code","e.g. BT"],["Head of Department","hod","e.g. Dr. Name"],["Year Established","estd","e.g. 2010"]].map(([label,key,ph])=>(
+                <div key={key}>
+                  <label style={{fontSize:11,fontWeight:700,color:"#475569",display:"block",marginBottom:4}}>{label.toUpperCase()}</label>
+                  <input value={form[key]} onChange={e=>setForm(f=>({...f,[key]:e.target.value}))} placeholder={ph} style={{width:"100%",boxSizing:"border-box",padding:"9px 12px",border:"1px solid #e2e8f0",borderRadius:8,fontSize:13,outline:"none",fontFamily:"inherit"}}/>
+                </div>
+              ))}
+              <button onClick={addDept} style={{padding:"11px",background:"linear-gradient(135deg,#6366f1,#8b5cf6)",color:"#fff",border:"none",borderRadius:8,fontWeight:700,cursor:"pointer",fontSize:14}}>Add Department</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Phase 3: Course Management ───────────────────────────────────────────────
+function CourseManagement() {
+  const [courses,setCourses]=useState([
+    {id:1,code:"CS301",name:"Database Management Systems",dept:"CSE",sem:5,credits:4,type:"Theory",faculty:"Dr. A. Sharma",enrolled:87},
+    {id:2,code:"CS302",name:"Operating Systems",dept:"CSE",sem:5,credits:4,type:"Theory",faculty:"Prof. S. Das",enrolled:87},
+    {id:3,code:"CS303",name:"Computer Networks",dept:"CSE",sem:5,credits:3,type:"Theory",faculty:"Dr. R. Panda",enrolled:87},
+    {id:4,code:"CS301L",name:"DBMS Lab",dept:"CSE",sem:5,credits:2,type:"Lab",faculty:"Dr. A. Sharma",enrolled:87},
+    {id:5,code:"EC201",name:"Signals and Systems",dept:"ECE",sem:3,credits:4,type:"Theory",faculty:"Prof. R.K. Panda",enrolled:65},
+    {id:6,code:"ME301",name:"Thermodynamics",dept:"MECH",sem:5,credits:4,type:"Theory",faculty:"Dr. S. Das",enrolled:72},
+  ]);
+  const [selDept,setSelDept]=useState("ALL");
+  const [show,setShow]=useState(false);
+  const [form,setForm]=useState({code:"",name:"",dept:"CSE",sem:"",credits:"",type:"Theory",faculty:""});
+  const depts=["ALL","CSE","ECE","MECH","CIVIL","EEE","MBA"];
+  const filtered=selDept==="ALL"?courses:courses.filter(c=>c.dept===selDept);
+  const addCourse=()=>{ if(!form.code||!form.name) return; setCourses(p=>[...p,{id:Date.now(),...form,sem:parseInt(form.sem),credits:parseInt(form.credits),enrolled:0}]); setForm({code:"",name:"",dept:"CSE",sem:"",credits:"",type:"Theory",faculty:""}); setShow(false); };
+  return (
+    <div>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14,flexWrap:"wrap",gap:8}}>
+        <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+          {depts.map(d=><button key={d} onClick={()=>setSelDept(d)} style={{padding:"6px 14px",border:"none",borderRadius:8,cursor:"pointer",fontSize:12,fontWeight:600,background:selDept===d?"linear-gradient(135deg,#6366f1,#8b5cf6)":"#f1f5f9",color:selDept===d?"#fff":"#475569"}}>{d}</button>)}
+        </div>
+        <button onClick={()=>setShow(true)} style={{padding:"9px 18px",background:"linear-gradient(135deg,#6366f1,#8b5cf6)",color:"#fff",border:"none",borderRadius:8,fontWeight:700,cursor:"pointer",fontSize:13}}>+ Add Course</button>
+      </div>
+      <div style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:12,overflow:"hidden"}}>
+        <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
+          <thead><tr style={{background:"#6366f1",color:"#fff"}}>{["Code","Course Name","Dept","Sem","Credits","Type","Faculty","Enrolled"].map(h=><th key={h} style={{padding:"9px 12px",textAlign:"left",fontSize:11}}>{h}</th>)}</tr></thead>
+          <tbody>{filtered.map((c,i)=>(<tr key={c.id} style={{borderBottom:"1px solid #f1f5f9",background:i%2===0?"#fff":"#fafbff"}}>
+            <td style={{padding:"10px 12px",color:"#6366f1",fontWeight:700}}>{c.code}</td>
+            <td style={{padding:"10px 12px",fontWeight:600,color:"#0f172a"}}>{c.name}</td>
+            <td style={{padding:"10px 12px",color:"#64748b"}}>{c.dept}</td>
+            <td style={{padding:"10px 12px",textAlign:"center"}}>{c.sem}</td>
+            <td style={{padding:"10px 12px",textAlign:"center",fontWeight:700,color:"#6366f1"}}>{c.credits}</td>
+            <td style={{padding:"10px 12px"}}><span style={{padding:"2px 8px",borderRadius:6,fontSize:10,fontWeight:700,background:c.type==="Lab"?"#fef3c7":"#eef2ff",color:c.type==="Lab"?"#d97706":"#4338ca"}}>{c.type}</span></td>
+            <td style={{padding:"10px 12px",fontSize:11,color:"#64748b"}}>{c.faculty}</td>
+            <td style={{padding:"10px 12px",textAlign:"center",fontWeight:700,color:"#10b981"}}>{c.enrolled}</td>
+          </tr>))}</tbody>
+        </table>
+      </div>
+      {show&&(
+        <div style={{position:"fixed",inset:0,background:"rgba(15,23,42,0.6)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center"}} onClick={()=>setShow(false)}>
+          <div style={{background:"#fff",borderRadius:14,width:460,overflow:"hidden",boxShadow:"0 20px 60px rgba(0,0,0,0.25)"}} onClick={e=>e.stopPropagation()}>
+            <div style={{background:"linear-gradient(135deg,#6366f1,#8b5cf6)",padding:"14px 18px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+              <span style={{color:"#fff",fontWeight:700,fontSize:15}}>Add Course</span>
+              <button onClick={()=>setShow(false)} style={{background:"rgba(255,255,255,0.2)",border:"none",color:"#fff",borderRadius:6,width:28,height:28,cursor:"pointer",fontSize:16}}>✕</button>
+            </div>
+            <div style={{padding:"18px 20px",display:"grid",gap:11}}>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+                {[["Course Code","code","CS401"],["Course Name","name","e.g. Machine Learning"]].map(([l,k,p])=>(
+                  <div key={k}><label style={{fontSize:11,fontWeight:700,color:"#475569",display:"block",marginBottom:4}}>{l.toUpperCase()}</label>
+                  <input value={form[k]} onChange={e=>setForm(f=>({...f,[k]:e.target.value}))} placeholder={p} style={{width:"100%",boxSizing:"border-box",padding:"8px 10px",border:"1px solid #e2e8f0",borderRadius:7,fontSize:12,outline:"none",fontFamily:"inherit"}}/></div>
+                ))}
+              </div>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10}}>
+                <div><label style={{fontSize:11,fontWeight:700,color:"#475569",display:"block",marginBottom:4}}>DEPT</label>
+                  <select value={form.dept} onChange={e=>setForm(f=>({...f,dept:e.target.value}))} style={{width:"100%",padding:"8px 10px",border:"1px solid #e2e8f0",borderRadius:7,fontSize:12,outline:"none",fontFamily:"inherit"}}>
+                    {["CSE","ECE","MECH","CIVIL","EEE","MBA"].map(d=><option key={d}>{d}</option>)}</select></div>
+                <div><label style={{fontSize:11,fontWeight:700,color:"#475569",display:"block",marginBottom:4}}>SEM</label>
+                  <input type="number" min="1" max="8" value={form.sem} onChange={e=>setForm(f=>({...f,sem:e.target.value}))} placeholder="5" style={{width:"100%",boxSizing:"border-box",padding:"8px 10px",border:"1px solid #e2e8f0",borderRadius:7,fontSize:12,outline:"none",fontFamily:"inherit"}}/></div>
+                <div><label style={{fontSize:11,fontWeight:700,color:"#475569",display:"block",marginBottom:4}}>CREDITS</label>
+                  <input type="number" min="1" max="6" value={form.credits} onChange={e=>setForm(f=>({...f,credits:e.target.value}))} placeholder="4" style={{width:"100%",boxSizing:"border-box",padding:"8px 10px",border:"1px solid #e2e8f0",borderRadius:7,fontSize:12,outline:"none",fontFamily:"inherit"}}/></div>
+              </div>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+                <div><label style={{fontSize:11,fontWeight:700,color:"#475569",display:"block",marginBottom:4}}>TYPE</label>
+                  <select value={form.type} onChange={e=>setForm(f=>({...f,type:e.target.value}))} style={{width:"100%",padding:"8px 10px",border:"1px solid #e2e8f0",borderRadius:7,fontSize:12,outline:"none",fontFamily:"inherit"}}>
+                    {["Theory","Lab","Elective","Project"].map(t=><option key={t}>{t}</option>)}</select></div>
+                <div><label style={{fontSize:11,fontWeight:700,color:"#475569",display:"block",marginBottom:4}}>FACULTY</label>
+                  <input value={form.faculty} onChange={e=>setForm(f=>({...f,faculty:e.target.value}))} placeholder="Dr. Name" style={{width:"100%",boxSizing:"border-box",padding:"8px 10px",border:"1px solid #e2e8f0",borderRadius:7,fontSize:12,outline:"none",fontFamily:"inherit"}}/></div>
+              </div>
+              <button onClick={addCourse} style={{padding:"11px",background:"linear-gradient(135deg,#6366f1,#8b5cf6)",color:"#fff",border:"none",borderRadius:8,fontWeight:700,cursor:"pointer",fontSize:14}}>Add Course</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Phase 3: Fee Management ──────────────────────────────────────────────────
+function FeeManagement() {
+  const [tab,setTab]=useState("overview");
+  const feeData=[
+    {id:"22CS001",name:"Riya Patel",dept:"CSE",year:3,total:95000,paid:95000,due:0,status:"paid",last:"Mar 10, 2026"},
+    {id:"22CS005",name:"Amit Kumar",dept:"CSE",year:3,total:95000,paid:47500,due:47500,status:"partial",last:"Dec 5, 2025"},
+    {id:"22CS012",name:"Priya Nair",dept:"CSE",year:3,total:95000,paid:0,due:95000,status:"unpaid",last:"—"},
+    {id:"21EC001",name:"Rahul Das",dept:"ECE",year:4,total:92000,paid:92000,due:0,status:"paid",last:"Feb 28, 2026"},
+    {id:"22ME003",name:"Sneha Panda",dept:"MECH",year:3,total:90000,paid:45000,due:45000,status:"partial",last:"Jan 15, 2026"},
+    {id:"22CS019",name:"Aryan Singh",dept:"CSE",year:3,total:95000,paid:0,due:95000,status:"unpaid",last:"—"},
+  ];
+  const stats=[{label:"Total Collected",value:"₹2,34,50,000",icon:"💰",color:"#10b981"},{label:"Outstanding Dues",value:"₹18,75,000",icon:"⚠️",color:"#ef4444"},{label:"Fully Paid",value:"2,847",icon:"✅",color:"#6366f1"},{label:"Defaulters",value:"234",icon:"🔴",color:"#f59e0b"}];
+  const sc={paid:{bg:"#dcfce7",c:"#16a34a"},partial:{bg:"#fef3c7",c:"#d97706"},unpaid:{bg:"#fee2e2",c:"#dc2626"}};
+  const exportDues=()=>{ const rows=feeData.filter(f=>f.due>0).map(f=>[f.id,f.name,f.dept,f.year,f.total,f.paid,f.due,f.status]); const csv=[["Roll","Name","Dept","Year","Total","Paid","Due","Status"],...rows].map(r=>r.join(",")).join("\n"); const blob=new Blob([csv],{type:"text/csv"}); const url=URL.createObjectURL(blob); const a=document.createElement("a"); a.href=url; a.download="FeeDefaulters.csv"; a.click(); };
+  return (
+    <div>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:12,marginBottom:14}}>
+        {stats.map(s=><div key={s.label} style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:12,padding:"14px 16px",borderLeft:`4px solid ${s.color}`}}><div style={{fontSize:20,marginBottom:4}}>{s.icon}</div><div style={{fontSize:18,fontWeight:800,color:s.color}}>{s.value}</div><div style={{fontSize:11,color:"#94a3b8",marginTop:2}}>{s.label}</div></div>)}
+      </div>
+      <div style={{display:"flex",gap:8,marginBottom:12,justifyContent:"space-between",alignItems:"center"}}>
+        <div style={{display:"flex",gap:4,background:"#f1f5f9",borderRadius:8,padding:3}}>
+          {[["overview","Overview"],["defaulters","Defaulters"],["structure","Fee Structure"]].map(([t,l])=>(
+            <button key={t} onClick={()=>setTab(t)} style={{padding:"6px 16px",border:"none",borderRadius:6,cursor:"pointer",fontSize:12,fontWeight:600,background:tab===t?"linear-gradient(135deg,#6366f1,#8b5cf6)":"transparent",color:tab===t?"#fff":"#64748b"}}>{l}</button>
+          ))}
+        </div>
+        <button onClick={exportDues} style={{padding:"7px 16px",background:"#f0fdf4",color:"#16a34a",border:"1px solid #86efac",borderRadius:8,fontWeight:600,cursor:"pointer",fontSize:12}}>📥 Export Dues CSV</button>
+      </div>
+      {(tab==="overview"||tab==="defaulters")&&(
+        <div style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:12,overflow:"hidden"}}>
+          <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
+            <thead><tr style={{background:"#6366f1",color:"#fff"}}>{["Roll No","Name","Dept","Year","Total","Paid","Due","Status","Last Payment"].map(h=><th key={h} style={{padding:"9px 12px",textAlign:"left",fontSize:11}}>{h}</th>)}</tr></thead>
+            <tbody>{(tab==="defaulters"?feeData.filter(f=>f.due>0):feeData).map((f,i)=>(
+              <tr key={f.id} style={{borderBottom:"1px solid #f1f5f9",background:i%2===0?"#fff":"#fafbff"}}>
+                <td style={{padding:"10px 12px",color:"#6366f1",fontWeight:700}}>{f.id}</td>
+                <td style={{padding:"10px 12px",fontWeight:600,color:"#0f172a"}}>{f.name}</td>
+                <td style={{padding:"10px 12px",color:"#64748b"}}>{f.dept}</td>
+                <td style={{padding:"10px 12px",textAlign:"center"}}>{f.year}</td>
+                <td style={{padding:"10px 12px",fontWeight:600}}>₹{f.total.toLocaleString()}</td>
+                <td style={{padding:"10px 12px",color:"#10b981",fontWeight:600}}>₹{f.paid.toLocaleString()}</td>
+                <td style={{padding:"10px 12px",color:f.due>0?"#ef4444":"#10b981",fontWeight:700}}>₹{f.due.toLocaleString()}</td>
+                <td style={{padding:"10px 12px"}}><span style={{padding:"3px 8px",borderRadius:6,fontSize:10,fontWeight:700,background:sc[f.status].bg,color:sc[f.status].c}}>{f.status.toUpperCase()}</span></td>
+                <td style={{padding:"10px 12px",fontSize:11,color:"#94a3b8"}}>{f.last}</td>
+              </tr>
+            ))}</tbody>
+          </table>
+        </div>
+      )}
+      {tab==="structure"&&(
+        <div style={{display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:12}}>
+          {[{dept:"CSE/ECE/EEE",t:70000,d:12000,e:5000,m:8000},{dept:"MECH/CIVIL",t:68000,d:11000,e:5000,m:6000},{dept:"MBA",t:90000,d:15000,e:6000,m:9000},{dept:"PhD",t:40000,d:8000,e:3000,m:5000}].map(d=>(
+            <div key={d.dept} style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:12,padding:"16px 18px"}}>
+              <div style={{fontWeight:800,fontSize:14,color:"#6366f1",marginBottom:12}}>{d.dept}</div>
+              {[["Tuition Fee",d.t],["Development Fee",d.d],["Exam Fee",d.e],["Miscellaneous",d.m]].map(([l,v])=>(
+                <div key={l} style={{display:"flex",justifyContent:"space-between",padding:"6px 0",borderBottom:"1px solid #f1f5f9"}}><span style={{fontSize:12,color:"#475569"}}>{l}</span><span style={{fontSize:12,fontWeight:700,color:"#0f172a"}}>₹{v.toLocaleString()}</span></div>
+              ))}
+              <div style={{display:"flex",justifyContent:"space-between",padding:"8px 0",marginTop:4}}><span style={{fontSize:13,fontWeight:700}}>Total</span><span style={{fontSize:13,fontWeight:800,color:"#6366f1"}}>₹{(d.t+d.d+d.e+d.m).toLocaleString()}</span></div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Phase 3: Activity & Audit Logs ───────────────────────────────────────────
+function ActivityAuditLog() {
+  const [filter,setFilter]=useState("all");
+  const [search,setSearch]=useState("");
+  const logs=[
+    {id:1,user:"Admin",role:"admin",action:"Approved user Riya Patel (Student)",module:"User Management",time:"2026-06-15 10:34 AM",type:"approve",ip:"192.168.1.10"},
+    {id:2,user:"Dr. Priya Singh",role:"faculty",action:"Uploaded attendance for CS301 — 43 students",module:"Attendance",time:"2026-06-15 10:20 AM",type:"upload",ip:"192.168.1.22"},
+    {id:3,user:"Riya Patel",role:"student",action:"Submitted assignment: ER Diagram for Hospital DB",module:"Assignments",time:"2026-06-15 09:55 AM",type:"submit",ip:"192.168.2.45"},
+    {id:4,user:"Admin",role:"admin",action:"Bulk approved 5 pending users",module:"User Management",time:"2026-06-15 09:30 AM",type:"approve",ip:"192.168.1.10"},
+    {id:5,user:"Prof. Ramesh Panda",role:"faculty",action:"Sent bulk message to CS302 students",module:"Messaging",time:"2026-06-15 09:10 AM",type:"message",ip:"192.168.1.31"},
+    {id:6,user:"Amit Kumar",role:"student",action:"Applied for leave: Medical (Jun 18–20)",module:"Leave",time:"2026-06-14 04:15 PM",type:"leave",ip:"192.168.2.67"},
+    {id:7,user:"Admin",role:"admin",action:"Updated fee structure for CSE/ECE",module:"Fee Management",time:"2026-06-14 02:00 PM",type:"update",ip:"192.168.1.10"},
+    {id:8,user:"Priya Nair",role:"student",action:"Logged in to portal",module:"Auth",time:"2026-06-14 08:45 AM",type:"login",ip:"192.168.2.90"},
+    {id:9,user:"Dr. Sunita Das",role:"faculty",action:"Created assignment: Subnetting Practice for CN",module:"Assignments",time:"2026-06-13 03:20 PM",type:"create",ip:"192.168.1.44"},
+    {id:10,user:"Admin",role:"admin",action:"Rejected user registration: Unknown user",module:"User Management",time:"2026-06-13 11:05 AM",type:"reject",ip:"192.168.1.10"},
+  ];
+  const tc={approve:{bg:"#dcfce7",c:"#16a34a"},upload:{bg:"#dbeafe",c:"#2563eb"},submit:{bg:"#eef2ff",c:"#6366f1"},message:{bg:"#fef3c7",c:"#d97706"},leave:{bg:"#f3e8ff",c:"#9333ea"},update:{bg:"#e0f2fe",c:"#0284c7"},login:{bg:"#f1f5f9",c:"#475569"},create:{bg:"#dcfce7",c:"#16a34a"},reject:{bg:"#fee2e2",c:"#dc2626"}};
+  const ri={admin:"⚙️",faculty:"🧑‍🏫",student:"🎓"};
+  const filtered=logs.filter(l=>(filter==="all"||l.role===filter)&&(search===""||l.action.toLowerCase().includes(search.toLowerCase())||l.user.toLowerCase().includes(search.toLowerCase())));
+  const exportLogs=()=>{ const csv=[["ID","User","Role","Action","Module","Time","IP"],...filtered.map(l=>[l.id,l.user,l.role,`"${l.action}"`,l.module,l.time,l.ip])].map(r=>r.join(",")).join("\n"); const blob=new Blob([csv],{type:"text/csv"}); const url=URL.createObjectURL(blob); const a=document.createElement("a"); a.href=url; a.download="AuditLog.csv"; a.click(); };
+  return (
+    <div>
+      <div style={{display:"flex",gap:10,marginBottom:14,justifyContent:"space-between",alignItems:"center",flexWrap:"wrap"}}>
+        <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
+          <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="🔍 Search logs..." style={{padding:"8px 12px",border:"1px solid #e2e8f0",borderRadius:8,fontSize:13,outline:"none",width:200,fontFamily:"inherit"}}/>
+          <div style={{display:"flex",gap:4,background:"#f1f5f9",borderRadius:8,padding:3}}>
+            {[["all","All"],["admin","Admin"],["faculty","Faculty"],["student","Student"]].map(([v,l])=>(
+              <button key={v} onClick={()=>setFilter(v)} style={{padding:"5px 12px",border:"none",borderRadius:6,cursor:"pointer",fontSize:11,fontWeight:600,background:filter===v?"linear-gradient(135deg,#6366f1,#8b5cf6)":"transparent",color:filter===v?"#fff":"#64748b"}}>{l}</button>
+            ))}
+          </div>
+        </div>
+        <button onClick={exportLogs} style={{padding:"7px 16px",background:"#f0fdf4",color:"#16a34a",border:"1px solid #86efac",borderRadius:8,fontWeight:600,cursor:"pointer",fontSize:12}}>📥 Export CSV</button>
+      </div>
+      <div style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:12,overflow:"hidden"}}>
+        {filtered.map((l,i)=>(
+          <div key={l.id} style={{display:"flex",alignItems:"flex-start",gap:12,padding:"12px 16px",borderBottom:"1px solid #f1f5f9",background:i%2===0?"#fff":"#fafbff"}}>
+            <div style={{fontSize:20,flexShrink:0,marginTop:2}}>{ri[l.role]}</div>
+            <div style={{flex:1}}>
+              <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:3,flexWrap:"wrap"}}>
+                <span style={{fontWeight:700,fontSize:13,color:"#0f172a"}}>{l.user}</span>
+                <span style={{padding:"2px 8px",borderRadius:5,fontSize:10,fontWeight:700,background:tc[l.type]?.bg||"#f1f5f9",color:tc[l.type]?.c||"#475569"}}>{l.type.toUpperCase()}</span>
+                <span style={{fontSize:10,color:"#94a3b8",fontWeight:600}}>· {l.module}</span>
+              </div>
+              <div style={{fontSize:12,color:"#475569"}}>{l.action}</div>
+            </div>
+            <div style={{textAlign:"right",flexShrink:0}}>
+              <div style={{fontSize:11,color:"#94a3b8"}}>{l.time}</div>
+              <div style={{fontSize:10,color:"#cbd5e1",marginTop:2}}>IP: {l.ip}</div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function AdminTimetable() {
   const depts = ["CSE","ECE","MECH","CIVIL","EEE"];
   const sems  = ["1","2","3","4","5","6","7","8"];
@@ -6992,6 +7327,9 @@ export default function App() {
     dashboard:<AdminDashboard user={auth} setActive={setActive}/>, students:<AdminStudents/>,
     faculty:<AdminFaculty/>, leaves:<AdminLeaveApprovals/>,
     bulkmessage:<BulkMessagingView role="admin"/>,
+    calendar:<AcademicCalendar/>, departments:<DepartmentManagement/>,
+    courses:<CourseManagement/>, fees:<FeeManagement/>,
+    auditlog:<ActivityAuditLog/>,
     reports:<AdminReports/>, timetable:<AdminTimetable/>, notices:<AdminNotices/>,
     fts:<FileTrackingSystem user={auth}/>, complaint:<ComplaintManagement/>,
     groupemail:<GroupEmail/>, vehicle:<VehicleRequisition/>, purchase:<PurchaseView/>,
@@ -7044,6 +7382,9 @@ export default function App() {
   const adminMenuItems = [
     ["Dashboard","dashboard"],["🔐 User Approvals","approvals"],["Students","students"],["Faculty","faculty"],
     ["Leave Approvals","leaves"],["📢 Bulk Message","bulkmessage"],
+    ["📅 Academic Calendar","calendar"],["🏛️ Departments","departments"],
+    ["📚 Course Management","courses"],["💰 Fee Management","fees"],
+    ["🔍 Audit Logs","auditlog"],
     ["Timetable","timetable"],["Notices","notices"],["Reports","reports"],
   ];
   const adminServiceItems = [
@@ -7253,10 +7594,13 @@ export default function App() {
               ["🧑‍🏫","Faculty","faculty"],
               ["📋","Leave Approvals","leaves"],
               ["📢","Bulk Message","bulkmessage"],
+              ["📅","Academic Calendar","calendar"],
+              ["🏛️","Departments","departments"],
+              ["📚","Courses","courses"],
+              ["💰","Fee Management","fees"],
+              ["🔍","Audit Logs","auditlog"],
               ["📊","Reports","reports"],
-              ["📅","Timetable","timetable"],
               ["📢","Notices","notices"],
-              ["📁","File Tracking","fts"],
             ].map(([icon,label,key])=>(
               <div key={key+label} onClick={()=>setActive(key)}
                 style={{display:"flex",alignItems:"center",gap:8,padding:"7px 8px",borderRadius:7,cursor:"pointer",marginBottom:2,
