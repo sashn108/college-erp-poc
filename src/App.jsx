@@ -230,9 +230,9 @@ function Login({ onLogin }) {
   const [uid, setUid] = useState(""), [pass, setPass] = useState(""), [err, setErr] = useState("");
   const handle = () => {
     if(!uid||!pass){setErr("Enter credentials");return;}
-    if(role==="student"&&uid==="S001"&&pass==="student123") onLogin("student",{name:"SUBHASHISH NAYAK",roll:"520CS2008",dept:"CSE",year:"PhD Scholar",id:"S001"});
-    else if(role==="faculty"&&uid==="F001"&&pass==="faculty123") onLogin("faculty",{name:"Dr. Priya Singh",dept:"CSE",designation:"Asst. Professor",id:"F001"});
-    else if(role==="admin"&&uid==="A001"&&pass==="admin123") onLogin("admin",{name:"Dr. R. K. Mohanty",designation:"Registrar",dept:"Administration",id:"A001"});
+    if(role==="student"&&uid==="S001"&&pass==="student123") onLogin("student",{name:"SUBHASHISH NAYAK",roll:"520CS2008",dept:"CSE",year:"PhD Scholar",id:"S001",status:"approved"});
+    else if(role==="faculty"&&uid==="F001"&&pass==="faculty123") onLogin("faculty",{name:"Dr. Priya Singh",dept:"CSE",designation:"Asst. Professor",id:"F001",status:"approved"});
+    else if(role==="admin"&&uid==="A001"&&pass==="admin123") onLogin("admin",{name:"Dr. R. K. Mohanty",designation:"Registrar",dept:"Administration",id:"A001",status:"approved"});
     else setErr("Invalid credentials.");
   };
   const roles = [{key:"student",label:"Student"},{key:"faculty",label:"Faculty"},{key:"admin",label:"Admin"}];
@@ -4495,7 +4495,7 @@ function TransportView() {
 
       {tab==="mybus" && (
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14}}>
-          <div style={{background:"#fff",border:"2px solid #6366f1",borderRadius:12,padding:"20px",background:"linear-gradient(135deg,#6366f1,#8b5cf6)",color:"#fff"}}>
+          <div style={{border:"2px solid #6366f1",borderRadius:12,padding:"20px",background:"linear-gradient(135deg,#6366f1,#8b5cf6)",color:"#fff"}}>
             <div style={{fontSize:11,opacity:0.8,fontWeight:700,marginBottom:4}}>BUS PASS</div>
             <div style={{fontSize:22,fontWeight:900,letterSpacing:1}}>{myPass.passNo}</div>
             <div style={{fontSize:13,marginTop:8,opacity:0.9}}>{myPass.routeName}</div>
@@ -7048,7 +7048,7 @@ function StudentMessaging({ user }) {
           ))}
           <div ref={msgEnd}/>
         </div>
-        <div style={{padding:"12px 16px",borderTop:"1px solid #f1f5f9",display:"flex",gap:8"}}>
+        <div style={{padding:"12px 16px",borderTop:"1px solid #f1f5f9",display:"flex",gap:8}}>
           <input value={msg} onChange={e=>setMsg(e.target.value)}
             onKeyDown={e=>{ if(e.key==="Enter"&&!e.shiftKey){ e.preventDefault(); sendMsg(); }}}
             placeholder={`Message ${selected.name}...`}
@@ -7223,8 +7223,8 @@ export default function App() {
     }}/>
   );
 
-  // ── Pending approval → show locked dashboard ──
-  if (auth && auth.status === "pending") {
+  // ── Pending approval → show locked dashboard for ANY non-approved student/faculty ──
+  if (auth && role !== "admin" && auth.status !== "approved") {
     return (
       <div style={{minHeight:"100vh",background:"linear-gradient(135deg,#0f172a,#1e293b)",display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
         <div style={{background:"#fff",borderRadius:20,width:"100%",maxWidth:520,overflow:"hidden",boxShadow:"0 30px 80px rgba(0,0,0,0.4)"}}>
@@ -7535,52 +7535,59 @@ export default function App() {
 
           {/* ── QUICK LINKS ── */}
           {role === "student" && (
-          <div style={{borderTop:"1px solid #3a3a4a",marginTop:8,padding:"10px 8px 0"}}>
-            <div style={{fontSize:10,color:"#7c8db5",fontWeight:700,marginBottom:6,letterSpacing:0.6,paddingLeft:4}}>⚡ QUICK LINKS</div>
+          <div style={{borderTop:"1px solid #3a3a4a",marginTop:8,padding:"10px 8px 4px"}}>
+            <div style={{fontSize:9,color:"#6366f1",fontWeight:800,marginBottom:6,letterSpacing:1,paddingLeft:4,textTransform:"uppercase"}}>⚡ Working Modules</div>
             {[
+              ["🏠","Dashboard","dashboard"],
               ["📡","Live Attendance","liveattendance"],
               ["📊","Internal Marks","internalmarks"],
-              ["💬","Messages","messages"],
               ["📝","Assignments","assignments"],
-              ["📋","Leave / Attendance","attendance"],
+              ["💬","Messages","messages"],
+              ["📋","Attendance & Leave","attendance"],
               ["📤","CSV Upload","dashboard"],
-              ["🔍","Global Search","dashboard"],
-              ["📚","Library","library"],
+              ["📰","Notices","notices"],
               ["💰","Fee Payment","fee"],
+              ["📄","Question Papers","papers"],
+              ["📅","Timetable","timetable"],
+              ["🔍","Search","dashboard"],
             ].map(([icon,label,key])=>(
               <div key={key+label} onClick={()=>setActive(key)}
-                style={{display:"flex",alignItems:"center",gap:8,padding:"7px 8px",borderRadius:7,cursor:"pointer",marginBottom:2,
-                  background:active===key?"rgba(99,102,241,0.25)":"transparent",
-                  transition:"background .12s"}}
+                style={{display:"flex",alignItems:"center",gap:8,padding:"6px 8px",borderRadius:7,cursor:"pointer",marginBottom:1,
+                  background:active===key?"rgba(99,102,241,0.3)":"transparent",transition:"background .12s"}}
                 onMouseEnter={e=>{ if(active!==key) e.currentTarget.style.background="rgba(255,255,255,0.07)"; }}
                 onMouseLeave={e=>{ if(active!==key) e.currentTarget.style.background="transparent"; }}>
-                <span style={{fontSize:14,width:18,textAlign:"center",flexShrink:0}}>{icon}</span>
-                <span style={{fontSize:11,color:active===key?"#a5b4fc":"#94a3b8",fontWeight:active===key?700:400,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{label}</span>
+                <span style={{fontSize:13,width:18,textAlign:"center",flexShrink:0}}>{icon}</span>
+                <span style={{fontSize:11,color:active===key?"#a5b4fc":"#94a3b8",fontWeight:active===key?700:400}}>{label}</span>
+                {active===key && <div style={{width:3,height:3,borderRadius:"50%",background:"#a5b4fc",marginLeft:"auto"}}/>}
               </div>
             ))}
           </div>
         )}
         {role === "faculty" && (
-          <div style={{borderTop:"1px solid #3a3a4a",marginTop:8,padding:"10px 8px 0"}}>
-            <div style={{fontSize:10,color:"#7c8db5",fontWeight:700,marginBottom:6,letterSpacing:0.6,paddingLeft:4}}>⚡ QUICK LINKS</div>
+          <div style={{borderTop:"1px solid #3a3a4a",marginTop:8,padding:"10px 8px 4px"}}>
+            <div style={{fontSize:9,color:"#6366f1",fontWeight:800,marginBottom:6,letterSpacing:1,paddingLeft:4,textTransform:"uppercase"}}>⚡ Working Modules</div>
             {[
+              ["🏠","Dashboard","dashboard"],
               ["👥","Subjects & Students","subjects"],
               ["📋","Attendance Upload","attendance"],
               ["📥","Export Attendance","attendanceexport"],
               ["📢","Bulk Message","bulkmessage"],
               ["📝","Assignments","assignments"],
               ["📊","Evaluation","evaluation"],
-              ["🔬","Research","research"],
               ["📄","Question Paper","qpaper"],
+              ["🔬","Research","research"],
               ["📅","Exam & Duty","duty"],
+              ["💬","Feedback Results","feedback"],
+              ["📰","Notices","notices"],
             ].map(([icon,label,key])=>(
               <div key={key+label} onClick={()=>setActive(key)}
-                style={{display:"flex",alignItems:"center",gap:8,padding:"7px 8px",borderRadius:7,cursor:"pointer",marginBottom:2,
-                  background:active===key?"rgba(99,102,241,0.25)":"transparent",transition:"background .12s"}}
+                style={{display:"flex",alignItems:"center",gap:8,padding:"6px 8px",borderRadius:7,cursor:"pointer",marginBottom:1,
+                  background:active===key?"rgba(99,102,241,0.3)":"transparent",transition:"background .12s"}}
                 onMouseEnter={e=>{ if(active!==key) e.currentTarget.style.background="rgba(255,255,255,0.07)"; }}
                 onMouseLeave={e=>{ if(active!==key) e.currentTarget.style.background="transparent"; }}>
-                <span style={{fontSize:14,width:18,textAlign:"center",flexShrink:0}}>{icon}</span>
-                <span style={{fontSize:11,color:active===key?"#a5b4fc":"#94a3b8",fontWeight:active===key?700:400,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{label}</span>
+                <span style={{fontSize:13,width:18,textAlign:"center",flexShrink:0}}>{icon}</span>
+                <span style={{fontSize:11,color:active===key?"#a5b4fc":"#94a3b8",fontWeight:active===key?700:400}}>{label}</span>
+                {active===key && <div style={{width:3,height:3,borderRadius:"50%",background:"#a5b4fc",marginLeft:"auto"}}/>}
               </div>
             ))}
           </div>
