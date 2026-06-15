@@ -7620,7 +7620,7 @@ export default function App() {
       <div style={{background:"#6366f1",color:"#fff",padding:"6px 20px",fontSize:12,display:"flex",gap:8,alignItems:"center"}}>
         <span style={{opacity:0.7}}>Home</span><span style={{opacity:0.5}}>›</span>
         <span style={{fontWeight:600}}>
-          {role==="student"?`Welcome ${auth.name} — ${auth.dept} · ${auth.year}`:role==="faculty"?`Welcome ${auth.name} — ${auth.designation} · Dept. of ${auth.dept}`:`Admin Panel — ${auth.name} · ${auth.designation}`}
+          {role==="student"?`Welcome ${auth.name} — ${auth.dept||"CSE"} · ${auth.year||""}`:role==="faculty"?`Welcome ${auth.name} — ${auth.designation||"Faculty"} · Dept. of ${auth.dept||""}`:`Admin Panel — ${auth.name} · ${auth.designation||"Administrator"}`}
         </span>
       </div>
 
