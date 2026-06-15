@@ -10,7 +10,7 @@ import {
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from "firebase/auth";
 
 // ── Hardcoded bootstrap admin (cannot be changed without code) ────────────────
-const BOOTSTRAP_ADMIN_EMAIL = "subhashishnayak3120@gmail.com";
+const BOOTSTRAP_ADMIN_EMAIL = "admin@iter.ac.in";
 
 // ── Firebase Login ────────────────────────────────────────────────────────────
 export function FirebaseLogin({ onLogin }) {
