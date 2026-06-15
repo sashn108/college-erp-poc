@@ -6888,6 +6888,66 @@ export default function App() {
     }}/>
   );
 
+  // ── Pending approval → show locked dashboard ──
+  if (auth && auth.status === "pending") {
+    return (
+      <div style={{minHeight:"100vh",background:"linear-gradient(135deg,#0f172a,#1e293b)",display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
+        <div style={{background:"#fff",borderRadius:20,width:"100%",maxWidth:520,overflow:"hidden",boxShadow:"0 30px 80px rgba(0,0,0,0.4)"}}>
+          {/* Header */}
+          <div style={{background:"linear-gradient(135deg,#6366f1,#8b5cf6)",padding:"28px 32px",textAlign:"center"}}>
+            <div style={{fontSize:52,marginBottom:8}}>🎓</div>
+            <div style={{color:"#fff",fontWeight:800,fontSize:20}}>ITER ERP Portal</div>
+            <div style={{color:"rgba(255,255,255,0.8)",fontSize:13,marginTop:4}}>Siksha 'O' Anusandhan University</div>
+          </div>
+          {/* Status */}
+          <div style={{padding:"32px"}}>
+            <div style={{textAlign:"center",marginBottom:24}}>
+              <div style={{width:72,height:72,borderRadius:"50%",background:"#fef3c7",display:"flex",alignItems:"center",justifyContent:"center",fontSize:32,margin:"0 auto 14px"}}>⏳</div>
+              <div style={{fontWeight:800,fontSize:18,color:"#0f172a",marginBottom:6}}>Approval Pending</div>
+              <div style={{fontSize:13,color:"#64748b",lineHeight:1.7}}>
+                Hi <strong>{auth.name}</strong>, your account registration is under review.<br/>
+                An administrator will approve your access shortly.
+              </div>
+            </div>
+            {/* Info cards */}
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:24}}>
+              {[
+                {label:"Email",value:auth.email||"—",icon:"📧"},
+                {label:"Requested Role",value:auth.requestedRole||auth.role||"student",icon:"🎭"},
+                {label:"Department",value:auth.dept||"—",icon:"🏛️"},
+                {label:"Registered",value:auth.createdAt?.slice(0,10)||"Today",icon:"📅"},
+              ].map(item=>(
+                <div key={item.label} style={{background:"#f8fafc",borderRadius:10,padding:"12px 14px",border:"1px solid #e2e8f0"}}>
+                  <div style={{fontSize:18,marginBottom:4}}>{item.icon}</div>
+                  <div style={{fontSize:10,fontWeight:700,color:"#94a3b8"}}>{item.label.toUpperCase()}</div>
+                  <div style={{fontSize:13,fontWeight:600,color:"#0f172a",marginTop:2,wordBreak:"break-all"}}>{item.value}</div>
+                </div>
+              ))}
+            </div>
+            {/* What happens next */}
+            <div style={{background:"#eef2ff",borderRadius:10,padding:"14px 16px",marginBottom:20,border:"1px solid #c7d2fe"}}>
+              <div style={{fontSize:12,fontWeight:700,color:"#4338ca",marginBottom:8}}>📋 WHAT HAPPENS NEXT</div>
+              {[
+                "Admin reviews your registration details",
+                "Your role (Student / Faculty) gets assigned",
+                "You'll be able to log in and access full ERP features",
+              ].map((step,i)=>(
+                <div key={i} style={{display:"flex",gap:8,alignItems:"flex-start",marginBottom:i<2?6:0}}>
+                  <div style={{width:20,height:20,borderRadius:"50%",background:"#6366f1",color:"#fff",fontSize:10,fontWeight:700,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,marginTop:1}}>{i+1}</div>
+                  <div style={{fontSize:12,color:"#4338ca",lineHeight:1.5}}>{step}</div>
+                </div>
+              ))}
+            </div>
+            <button onClick={async()=>{ await logOut(); setAuth(null); setRole(null); setUid(null); }}
+              style={{width:"100%",padding:"12px",background:"linear-gradient(135deg,#6366f1,#8b5cf6)",color:"#fff",border:"none",borderRadius:10,fontWeight:700,cursor:"pointer",fontSize:14}}>
+              Sign Out
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   const handleLogout = async () => {
     await logOut();
     setAuth(null); setRole(null); setUid(null);
@@ -7131,6 +7191,84 @@ export default function App() {
               ))}
             </div>
           )}
+
+          {/* ── QUICK LINKS ── */}
+          {role === "student" && (
+          <div style={{borderTop:"1px solid #3a3a4a",marginTop:8,padding:"10px 8px 0"}}>
+            <div style={{fontSize:10,color:"#7c8db5",fontWeight:700,marginBottom:6,letterSpacing:0.6,paddingLeft:4}}>⚡ QUICK LINKS</div>
+            {[
+              ["📡","Live Attendance","liveattendance"],
+              ["📊","Internal Marks","internalmarks"],
+              ["💬","Messages","messages"],
+              ["📝","Assignments","assignments"],
+              ["📋","Leave / Attendance","attendance"],
+              ["📤","CSV Upload","dashboard"],
+              ["🔍","Global Search","dashboard"],
+              ["📚","Library","library"],
+              ["💰","Fee Payment","fee"],
+            ].map(([icon,label,key])=>(
+              <div key={key+label} onClick={()=>setActive(key)}
+                style={{display:"flex",alignItems:"center",gap:8,padding:"7px 8px",borderRadius:7,cursor:"pointer",marginBottom:2,
+                  background:active===key?"rgba(99,102,241,0.25)":"transparent",
+                  transition:"background .12s"}}
+                onMouseEnter={e=>{ if(active!==key) e.currentTarget.style.background="rgba(255,255,255,0.07)"; }}
+                onMouseLeave={e=>{ if(active!==key) e.currentTarget.style.background="transparent"; }}>
+                <span style={{fontSize:14,width:18,textAlign:"center",flexShrink:0}}>{icon}</span>
+                <span style={{fontSize:11,color:active===key?"#a5b4fc":"#94a3b8",fontWeight:active===key?700:400,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{label}</span>
+              </div>
+            ))}
+          </div>
+        )}
+        {role === "faculty" && (
+          <div style={{borderTop:"1px solid #3a3a4a",marginTop:8,padding:"10px 8px 0"}}>
+            <div style={{fontSize:10,color:"#7c8db5",fontWeight:700,marginBottom:6,letterSpacing:0.6,paddingLeft:4}}>⚡ QUICK LINKS</div>
+            {[
+              ["👥","Subjects & Students","subjects"],
+              ["📋","Attendance Upload","attendance"],
+              ["📥","Export Attendance","attendanceexport"],
+              ["📢","Bulk Message","bulkmessage"],
+              ["📝","Assignments","assignments"],
+              ["📊","Evaluation","evaluation"],
+              ["🔬","Research","research"],
+              ["📄","Question Paper","qpaper"],
+              ["📅","Exam & Duty","duty"],
+            ].map(([icon,label,key])=>(
+              <div key={key+label} onClick={()=>setActive(key)}
+                style={{display:"flex",alignItems:"center",gap:8,padding:"7px 8px",borderRadius:7,cursor:"pointer",marginBottom:2,
+                  background:active===key?"rgba(99,102,241,0.25)":"transparent",transition:"background .12s"}}
+                onMouseEnter={e=>{ if(active!==key) e.currentTarget.style.background="rgba(255,255,255,0.07)"; }}
+                onMouseLeave={e=>{ if(active!==key) e.currentTarget.style.background="transparent"; }}>
+                <span style={{fontSize:14,width:18,textAlign:"center",flexShrink:0}}>{icon}</span>
+                <span style={{fontSize:11,color:active===key?"#a5b4fc":"#94a3b8",fontWeight:active===key?700:400,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{label}</span>
+              </div>
+            ))}
+          </div>
+        )}
+        {role === "admin" && (
+          <div style={{borderTop:"1px solid #3a3a4a",marginTop:8,padding:"10px 8px 0"}}>
+            <div style={{fontSize:10,color:"#7c8db5",fontWeight:700,marginBottom:6,letterSpacing:0.6,paddingLeft:4}}>⚡ QUICK LINKS</div>
+            {[
+              ["🔐","User Approvals","approvals"],
+              ["👥","Students","students"],
+              ["🧑‍🏫","Faculty","faculty"],
+              ["📋","Leave Approvals","leaves"],
+              ["📢","Bulk Message","bulkmessage"],
+              ["📊","Reports","reports"],
+              ["📅","Timetable","timetable"],
+              ["📢","Notices","notices"],
+              ["📁","File Tracking","fts"],
+            ].map(([icon,label,key])=>(
+              <div key={key+label} onClick={()=>setActive(key)}
+                style={{display:"flex",alignItems:"center",gap:8,padding:"7px 8px",borderRadius:7,cursor:"pointer",marginBottom:2,
+                  background:active===key?"rgba(99,102,241,0.25)":"transparent",transition:"background .12s"}}
+                onMouseEnter={e=>{ if(active!==key) e.currentTarget.style.background="rgba(255,255,255,0.07)"; }}
+                onMouseLeave={e=>{ if(active!==key) e.currentTarget.style.background="transparent"; }}>
+                <span style={{fontSize:14,width:18,textAlign:"center",flexShrink:0}}>{icon}</span>
+                <span style={{fontSize:11,color:active===key?"#a5b4fc":"#94a3b8",fontWeight:active===key?700:400,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{label}</span>
+              </div>
+            ))}
+          </div>
+        )}
         </div>
 
         {/* ── MAIN CONTENT ── */}
