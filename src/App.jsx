@@ -127,6 +127,31 @@ function GlobalSearch({ setActive }) {
   );
 }
 
+// ─── Error Boundary ───────────────────────────────────────────────────────────
+class ErrorBoundary extends React.Component {
+  constructor(props) { super(props); this.state = { hasError: false, error: null }; }
+  static getDerivedStateFromError(error) { return { hasError: true, error }; }
+  componentDidCatch(error, info) { console.error("ERP Error:", error, info); }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div style={{padding:32,textAlign:"center"}}>
+          <div style={{fontSize:48,marginBottom:12}}>⚠️</div>
+          <div style={{fontWeight:700,fontSize:16,color:"#0f172a",marginBottom:8}}>Something went wrong</div>
+          <div style={{fontSize:12,color:"#64748b",marginBottom:16,fontFamily:"monospace",background:"#f8fafc",padding:"8px 12px",borderRadius:8,textAlign:"left"}}>
+            {this.state.error?.message}
+          </div>
+          <button onClick={()=>this.setState({hasError:false,error:null})}
+            style={{padding:"8px 20px",background:"#6366f1",color:"#fff",border:"none",borderRadius:8,cursor:"pointer",fontWeight:600}}>
+            Try Again
+          </button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 // ─── Mini Calendar ────────────────────────────────────────────────────────────
 function MiniCalendar() {
   const today = new Date();
@@ -7758,7 +7783,9 @@ export default function App() {
 
         {/* ── MAIN CONTENT ── */}
         <div style={{flex:1,padding:16,minHeight:"calc(100vh - 90px)",background:darkMode?"#0f172a":"#f0f0f0"}} className="erp-main">
-          {views[active]||<div style={{color:"#aaa",textAlign:"center",padding:40}}>Coming soon</div>}
+          <ErrorBoundary key={active}>
+            {views[active]||<div style={{color:"#aaa",textAlign:"center",padding:40}}>Coming soon</div>}
+          </ErrorBoundary>
         </div>
       </div>
     </div>
