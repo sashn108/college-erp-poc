@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { FirebaseLogin, RealtimeChat, LiveFeedbackView, LiveFacultyFeedback, useFirebaseAuth, AdminUserApprovals } from "./FirebaseApp.jsx";
 import { logOut, getPendingUsers } from "./firebase.js";
 
