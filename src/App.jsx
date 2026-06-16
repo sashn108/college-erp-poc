@@ -7309,14 +7309,21 @@ export default function App() {
   // ── Sync Firebase auth into local state ──
   useEffect(() => {
     if (fbUser && fbProfile) {
-      // Only sync if profile is valid and has a role
-      if (fbProfile.role) {
-        setAuth(fbProfile);
-        setRole(fbProfile.role);
+      // Force admin role if bootstrap email
+      const corrected = fbUser.email === "admin@iter.ac.in"
+        ? { ...fbProfile, role: "admin", status: "approved" }
+        : fbProfile;
+      if (corrected.role) {
+        setAuth(corrected);
+        setRole(corrected.role);
         setUid(fbUser.uid);
       }
     } else if (fbUser && !fbProfile) {
       // Firebase user exists but no Firestore profile yet — don't wipe local state
+      if (fbUser.email === "admin@iter.ac.in") {
+        setAuth({ name:"Admin", role:"admin", status:"approved", dept:"Administration", designation:"Registrar", email: fbUser.email });
+        setRole("admin");
+      }
       setUid(fbUser.uid);
     }
   }, [fbUser, fbProfile]);
@@ -7350,8 +7357,8 @@ export default function App() {
     </div>
   );
 
-  // ── Pending approval ──
-  if (role !== "admin" && auth.status !== "approved") {
+  // ── Pending approval — never applies to admin ──
+  if (role !== "admin" && (!auth.status || auth.status !== "approved")) {
     return (
       <div style={{minHeight:"100vh",background:"linear-gradient(135deg,#0f172a,#1e293b)",display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
         <div style={{background:"#fff",borderRadius:20,width:"100%",maxWidth:520,overflow:"hidden",boxShadow:"0 30px 80px rgba(0,0,0,0.4)"}}>
