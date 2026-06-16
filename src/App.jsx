@@ -7309,8 +7309,14 @@ export default function App() {
   // ── Sync Firebase auth into local state ──
   useEffect(() => {
     if (fbUser && fbProfile) {
-      setAuth(fbProfile);
-      setRole(fbProfile.role);
+      // Only sync if profile is valid and has a role
+      if (fbProfile.role) {
+        setAuth(fbProfile);
+        setRole(fbProfile.role);
+        setUid(fbUser.uid);
+      }
+    } else if (fbUser && !fbProfile) {
+      // Firebase user exists but no Firestore profile yet — don't wipe local state
       setUid(fbUser.uid);
     }
   }, [fbUser, fbProfile]);

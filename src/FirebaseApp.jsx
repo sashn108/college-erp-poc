@@ -79,7 +79,9 @@ export function FirebaseLogin({ onLogin }) {
           role: isAdmin ? "admin" : "student",
           status: isAdmin ? "approved" : "pending",
           requestedRole: isAdmin ? "admin" : requestedRole,
-          rollOrId: rollOrId.trim(), dept, createdAt: new Date().toISOString(),
+          rollOrId: rollOrId.trim(), dept: isAdmin ? "Administration" : dept,
+          designation: isAdmin ? "Registrar" : "",
+          createdAt: new Date().toISOString(),
         };
         await saveUserProfile(userCred.user.uid, profile);
         if (isAdmin) {
@@ -91,8 +93,18 @@ export function FirebaseLogin({ onLogin }) {
         }
       } else {
         const userCred = await signInWithEmailAndPassword(auth, email, password);
-        const existing = await getUserProfile(userCred.user.uid);
-        if (!existing) { setErr("Profile not found. Please register."); await logOut(); setLoading(false); return; }
+        let existing = await getUserProfile(userCred.user.uid);
+        // Auto-heal: if admin signs in but has no Firestore profile, create it
+        if (!existing && email === BOOTSTRAP_ADMIN_EMAIL) {
+          existing = {
+            uid: userCred.user.uid, email,
+            name: "Admin", role: "admin", status: "approved",
+            requestedRole: "admin", dept: "Administration",
+            designation: "Registrar", createdAt: new Date().toISOString(),
+          };
+          await saveUserProfile(userCred.user.uid, existing);
+        }
+        if (!existing) { setErr("Profile not found. Please register first."); await logOut(); setLoading(false); return; }
         if (existing.status === "pending") {
           setInfo("⏳ Your account is pending admin approval.");
           await logOut(); setLoading(false); return;
@@ -550,7 +562,12 @@ export function useFirebaseAuth() {
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (user) => {
       if (user) {
-        const p = await getUserProfile(user.uid);
+        let p = await getUserProfile(user.uid);
+        // Retry once if profile not yet written to Firestore
+        if (!p) {
+          await new Promise(r => setTimeout(r, 1500));
+          p = await getUserProfile(user.uid);
+        }
         setFbUser(user);
         setProfile(p);
       } else {
