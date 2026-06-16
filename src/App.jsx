@@ -7339,8 +7339,19 @@ export default function App() {
     }}/>
   );
 
-  // ── Pending approval → show locked dashboard for ANY non-approved student/faculty ──
-  if (auth && role !== "admin" && auth.status !== "approved") {
+  // ── Role not yet resolved (Firebase sync still in flight) ──
+  if (!role) return (
+    <div style={{minHeight:"100vh",background:"linear-gradient(135deg,#0f172a,#1e293b)",display:"flex",alignItems:"center",justifyContent:"center"}}>
+      <div style={{textAlign:"center",color:"#fff"}}>
+        <div style={{fontSize:48,marginBottom:16}}>🎓</div>
+        <div style={{fontSize:18,fontWeight:700}}>ITER ERP</div>
+        <div style={{fontSize:13,color:"#94a3b8",marginTop:4}}>Loading your profile...</div>
+      </div>
+    </div>
+  );
+
+  // ── Pending approval ──
+  if (role !== "admin" && auth.status !== "approved") {
     return (
       <div style={{minHeight:"100vh",background:"linear-gradient(135deg,#0f172a,#1e293b)",display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
         <div style={{background:"#fff",borderRadius:20,width:"100%",maxWidth:520,overflow:"hidden",boxShadow:"0 30px 80px rgba(0,0,0,0.4)"}}>

@@ -94,13 +94,14 @@ export function FirebaseLogin({ onLogin }) {
       } else {
         const userCred = await signInWithEmailAndPassword(auth, email, password);
         let existing = await getUserProfile(userCred.user.uid);
-        // Auto-heal: if admin signs in but has no Firestore profile, create it
-        if (!existing && email === BOOTSTRAP_ADMIN_EMAIL) {
+        // Force-heal admin profile if missing or role is wrong
+        if (email === BOOTSTRAP_ADMIN_EMAIL && (!existing || existing.role !== "admin" || existing.status !== "approved")) {
           existing = {
             uid: userCred.user.uid, email,
-            name: "Admin", role: "admin", status: "approved",
+            name: existing?.name || "Admin",
+            role: "admin", status: "approved",
             requestedRole: "admin", dept: "Administration",
-            designation: "Registrar", createdAt: new Date().toISOString(),
+            designation: "Registrar", createdAt: existing?.createdAt || new Date().toISOString(),
           };
           await saveUserProfile(userCred.user.uid, existing);
         }
