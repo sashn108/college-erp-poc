@@ -5222,8 +5222,8 @@ function AdminDashboard({ user, setActive }) {
     <div>
       <div style={{background:"linear-gradient(135deg,#6366f1,#8b5cf6)",borderRadius:12,padding:"16px 20px",marginBottom:16,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
         <div>
-          <div style={{color:"#fff",fontWeight:700,fontSize:18}}>Welcome, {user.name}</div>
-          <div style={{color:"rgba(255,255,255,0.8)",fontSize:13}}>{user.designation} · {user.dept}</div>
+          <div style={{color:"#fff",fontWeight:700,fontSize:18}}>Welcome, {user?.name || "Admin"}</div>
+          <div style={{color:"rgba(255,255,255,0.8)",fontSize:13}}>{user?.designation || "Administrator"} · {user?.dept || "Administration"}</div>
         </div>
         <div style={{color:"rgba(255,255,255,0.7)",fontSize:13,textAlign:"right"}}>
           {new Date().toLocaleDateString("en-GB",{weekday:"long",day:"numeric",month:"long",year:"numeric"})}
@@ -7637,7 +7637,7 @@ export default function App() {
       <div style={{background:"#6366f1",color:"#fff",padding:"6px 20px",fontSize:12,display:"flex",gap:8,alignItems:"center"}}>
         <span style={{opacity:0.7}}>Home</span><span style={{opacity:0.5}}>›</span>
         <span style={{fontWeight:600}}>
-          {role==="student"?`Welcome ${auth.name} — ${auth.dept||"CSE"} · ${auth.year||""}`:role==="faculty"?`Welcome ${auth.name} — ${auth.designation||"Faculty"} · Dept. of ${auth.dept||""}`:`Admin Panel — ${auth.name} · ${auth.designation||"Administrator"}`}
+          {role==="student"?`Welcome ${auth?.name||""} — ${auth?.dept||"CSE"} · ${auth?.year||""}`:role==="faculty"?`Welcome ${auth?.name||""} — ${auth?.designation||"Faculty"} · Dept. of ${auth?.dept||""}`:`Admin Panel — ${auth?.name||"Admin"} · ${auth?.designation||"Administrator"}`}
         </span>
       </div>
 

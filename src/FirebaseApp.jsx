@@ -564,10 +564,25 @@ export function useFirebaseAuth() {
     const unsub = onAuthStateChanged(auth, async (user) => {
       if (user) {
         let p = await getUserProfile(user.uid);
-        // Retry once if profile not yet written to Firestore
+        // Retry once if profile not yet written
         if (!p) {
           await new Promise(r => setTimeout(r, 1500));
           p = await getUserProfile(user.uid);
+        }
+        // Auto-heal: bootstrap admin email always gets admin profile
+        if (!p && user.email === "admin@iter.ac.in") {
+          p = {
+            uid: user.uid, email: user.email,
+            name: "Admin", role: "admin", status: "approved",
+            requestedRole: "admin", dept: "Administration",
+            designation: "Registrar", createdAt: new Date().toISOString(),
+          };
+          await saveUserProfile(user.uid, p);
+        }
+        // Force-correct role if admin email but wrong role
+        if (p && user.email === "admin@iter.ac.in" && (p.role !== "admin" || p.status !== "approved")) {
+          p = { ...p, role: "admin", status: "approved", designation: p.designation || "Registrar", dept: p.dept || "Administration" };
+          await saveUserProfile(user.uid, p);
         }
         setFbUser(user);
         setProfile(p);
