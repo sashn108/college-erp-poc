@@ -7839,7 +7839,7 @@ export default function App() {
     bulkmessage:<BulkMessagingView role="faculty"/>,
     attendanceexport:<AttendanceExport/>,
     facultytimetable:<FacultyTimetable/>,
-    lab:<LabView/>, attendance:<AttendanceView/>, evaluation:<EvaluationView/>,
+    lab:<LabView/>, attendance:<FacultySubjectsView/>, evaluation:<EvaluationView/>,
     research:<ResearchView/>, duty:<DutyView/>, notices:<NoticesView/>,
     copo:<COPOView/>,
     feedback: uid ? <LiveFacultyFeedback/> : <FacultyFeedbackView/>,
@@ -7880,7 +7880,7 @@ export default function App() {
   ];
   const facultySidebarLinks = [
     ["Dashboard","dashboard"],["Subjects & Students","subjects"],["Lab","lab"],
-    ["Attendance","attendance"],["Evaluation","evaluation"],["Assignments","assignments"],
+    ["My Class Attendance","attendance"],["Evaluation","evaluation"],["Assignments","assignments"],
     ["Bulk Message","bulkmessage"],["Attendance Export","attendanceexport"],
     ["My Timetable","facultytimetable"],
     ["Research","research"],
@@ -7901,7 +7901,7 @@ export default function App() {
   ];
   const facultyMenuItems = [
     ["Dashboard","dashboard"],["Subjects & Students","subjects"],["Lab Management","lab"],
-    ["Attendance & Leave","attendance"],["📤 Bulk Message","bulkmessage"],
+    ["My Class Attendance","attendance"],["📤 Bulk Message","bulkmessage"],
     ["📥 Attendance Export","attendanceexport"],["Assignments","assignments"],
     ["Evaluation","evaluation"],
     ["Research Scholars","research"],["CO/PO Attainment","copo"],
