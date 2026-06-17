@@ -30,9 +30,12 @@ export const getUserProfile = async (uid) => {
 };
 
 // ── Pending users (admin approval) ───────────────────────────────────────────
-export const getPendingUsers = (callback) => {
+export const getPendingUsers = (callback, onError) => {
   const q = query(collection(db, "users"), where("status", "==", "pending"));
-  return onSnapshot(q, snap => callback(snap.docs.map(d => ({ id: d.id, ...d.data() }))));
+  return onSnapshot(q,
+    snap => callback(snap.docs.map(d => ({ id: d.id, uid: d.id, ...d.data() }))),
+    err => { console.error("getPendingUsers error:", err); if (onError) onError(err); }
+  );
 };
 export const approveUser = async (uid, role, extraData = {}) => {
   await updateDoc(doc(db, "users", uid), { status: "approved", role, ...extraData });

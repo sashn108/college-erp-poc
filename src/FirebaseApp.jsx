@@ -234,9 +234,14 @@ export function AdminUserApprovals() {
   const [bulkLoading, setBulkLoading] = useState(false);
   const [bulkDone, setBulkDone] = useState(false);
   const [selected, setSelected] = useState(new Set());
+  const [loadError, setLoadError] = useState(null);
+  const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
-    const unsub = getPendingUsers(setPending);
+    const unsub = getPendingUsers(
+      (users) => { setPending(users); setLoaded(true); setLoadError(null); },
+      (err) => { setLoadError(err.message || "Failed to load pending users"); setLoaded(true); }
+    );
     return () => unsub();
   }, []);
 
@@ -293,6 +298,14 @@ export function AdminUserApprovals() {
           )}
         </div>
       </div>
+
+      {loadError && (
+        <div style={{background:"#fee2e2",border:"1px solid #fca5a5",borderRadius:10,padding:"14px 16px",marginBottom:14}}>
+          <div style={{fontWeight:700,color:"#dc2626",fontSize:13,marginBottom:4}}>⚠️ Could not load pending users</div>
+          <div style={{fontSize:12,color:"#991b1b",fontFamily:"monospace"}}>{loadError}</div>
+          <div style={{fontSize:12,color:"#7f1d1d",marginTop:6}}>This usually means Firestore security rules are blocking the admin from reading other users' profiles. Check your rules for the "users" collection.</div>
+        </div>
+      )}
 
       {activePending.length === 0 && (
         <div style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:12,padding:"48px 0",textAlign:"center"}}>
