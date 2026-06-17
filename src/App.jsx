@@ -2260,6 +2260,373 @@ function StudentTimetable() {
   );
 }
 
+// ─── Phase 4: Attendance Analytics ───────────────────────────────────────────
+function AttendanceAnalytics() {
+  const [selSubject, setSelSubject] = useState("all");
+  const [selView, setSelView] = useState("trend");
+
+  const subjects = [
+    {code:"CS301",name:"DBMS",      color:"#6366f1", monthly:[72,75,80,85,90,88,92,90], present:36,total:40},
+    {code:"CS302",name:"OS",        color:"#10b981", monthly:[60,58,62,65,70,68,72,74], present:31,total:42},
+    {code:"CS303",name:"CN",        color:"#f59e0b", monthly:[80,82,85,88,84,86,90,84], present:32,total:38},
+    {code:"CS304",name:"TOC",       color:"#ef4444", monthly:[55,52,58,60,63,61,65,66], present:23,total:35},
+    {code:"CS305",name:"SE",        color:"#8b5cf6", monthly:[75,78,80,82,85,83,88,80], present:32,total:40},
+  ];
+  const months = ["Nov","Dec","Jan","Feb","Mar","Apr","May","Jun"];
+
+  // Predicted attendance (simple linear extrapolation)
+  const predict = (monthly) => {
+    const last3 = monthly.slice(-3);
+    const trend = (last3[2] - last3[0]) / 2;
+    return Math.min(100, Math.max(0, Math.round(last3[2] + trend)));
+  };
+
+  const sel = selSubject === "all" ? null : subjects.find(s => s.code === selSubject);
+  const displaySubs = sel ? [sel] : subjects;
+
+  // Risk assessment
+  const getRisk = (pct) => {
+    if (pct >= 75) return {label:"Safe",    bg:"#dcfce7", c:"#16a34a", icon:"✅"};
+    if (pct >= 65) return {label:"Warning", bg:"#fef9c3", c:"#ca8a04", icon:"⚠️"};
+    return               {label:"Risk",    bg:"#fee2e2", c:"#dc2626", icon:"🚨"};
+  };
+
+  // How many classes needed to reach 75%
+  const classesNeeded = (present, total) => {
+    const need = Math.ceil(0.75 * total - present);
+    if (need <= 0) {
+      const canMiss = Math.floor((present - 0.75 * total) / 0.25);
+      return {safe: true, canMiss: Math.max(0, canMiss)};
+    }
+    return {safe: false, need};
+  };
+
+  // Simple SVG bar chart
+  const BarChart = ({data, colors, labels}) => {
+    const max = Math.max(...data.flat(), 100);
+    const h = 120, w = 360, barW = 28, gap = 8;
+    const total = data[0].length;
+    const groupW = data.length * (barW + gap);
+    const totalW = total * (groupW + 16);
+    return (
+      <svg width="100%" viewBox={`0 0 ${Math.max(totalW, 400)} ${h + 40}`} style={{overflow:"visible"}}>
+        {[0,25,50,75,100].map(v => (
+          <g key={v}>
+            <line x1={0} y1={h - (v/max)*h} x2={Math.max(totalW,400)} y2={h - (v/max)*h} stroke="#f1f5f9" strokeWidth={1}/>
+            <text x={-4} y={h - (v/max)*h + 4} fontSize={9} fill="#94a3b8" textAnchor="end">{v}%</text>
+          </g>
+        ))}
+        {/* 75% safety line */}
+        <line x1={0} y1={h - 0.75*h} x2={Math.max(totalW,400)} y2={h - 0.75*h} stroke="#ef4444" strokeWidth={1} strokeDasharray="4,3"/>
+        <text x={Math.max(totalW,400)+2} y={h - 0.75*h + 4} fontSize={9} fill="#ef4444">75%</text>
+        {labels.map((label, gi) => {
+          const gx = gi * (groupW + 16);
+          return (
+            <g key={label}>
+              {data.map((series, si) => {
+                const val = series[gi];
+                const bh = (val/max)*h;
+                const x = gx + si*(barW+gap);
+                const y = h - bh;
+                const clr = colors[si];
+                return (
+                  <g key={si}>
+                    <rect x={x} y={y} width={barW} height={bh} fill={clr} rx={3} opacity={0.85}/>
+                    <text x={x+barW/2} y={y-3} fontSize={8} fill={clr} textAnchor="middle" fontWeight="700">{val}%</text>
+                  </g>
+                );
+              })}
+              <text x={gx+groupW/2} y={h+14} fontSize={9} fill="#64748b" textAnchor="middle">{label}</text>
+            </g>
+          );
+        })}
+      </svg>
+    );
+  };
+
+  // SVG line chart
+  const LineChart = ({series, labels}) => {
+    const h = 130, padL = 30, padR = 20, padT = 15, padB = 25;
+    const W = 520;
+    const chartW = W - padL - padR;
+    const chartH = h - padT - padB;
+    const max = 100, min = 40;
+    const toY = v => padT + chartH - ((v-min)/(max-min))*chartH;
+    const toX = i => padL + (i/(labels.length-1))*chartW;
+    return (
+      <svg width="100%" viewBox={`0 0 ${W} ${h}`} style={{overflow:"visible"}}>
+        {[50,60,70,75,80,90,100].map(v=>(
+          <g key={v}>
+            <line x1={padL} y1={toY(v)} x2={W-padR} y2={toY(v)} stroke="#f1f5f9" strokeWidth={1}/>
+            <text x={padL-4} y={toY(v)+3} fontSize={8} fill="#94a3b8" textAnchor="end">{v}%</text>
+          </g>
+        ))}
+        {/* 75% safety line */}
+        <line x1={padL} y1={toY(75)} x2={W-padR} y2={toY(75)} stroke="#ef4444" strokeWidth={1} strokeDasharray="4,3"/>
+        {series.map(({data, color, name}) => {
+          const pts = data.map((v,i)=>`${toX(i)},${toY(v)}`).join(" ");
+          return (
+            <g key={name}>
+              <polyline points={pts} fill="none" stroke={color} strokeWidth={2} strokeLinejoin="round"/>
+              {data.map((v,i)=>(
+                <g key={i}>
+                  <circle cx={toX(i)} cy={toY(v)} r={3} fill={color}/>
+                  {i===data.length-1 && (
+                    <text x={toX(i)+5} y={toY(v)+3} fontSize={8} fill={color} fontWeight="700">{v}%</text>
+                  )}
+                </g>
+              ))}
+            </g>
+          );
+        })}
+        {labels.map((l,i)=>(
+          <text key={l} x={toX(i)} y={h-5} fontSize={8} fill="#94a3b8" textAnchor="middle">{l}</text>
+        ))}
+      </svg>
+    );
+  };
+
+  return (
+    <div>
+      {/* Summary cards */}
+      <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10,marginBottom:14}}>
+        {[
+          {label:"Overall Attendance",value:Math.round(subjects.reduce((a,s)=>a+(s.present/s.total*100),0)/subjects.length)+"%",icon:"📊",color:"#6366f1"},
+          {label:"Subjects Safe",value:subjects.filter(s=>s.present/s.total>=0.75).length+"/"+subjects.length,icon:"✅",color:"#10b981"},
+          {label:"At Risk",value:subjects.filter(s=>s.present/s.total<0.65).length,icon:"🚨",color:"#ef4444"},
+          {label:"Predicted (Jul)",value:predict(subjects[0].monthly)+"%",icon:"🔮",color:"#8b5cf6"},
+        ].map(c=>(
+          <div key={c.label} style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:10,padding:"12px 14px",borderLeft:`4px solid ${c.color}`}}>
+            <div style={{fontSize:20,marginBottom:2}}>{c.icon}</div>
+            <div style={{fontSize:20,fontWeight:800,color:c.color}}>{c.value}</div>
+            <div style={{fontSize:11,color:"#94a3b8",fontWeight:600}}>{c.label}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Controls */}
+      <div style={{display:"flex",gap:8,marginBottom:14,alignItems:"center",flexWrap:"wrap",justifyContent:"space-between"}}>
+        <div style={{display:"flex",gap:4,background:"#f1f5f9",borderRadius:8,padding:3}}>
+          {[["trend","📈 Trend"],["monthly","📊 Monthly"],["predict","🔮 Prediction"],["risk","🚨 Risk Alerts"]].map(([v,l])=>(
+            <button key={v} onClick={()=>setSelView(v)}
+              style={{padding:"6px 14px",border:"none",borderRadius:6,cursor:"pointer",fontSize:12,fontWeight:600,
+                background:selView===v?"linear-gradient(135deg,#6366f1,#8b5cf6)":"transparent",
+                color:selView===v?"#fff":"#64748b"}}>
+              {l}
+            </button>
+          ))}
+        </div>
+        <select value={selSubject} onChange={e=>setSelSubject(e.target.value)}
+          style={{padding:"7px 12px",border:"1px solid #e2e8f0",borderRadius:8,fontSize:12,fontFamily:"inherit",outline:"none"}}>
+          <option value="all">All Subjects</option>
+          {subjects.map(s=><option key={s.code} value={s.code}>{s.code} — {s.name}</option>)}
+        </select>
+      </div>
+
+      {/* Charts */}
+      <div style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:12,padding:"16px 18px",marginBottom:14}}>
+        {selView === "trend" && (
+          <>
+            <div style={{fontWeight:700,fontSize:13,color:"#0f172a",marginBottom:12}}>📈 Attendance Trend (Nov 2025 — Jun 2026)</div>
+            <LineChart
+              series={displaySubs.map(s=>({data:s.monthly, color:s.color, name:s.code}))}
+              labels={months}
+            />
+            <div style={{display:"flex",gap:12,marginTop:8,flexWrap:"wrap"}}>
+              {displaySubs.map(s=>(
+                <div key={s.code} style={{display:"flex",alignItems:"center",gap:5,fontSize:11}}>
+                  <div style={{width:12,height:3,borderRadius:2,background:s.color}}/>
+                  <span style={{color:"#64748b"}}>{s.code} — {s.name}</span>
+                </div>
+              ))}
+              <div style={{display:"flex",alignItems:"center",gap:5,fontSize:11}}>
+                <div style={{width:12,height:1,background:"#ef4444",borderTop:"1px dashed #ef4444"}}/>
+                <span style={{color:"#ef4444"}}>75% Threshold</span>
+              </div>
+            </div>
+          </>
+        )}
+
+        {selView === "monthly" && (
+          <>
+            <div style={{fontWeight:700,fontSize:13,color:"#0f172a",marginBottom:12}}>📊 Monthly Attendance Comparison</div>
+            <div style={{overflowX:"auto"}}>
+              <BarChart
+                data={displaySubs.map(s=>s.monthly)}
+                colors={displaySubs.map(s=>s.color)}
+                labels={months}
+              />
+            </div>
+          </>
+        )}
+
+        {selView === "predict" && (
+          <>
+            <div style={{fontWeight:700,fontSize:13,color:"#0f172a",marginBottom:4}}>🔮 Predicted Attendance — July 2026</div>
+            <div style={{fontSize:12,color:"#94a3b8",marginBottom:14}}>Based on trend from last 3 months</div>
+            <div style={{display:"grid",gap:10}}>
+              {displaySubs.map(s=>{
+                const curr = Math.round(s.present/s.total*100);
+                const pred = predict(s.monthly);
+                const risk = getRisk(pred);
+                const diff = pred - curr;
+                return (
+                  <div key={s.code} style={{display:"flex",alignItems:"center",gap:12,padding:"12px 14px",border:"1px solid #e2e8f0",borderRadius:10,background:"#fafbff"}}>
+                    <div style={{width:44,height:44,borderRadius:10,background:s.color+"15",display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:800,color:s.color,flexShrink:0}}>{s.code}</div>
+                    <div style={{flex:1}}>
+                      <div style={{fontWeight:700,fontSize:13,color:"#0f172a"}}>{s.name}</div>
+                      <div style={{fontSize:11,color:"#94a3b8",marginTop:1}}>Current: {curr}% → Predicted July: <strong style={{color:s.color}}>{pred}%</strong></div>
+                    </div>
+                    <div style={{textAlign:"right",flexShrink:0}}>
+                      <span style={{fontSize:18,fontWeight:800,color:diff>=0?"#10b981":"#ef4444"}}>{diff>=0?"↑":"↓"}{Math.abs(diff)}%</span>
+                      <div style={{fontSize:10,color:"#94a3b8",marginTop:2}}>vs current</div>
+                    </div>
+                    <span style={{padding:"4px 10px",borderRadius:8,fontSize:11,fontWeight:700,background:risk.bg,color:risk.c,flexShrink:0}}>{risk.icon} {risk.label}</span>
+                  </div>
+                );
+              })}
+            </div>
+            <div style={{marginTop:12,background:"#eef2ff",borderRadius:8,padding:"10px 14px",fontSize:12,color:"#4338ca"}}>
+              ℹ️ Prediction uses linear trend from last 3 months. Actual attendance may vary based on exams, holidays, and class schedule.
+            </div>
+          </>
+        )}
+
+        {selView === "risk" && (
+          <>
+            <div style={{fontWeight:700,fontSize:13,color:"#0f172a",marginBottom:4}}>🚨 Subject Risk Alerts</div>
+            <div style={{fontSize:12,color:"#94a3b8",marginBottom:14}}>Showing action required to reach/maintain 75% attendance</div>
+            <div style={{display:"grid",gap:10}}>
+              {displaySubs.map(s=>{
+                const pct = Math.round(s.present/s.total*100);
+                const risk = getRisk(pct);
+                const cn = classesNeeded(s.present, s.total);
+                return (
+                  <div key={s.code} style={{border:`2px solid ${risk.c}30`,borderRadius:10,padding:"14px 16px",background:risk.bg+"40"}}>
+                    <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8}}>
+                      <div style={{display:"flex",alignItems:"center",gap:8}}>
+                        <span style={{fontSize:20}}>{risk.icon}</span>
+                        <div>
+                          <div style={{fontWeight:700,fontSize:13,color:"#0f172a"}}>{s.code} — {s.name}</div>
+                          <div style={{fontSize:11,color:"#64748b"}}>{s.present}/{s.total} classes attended</div>
+                        </div>
+                      </div>
+                      <div style={{textAlign:"right"}}>
+                        <div style={{fontSize:22,fontWeight:800,color:risk.c}}>{pct}%</div>
+                        <span style={{padding:"2px 8px",borderRadius:6,fontSize:10,fontWeight:700,background:risk.bg,color:risk.c}}>{risk.label}</span>
+                      </div>
+                    </div>
+                    <div style={{height:8,background:"#e2e8f0",borderRadius:4,marginBottom:8}}>
+                      <div style={{width:pct+"%",height:"100%",background:risk.c,borderRadius:4,transition:"width 1s"}}/>
+                    </div>
+                    <div style={{fontSize:12,color:risk.c,fontWeight:600}}>
+                      {cn.safe
+                        ? `✅ You can miss up to ${cn.canMiss} more class${cn.canMiss!==1?"es":""} and still stay safe.`
+                        : `❗ Attend next ${cn.need} class${cn.need!==1?"es":""} consecutively to reach 75%.`
+                      }
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── Phase 4: Faculty Timetable ───────────────────────────────────────────────
+function FacultyTimetable() {
+  const days = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+  const slots = ["8:00–9:00","9:00–10:00","10:00–11:00","11:00–12:00","12:00–1:00","1:00–2:00","2:00–3:00","3:00–4:00","4:00–5:00"];
+  const today = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"][new Date().getDay()];
+  const tt = {
+    "Monday":    ["—","CS301·CSE5A·LH-101","CS301·CSE5A·LH-101","—","BREAK","CS302·CSE4B·LH-202","—","—","—"],
+    "Tuesday":   ["CS303·CSE5B·LH-103","—","—","CS301·CSE5A·LH-101","BREAK","—","CS302·CSE4B·LH-202","—","—"],
+    "Wednesday": ["—","CS301·CSE5A·LH-101","—","CS303·CSE5B·LH-103","BREAK","CS303·CSE5B·LH-103","—","—","—"],
+    "Thursday":  ["—","—","CS302·CSE4B·LH-202","—","BREAK","CS301·CSE5A·LH-101","CS301·CSE5A·LH-101","—","—"],
+    "Friday":    ["CS301·CSE5A·LH-101","—","CS303·CSE5B·LH-103","—","BREAK","—","CS302·CSE4B·LH-202","—","—"],
+    "Saturday":  ["CS301L·CSE5A·DBLab","CS301L·CSE5A·DBLab","—","—","BREAK","—","—","—","—"],
+  };
+  const cc = {CS301:"#6366f1",CS302:"#10b981",CS303:"#f59e0b",CS301L:"#14b8a6"};
+  const cn = {CS301:"DBMS",CS302:"OS",CS303:"CN",CS301L:"DBMS Lab"};
+
+  const totalClasses = Object.values(tt).flat().filter(c=>c!=="—"&&c!=="BREAK").length;
+  const todayClasses = (tt[today]||[]).filter(c=>c!=="—"&&c!=="BREAK").length;
+
+  return (
+    <div>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:10,marginBottom:14}}>
+        {[
+          {label:"Weekly Classes",value:totalClasses,icon:"📚",color:"#6366f1"},
+          {label:"Today's Classes",value:todayClasses,icon:"📅",color:"#10b981"},
+          {label:"Subjects Handling",value:Object.keys(cc).length,icon:"📖",color:"#f59e0b"},
+        ].map(c=>(
+          <div key={c.label} style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:10,padding:"12px 14px",borderLeft:`4px solid ${c.color}`}}>
+            <div style={{fontSize:20,marginBottom:2}}>{c.icon}</div>
+            <div style={{fontSize:22,fontWeight:800,color:c.color}}>{c.value}</div>
+            <div style={{fontSize:11,color:"#94a3b8",fontWeight:600}}>{c.label}</div>
+          </div>
+        ))}
+      </div>
+      <div style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:12,overflow:"hidden"}}>
+        <div style={{background:"linear-gradient(135deg,#6366f1,#8b5cf6)",padding:"12px 16px",color:"#fff",fontWeight:700,fontSize:13}}>
+          📅 My Teaching Schedule — Spring 2025-26
+        </div>
+        <div style={{padding:14,overflowX:"auto"}}>
+          <table style={{width:"100%",borderCollapse:"collapse",fontSize:12,minWidth:700}}>
+            <thead>
+              <tr style={{background:"#f8fafc"}}>
+                <th style={{padding:"8px 10px",fontWeight:700,color:"#475569",fontSize:11,width:100,borderBottom:"2px solid #e2e8f0",textAlign:"left"}}>TIME</th>
+                {days.map(d=>(
+                  <th key={d} style={{padding:"8px 6px",fontWeight:700,fontSize:11,textAlign:"center",borderBottom:"2px solid #e2e8f0",
+                    color:d===today?"#6366f1":"#475569",background:d===today?"#eef2ff":"transparent"}}>
+                    {d.slice(0,3).toUpperCase()}
+                    {d===today&&<div style={{fontSize:9,color:"#6366f1",fontWeight:600}}>TODAY</div>}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {slots.map((slot,si)=>(
+                <tr key={slot} style={{borderBottom:"1px solid #f1f5f9",background:si%2===0?"#fff":"#fafbff"}}>
+                  <td style={{padding:"7px 10px",fontSize:11,fontWeight:600,color:"#64748b",whiteSpace:"nowrap"}}>{slot}</td>
+                  {days.map(d=>{
+                    const cell=(tt[d]||[])[si]||"—";
+                    if(cell==="BREAK") return <td key={d} style={{padding:"6px",textAlign:"center",background:"#fef9c3",fontSize:10,fontWeight:600,color:"#92400e"}}>BREAK</td>;
+                    if(cell==="—") return <td key={d} style={{padding:"6px",textAlign:"center",color:"#cbd5e1",background:d===today?"#f5f6ff":"transparent"}}>—</td>;
+                    const parts=cell.split("·");
+                    const code=parts[0], batch=parts[1], room=parts[2];
+                    const c=cc[code]||"#6366f1";
+                    return (
+                      <td key={d} style={{padding:"4px 5px",background:d===today?"#eef2ff":"transparent"}}>
+                        <div style={{background:c+"15",border:`1px solid ${c}30`,borderLeft:`3px solid ${c}`,borderRadius:4,padding:"4px 5px"}}>
+                          <div style={{fontWeight:700,fontSize:11,color:c}}>{code}</div>
+                          <div style={{fontSize:9,color:"#475569"}}>{cn[code]}</div>
+                          <div style={{fontSize:9,color:"#94a3b8"}}>{batch} · {room}</div>
+                        </div>
+                      </td>
+                    );
+                  })}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <div style={{display:"flex",gap:12,marginTop:12,flexWrap:"wrap"}}>
+            {Object.entries(cc).map(([code,c])=>(
+              <div key={code} style={{display:"flex",alignItems:"center",gap:5,fontSize:11}}>
+                <div style={{width:10,height:10,borderRadius:2,background:c}}/>
+                <span style={{color:"#64748b"}}>{code} — {cn[code]}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function FacultySubjectsView() {
   const [sel, setSel] = useState(null);
   const [modal, setModal] = useState(null);
@@ -7452,6 +7819,7 @@ export default function App() {
 
   const studentViews = {
     dashboard:<StudentDashboard user={auth}/>, attendance:<AttendanceView/>,
+    analytics:<AttendanceAnalytics/>,
     exam:<ExamView/>, fee:<FeeView/>, assignments:<AssignmentsView role="student"/>, notices:<NoticesView/>,
     timetable:<StudentTimetable/>, papers:<QuestionPapers/>,
     hallticket:<HallTicket user={auth}/>, grievance:<GrievancePortal/>,
@@ -7470,6 +7838,7 @@ export default function App() {
     assignments:<AssignmentsView role="faculty"/>,
     bulkmessage:<BulkMessagingView role="faculty"/>,
     attendanceexport:<AttendanceExport/>,
+    facultytimetable:<FacultyTimetable/>,
     lab:<LabView/>, attendance:<AttendanceView/>, evaluation:<EvaluationView/>,
     research:<ResearchView/>, duty:<DutyView/>, notices:<NoticesView/>,
     copo:<COPOView/>,
@@ -7498,7 +7867,7 @@ export default function App() {
   const views = role==="student" ? studentViews : role==="faculty" ? facultyViews : adminViews;
 
   const studentSidebarLinks = [
-    ["Dashboard","dashboard"],["Attendance","attendance"],
+    ["Dashboard","dashboard"],["Attendance","attendance"],["Attendance Analytics","analytics"],
     ["Question Papers","papers"],["Examination","exam"],["Marksheet","marksheet"],
     ["Hall Ticket","hallticket"],["Assignments","assignments"],["Fee Payment","fee"],
     ["Library","library"],["Placement Cell","placement"],["E-Learning","elearning"],
@@ -7506,12 +7875,14 @@ export default function App() {
     ["Course Registration","registration"],["Grievance","grievance"],
     ["Feedback","feedback"],["Messages","messages"],
     ["Internal Marks","internalmarks"],["Live Attendance","liveattendance"],
+    ["Timetable","timetable"],
     ["Profile","profile"],["Audit Log","auditlog"],["Notices","notices"],
   ];
   const facultySidebarLinks = [
     ["Dashboard","dashboard"],["Subjects & Students","subjects"],["Lab","lab"],
     ["Attendance","attendance"],["Evaluation","evaluation"],["Assignments","assignments"],
     ["Bulk Message","bulkmessage"],["Attendance Export","attendanceexport"],
+    ["My Timetable","facultytimetable"],
     ["Research","research"],
     ["CO/PO Attainment","copo"],["Syllabus Tracker","syllabus"],["Question Paper","qpaper"],["File Tracking","fts"],["Services","services"],
     ["Exam & Duty","duty"],["Feedback Results","feedback"],
@@ -7521,7 +7892,7 @@ export default function App() {
   // Academic dropdown items
   const studentMenuItems = [
     ["Student Information","profile"],["Registration","registration"],["Attendance and Leave","attendance"],
-    ["📡 Live Attendance","liveattendance"],["📊 Internal Marks","internalmarks"],
+    ["📡 Live Attendance","liveattendance"],["📊 Internal Marks","internalmarks"],["📈 Attendance Analytics","analytics"],
     ["Feedback / Assessment","feedback"],["Examination","exam"],["Fee Payment","fee"],
     ["Hostel Management","fee"],["Assignments","assignments"],["💬 Messages","messages"],
     ["Hall Ticket","hallticket"],["Library","library"],["Placement Cell","placement"],
