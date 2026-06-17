@@ -4652,13 +4652,36 @@ function FacultyProfile({ user }) {
   const [showAddPub, setShowAddPub] = useState(false);
   const [newPub, setNewPub] = useState({ title:"", journal:"", year:new Date().getFullYear(), type:"Journal", doi:"", status:"Published", q:"Q1", if:"" });
 
+  // Teaching load — drawn from existing subjects taught
+  const teachingLoad = [
+    {code:"CS301", name:"Database Management Systems", class:"CSE 5A", type:"Theory", students:43, hoursPerWeek:4, credits:4, semester:"Odd 2025-26"},
+    {code:"CS301L", name:"DBMS Lab", class:"CSE 5A", type:"Lab", students:43, hoursPerWeek:2, credits:1, semester:"Odd 2025-26"},
+    {code:"CS302", name:"Operating Systems", class:"CSE 4B", type:"Theory", students:38, hoursPerWeek:3, credits:3, semester:"Odd 2025-26"},
+    {code:"CS499", name:"Final Year Project Guidance", class:"CSE 7A", type:"Project", students:6, hoursPerWeek:2, credits:2, semester:"Odd 2025-26"},
+  ];
+  const totalHours = teachingLoad.reduce((a,t)=>a+t.hoursPerWeek,0);
+  const totalStudents = teachingLoad.reduce((a,t)=>a+t.students,0);
+  const totalCredits = teachingLoad.reduce((a,t)=>a+t.credits,0);
+  const maxLoad = 16; // typical sanctioned weekly teaching hours
+  const loadPct = Math.round((totalHours/maxLoad)*100);
+
+  // Administrative responsibilities
+  const adminRoles = [
+    {role:"Time Table Coordinator", scope:"Dept. of CSE", since:"Jul 2023", level:"Department", icon:"📅"},
+    {role:"NBA Documentation Coordinator", scope:"CSE — NBA Accreditation Cycle 2025-26", since:"Jan 2025", level:"Department", icon:"📋"},
+    {role:"Faculty Advisor — 3rd Year CSE Section A", scope:"45 students under mentorship", since:"Aug 2024", level:"Section", icon:"🎓"},
+    {role:"Member, Anti-Ragging Committee", scope:"Institute-wide", since:"Aug 2022", level:"Institute", icon:"🛡️"},
+    {role:"Coordinator, Technical Symposium 'TechVista'", scope:"CSE Department Annual Event", since:"Mar 2024", level:"Department", icon:"🏆"},
+  ];
+  const levelColor = {Institute:"#ef4444", Department:"#6366f1", Section:"#10b981"};
+
   const totalCitations = publications.reduce((a,p)=>a+p.citations,0);
   const hIndex = 2; // mock
 
   return (
     <div>
       <div style={{display:"flex",gap:4,background:"#f1f5f9",borderRadius:8,padding:3,marginBottom:14,width:"fit-content"}}>
-        {[["profile","👤 Profile"],["publications","📄 Publications"],["patents","💡 Patents & Grants"]].map(([t,l])=>(
+        {[["profile","👤 Profile"],["teaching","📚 Teaching Load"],["admin","🏛️ Administrative Roles"],["publications","📄 Publications"],["patents","💡 Patents & Grants"]].map(([t,l])=>(
           <button key={t} onClick={()=>setTab(t)}
             style={{padding:"7px 16px",border:"none",borderRadius:6,cursor:"pointer",fontSize:12,fontWeight:600,
               background:tab===t?"linear-gradient(135deg,#6366f1,#8b5cf6)":"transparent",color:tab===t?"#fff":"#64748b"}}>{l}</button>
@@ -4714,6 +4737,111 @@ function FacultyProfile({ user }) {
                 </div>
               ))}
             </div>
+          </div>
+        </div>
+      )}
+
+      {tab==="teaching" && (
+        <div>
+          {/* Summary cards */}
+          <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10,marginBottom:14}}>
+            {[
+              {label:"Weekly Hours",value:`${totalHours}/${maxLoad}`,icon:"⏱️",color:"#6366f1"},
+              {label:"Total Students",value:totalStudents,icon:"👥",color:"#10b981"},
+              {label:"Credit Load",value:totalCredits,icon:"🎯",color:"#f59e0b"},
+              {label:"Subjects Handling",value:teachingLoad.length,icon:"📖",color:"#8b5cf6"},
+            ].map(c=>(
+              <div key={c.label} style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:10,padding:"12px 14px",borderLeft:`4px solid ${c.color}`}}>
+                <div style={{fontSize:20,marginBottom:2}}>{c.icon}</div>
+                <div style={{fontSize:20,fontWeight:800,color:c.color}}>{c.value}</div>
+                <div style={{fontSize:11,color:"#94a3b8",fontWeight:600}}>{c.label}</div>
+              </div>
+            ))}
+          </div>
+
+          {/* Load utilization bar */}
+          <div style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:12,padding:"14px 18px",marginBottom:14}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
+              <span style={{fontWeight:700,fontSize:13,color:"#0f172a"}}>Workload Utilization (vs. sanctioned {maxLoad} hrs/week)</span>
+              <span style={{fontWeight:800,fontSize:14,color:loadPct>90?"#ef4444":loadPct>70?"#f59e0b":"#10b981"}}>{loadPct}%</span>
+            </div>
+            <div style={{height:10,background:"#f1f5f9",borderRadius:5}}>
+              <div style={{width:Math.min(loadPct,100)+"%",height:"100%",background:loadPct>90?"#ef4444":loadPct>70?"#f59e0b":"#10b981",borderRadius:5,transition:"width 1s"}}/>
+            </div>
+            <div style={{fontSize:11,color:"#94a3b8",marginTop:6}}>
+              {loadPct > 90 ? "⚠️ Near maximum sanctioned load." : loadPct > 70 ? "Healthy workload, within institute norms." : "Capacity available for additional teaching/research duties."}
+            </div>
+          </div>
+
+          {/* Subject-wise breakdown */}
+          <div style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:12,overflow:"hidden"}}>
+            <div style={{background:"linear-gradient(135deg,#6366f1,#8b5cf6)",padding:"12px 16px",color:"#fff",fontWeight:700,fontSize:13}}>
+              📚 Subject-wise Teaching Load — {teachingLoad[0]?.semester}
+            </div>
+            <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
+              <thead>
+                <tr style={{background:"#f8fafc"}}>
+                  {["Code","Subject","Class/Batch","Type","Students","Hrs/Week","Credits"].map(h=>(
+                    <th key={h} style={{padding:"9px 12px",textAlign:"left",fontWeight:700,color:"#475569",fontSize:11,borderBottom:"1px solid #e2e8f0"}}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {teachingLoad.map((t,i)=>(
+                  <tr key={t.code} style={{borderBottom:"1px solid #f1f5f9",background:i%2===0?"#fff":"#fafbff"}}>
+                    <td style={{padding:"10px 12px",color:"#6366f1",fontWeight:700}}>{t.code}</td>
+                    <td style={{padding:"10px 12px",fontWeight:600,color:"#0f172a"}}>{t.name}</td>
+                    <td style={{padding:"10px 12px",color:"#64748b"}}>{t.class}</td>
+                    <td style={{padding:"10px 12px"}}>
+                      <span style={{padding:"2px 8px",borderRadius:6,fontSize:10,fontWeight:700,
+                        background:t.type==="Theory"?"#eef2ff":t.type==="Lab"?"#fef3c7":"#dcfce7",
+                        color:t.type==="Theory"?"#6366f1":t.type==="Lab"?"#d97706":"#16a34a"}}>{t.type}</span>
+                    </td>
+                    <td style={{padding:"10px 12px",textAlign:"center",fontWeight:600}}>{t.students}</td>
+                    <td style={{padding:"10px 12px",textAlign:"center",fontWeight:700,color:"#6366f1"}}>{t.hoursPerWeek}</td>
+                    <td style={{padding:"10px 12px",textAlign:"center",color:"#64748b"}}>{t.credits}</td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot>
+                <tr style={{background:"#f8fafc",fontWeight:700}}>
+                  <td colSpan={4} style={{padding:"10px 12px",color:"#0f172a"}}>Total</td>
+                  <td style={{padding:"10px 12px",textAlign:"center",color:"#0f172a"}}>{totalStudents}</td>
+                  <td style={{padding:"10px 12px",textAlign:"center",color:"#6366f1"}}>{totalHours}</td>
+                  <td style={{padding:"10px 12px",textAlign:"center",color:"#0f172a"}}>{totalCredits}</td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {tab==="admin" && (
+        <div>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
+            <div>
+              <div style={{fontWeight:700,fontSize:15,color:"#0f172a"}}>🏛️ Administrative & Institutional Responsibilities</div>
+              <div style={{fontSize:12,color:"#94a3b8",marginTop:2}}>Non-teaching duties assigned by the department / institute</div>
+            </div>
+            <span style={{padding:"5px 14px",borderRadius:20,fontSize:12,fontWeight:700,background:"#eef2ff",color:"#6366f1"}}>{adminRoles.length} Active Roles</span>
+          </div>
+          <div style={{display:"grid",gap:10}}>
+            {adminRoles.map((r,i)=>(
+              <div key={i} style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:12,padding:"14px 16px",display:"flex",gap:14,alignItems:"flex-start"}}>
+                <div style={{width:42,height:42,borderRadius:10,background:(levelColor[r.level]||"#6366f1")+"15",display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,flexShrink:0}}>{r.icon}</div>
+                <div style={{flex:1}}>
+                  <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap",marginBottom:3}}>
+                    <span style={{fontWeight:700,fontSize:14,color:"#0f172a"}}>{r.role}</span>
+                    <span style={{padding:"2px 8px",borderRadius:6,fontSize:10,fontWeight:700,background:(levelColor[r.level]||"#6366f1")+"15",color:levelColor[r.level]||"#6366f1"}}>{r.level}</span>
+                  </div>
+                  <div style={{fontSize:12,color:"#64748b"}}>{r.scope}</div>
+                  <div style={{fontSize:11,color:"#94a3b8",marginTop:3}}>Since {r.since}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+          <div style={{marginTop:14,background:"#f0fdf4",border:"1px solid #86efac",borderRadius:10,padding:"12px 16px",fontSize:12,color:"#16a34a"}}>
+            ✅ All responsibilities verified and approved by Head of Department.
           </div>
         </div>
       )}
