@@ -2635,6 +2635,10 @@ function FacultySubjectsView() {
   const [selAttDate, setSelAttDate] = useState("Jun 19");
   const [marksLocked, setMarksLocked] = useState({});
   const [marksSaved, setMarksSaved] = useState(false);
+  const [csvError, setCsvError] = useState("");
+  const [csvSuccess, setCsvSuccess] = useState("");
+  const [showCsvUpload, setShowCsvUpload] = useState(false);
+  const [extraStudents, setExtraStudents] = useState({}); // {subjectCode: [students]}
   const [inbox, setInbox] = useState([
     {from:"Riya Patel",roll:"22CS001",subj:"Query about Assignment #4",msg:"Ma'am, can you clarify the ER diagram requirements?",time:"Jun 8, 9:42 AM",read:false},
     {from:"Amit Kumar",roll:"22CS005",subj:"Lab file submission",msg:"Sir, I submitted the lab file. Please check.",time:"Jun 7, 2:15 PM",read:true},
@@ -2701,7 +2705,7 @@ function FacultySubjectsView() {
     {code:"CS499",name:"Final Year Project",class:"CSE 7A",type:"Project"},
   ];
 
-  const students = sel ? (subjectData[sel.code]||[]) : [];
+  const students = sel ? [...(subjectData[sel.code]||[]), ...(extraStudents[sel.code]||[])] : [];
   const unread = inbox.filter(m=>!m.read).length;
   const typeColor = {Theory:"#6366f1",Lab:"#f59e0b",Project:"#10b981"};
 
@@ -2731,9 +2735,72 @@ function FacultySubjectsView() {
 
   const attStatusColor = s => s==="P"?{bg:"#dcfce7",c:"#16a34a"}:s==="A"?{bg:"#fee2e2",c:"#dc2626"}:{bg:"#fef9c3",c:"#ca8a04"};
 
+  // CSV upload — parse and add students to currently selected subject
+  const parseCsvForSubject = (text) => {
+    setCsvError(""); setCsvSuccess("");
+    if (!sel) { setCsvError("Select a subject first."); return; }
+    const lines = text.trim().split("\n").filter(Boolean);
+    if (lines.length < 2) { setCsvError("CSV must have a header row and at least one data row."); return; }
+    const headers = lines[0].split(",").map(h => h.trim().toLowerCase().replace(/\s+/g,"_"));
+    const nameCol = headers.findIndex(h => h.includes("name"));
+    const rollCol = headers.findIndex(h => h.includes("roll") || h.includes("reg") || h.includes("id"));
+    const emailCol = headers.findIndex(h => h.includes("email"));
+    if (nameCol === -1 || rollCol === -1) { setCsvError("CSV must have 'name' and 'roll/reg' columns."); return; }
+    const existingRolls = new Set(students.map(s=>s.roll));
+    const parsed = lines.slice(1).map(line => {
+      const cols = line.split(",").map(c => c.trim());
+      return {
+        roll: cols[rollCol] || "—",
+        name: cols[nameCol] || "—",
+        email: emailCol !== -1 ? (cols[emailCol]||"") : "",
+        project: "—",
+      };
+    }).filter(s => s.name !== "—" && s.roll !== "—" && !existingRolls.has(s.roll));
+    if (parsed.length === 0) { setCsvError("No new students found (duplicates or invalid rows skipped)."); return; }
+    setExtraStudents(prev => ({...prev, [sel.code]: [...(prev[sel.code]||[]), ...parsed]}));
+    setCsvSuccess(`✅ ${parsed.length} student${parsed.length!==1?"s":""} added to ${sel.code}`);
+    setTimeout(()=>{setCsvSuccess(""); setShowCsvUpload(false);}, 2500);
+  };
+
+  const handleCsvFile = (file) => {
+    if (!file) return;
+    if (!file.name.endsWith(".csv")) { setCsvError("Please upload a .csv file."); return; }
+    const reader = new FileReader();
+    reader.onload = e => parseCsvForSubject(e.target.result);
+    reader.readAsText(file);
+  };
+
   return (
     <>
       {modal && <MessageModal to={modal.to} toAll={modal.toAll} subject={modal.subjectName} onClose={()=>setModal(null)}/>}
+      {showCsvUpload && (
+        <div style={{position:"fixed",inset:0,background:"rgba(15,23,42,0.6)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center"}} onClick={()=>setShowCsvUpload(false)}>
+          <div style={{background:"#fff",borderRadius:14,width:480,overflow:"hidden",boxShadow:"0 20px 60px rgba(0,0,0,0.25)"}} onClick={e=>e.stopPropagation()}>
+            <div style={{background:"linear-gradient(135deg,#6366f1,#8b5cf6)",padding:"14px 18px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+              <span style={{color:"#fff",fontWeight:700,fontSize:15}}>📤 Upload Students — {sel?.code}</span>
+              <button onClick={()=>setShowCsvUpload(false)} style={{background:"rgba(255,255,255,0.2)",border:"none",borderRadius:6,color:"#fff",width:28,height:28,cursor:"pointer",fontSize:16}}>✕</button>
+            </div>
+            <div style={{padding:"20px 22px"}}>
+              <div
+                onDragOver={e=>e.preventDefault()}
+                onDrop={e=>{e.preventDefault();handleCsvFile(e.dataTransfer.files[0]);}}
+                onClick={()=>document.getElementById("faculty-csv-input").click()}
+                style={{border:"2px dashed #e2e8f0",borderRadius:10,padding:"28px 20px",textAlign:"center",background:"#fafafa",cursor:"pointer",transition:"all .2s"}}>
+                <div style={{fontSize:36,marginBottom:8}}>📂</div>
+                <div style={{fontWeight:600,color:"#334155",fontSize:14,marginBottom:4}}>Drag & Drop CSV file here</div>
+                <div style={{fontSize:12,color:"#94a3b8",marginBottom:14}}>or click to browse · Columns: Name, Roll/Reg No, Email (optional)</div>
+                <button style={{padding:"8px 20px",background:"linear-gradient(135deg,#6366f1,#8b5cf6)",color:"#fff",border:"none",borderRadius:8,fontWeight:600,cursor:"pointer",fontSize:13}}>Choose File</button>
+                <input id="faculty-csv-input" type="file" accept=".csv" style={{display:"none"}} onChange={e=>handleCsvFile(e.target.files[0])}/>
+              </div>
+              {csvError && <div style={{marginTop:12,background:"#fee2e2",border:"1px solid #fca5a5",borderRadius:8,padding:"8px 12px",color:"#dc2626",fontSize:12,fontWeight:600}}>{csvError}</div>}
+              {csvSuccess && <div style={{marginTop:12,background:"#dcfce7",border:"1px solid #86efac",borderRadius:8,padding:"8px 12px",color:"#16a34a",fontSize:12,fontWeight:600}}>{csvSuccess}</div>}
+              <div style={{marginTop:14,fontSize:11,color:"#94a3b8"}}>
+                ℹ️ Students will be added only to <strong>{sel?.code} — {sel?.name}</strong>. Duplicate roll numbers are automatically skipped.
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
       <div style={{display:"grid",gridTemplateColumns:"210px 1fr",gap:14}}>
 
         {/* Subject List */}
@@ -2750,7 +2817,7 @@ function FacultySubjectsView() {
                   <span style={{fontSize:10,fontWeight:700,padding:"1px 6px",borderRadius:20,background:(typeColor[s.type]||"#6366f1")+"20",color:typeColor[s.type]}}>{s.type}</span>
                 </div>
                 <div style={{fontSize:12,color:"#334155",fontWeight:500,lineHeight:1.3}}>{s.name}</div>
-                <div style={{fontSize:11,color:"#94a3b8",marginTop:2}}>{s.class} · {(subjectData[s.code]||[]).length} students</div>
+                <div style={{fontSize:11,color:"#94a3b8",marginTop:2}}>{s.class} · {(subjectData[s.code]||[]).length + (extraStudents[s.code]||[]).length} students</div>
               </div>
             ))}
           </div>
@@ -2790,10 +2857,16 @@ function FacultySubjectsView() {
                   <div style={{color:"#fff",fontWeight:700,fontSize:15}}>{sel.name}</div>
                   <div style={{color:"rgba(255,255,255,0.8)",fontSize:12}}>{sel.code} · {sel.class} · {students.length} students</div>
                 </div>
-                <button onClick={()=>setModal({toAll:true,subjectName:sel.name})}
-                  style={{padding:"7px 14px",background:"rgba(255,255,255,0.2)",border:"1px solid rgba(255,255,255,0.4)",borderRadius:8,color:"#fff",fontWeight:600,cursor:"pointer",fontSize:12}}>
-                  📢 Message All
-                </button>
+                <div style={{display:"flex",gap:8}}>
+                  <button onClick={()=>{setShowCsvUpload(true);setCsvError("");setCsvSuccess("");}}
+                    style={{padding:"7px 14px",background:"rgba(255,255,255,0.2)",border:"1px solid rgba(255,255,255,0.4)",borderRadius:8,color:"#fff",fontWeight:600,cursor:"pointer",fontSize:12}}>
+                    📤 Upload CSV
+                  </button>
+                  <button onClick={()=>setModal({toAll:true,subjectName:sel.name})}
+                    style={{padding:"7px 14px",background:"rgba(255,255,255,0.2)",border:"1px solid rgba(255,255,255,0.4)",borderRadius:8,color:"#fff",fontWeight:600,cursor:"pointer",fontSize:12}}>
+                    📢 Message All
+                  </button>
+                </div>
               </div>
 
               {/* Tabs */}
