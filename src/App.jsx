@@ -921,50 +921,38 @@ function AttendanceView() {
         )}
       </div>
 
-      {/* Attendance Table */}
+      {/* Attendance Cards */}
       {tab==="attendance"&&(
-        <div style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:12,overflow:"hidden"}}>
-          <div style={{background:"linear-gradient(135deg,#6366f1,#8b5cf6)",padding:"12px 16px",color:"#fff",fontWeight:700,fontSize:13}}>
-            Subject-wise Attendance — Spring 2025-26
+        <div>
+          <div style={{fontSize:13,fontWeight:700,color:"#0f172a",marginBottom:10}}>📋 Subject-wise Attendance — Spring 2025-26</div>
+          <div style={{display:"flex",flexDirection:"column",gap:8}}>
+            {subjects.map(s=>{
+              const pct=Math.round(s.present/s.total*100);
+              return (
+                <div key={s.code} style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:11,padding:"12px 16px",display:"flex",alignItems:"center",gap:14}}>
+                  <div style={{width:46,height:46,borderRadius:10,background:"#eef2ff",display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:800,color:"#6366f1",flexShrink:0}}>{s.code}</div>
+                  <div style={{flex:1,minWidth:0}}>
+                    <div style={{fontWeight:700,fontSize:13,color:"#0f172a"}}>{s.name}</div>
+                    <div style={{fontSize:11,color:"#94a3b8",marginTop:2}}>{s.faculty} · {s.present}/{s.total} classes</div>
+                  </div>
+                  <div style={{width:110,flexShrink:0}}>
+                    <div style={{display:"flex",justifyContent:"space-between",marginBottom:3}}>
+                      <span style={{fontSize:10,color:"#94a3b8"}}>Attendance</span>
+                      <span style={{fontWeight:700,fontSize:12,color:pct>=75?"#10b981":pct>=65?"#f59e0b":"#ef4444"}}>{pct}%</span>
+                    </div>
+                    <div style={{height:6,background:"#f1f5f9",borderRadius:3}}>
+                      <div style={{width:pct+"%",height:"100%",background:pct>=75?"#10b981":pct>=65?"#f59e0b":"#ef4444",borderRadius:3}}/>
+                    </div>
+                  </div>
+                  <span style={{padding:"3px 10px",borderRadius:6,fontSize:11,fontWeight:700,flexShrink:0,
+                    background:pct>=75?"#dcfce7":pct>=65?"#fef9c3":"#fee2e2",
+                    color:pct>=75?"#16a34a":pct>=65?"#ca8a04":"#dc2626"}}>
+                    {pct>=75?"Safe":pct>=65?"Warning":"Shortage"}
+                  </span>
+                </div>
+              );
+            })}
           </div>
-          <table style={{width:"100%",borderCollapse:"collapse",fontSize:13}}>
-            <thead>
-              <tr style={{background:"#f8fafc"}}>
-                {["Code","Subject","Faculty","Present","Total","Attendance","Status"].map(h=>(
-                  <th key={h} style={{padding:"10px 14px",textAlign:"left",fontWeight:600,color:"#475569",fontSize:12,borderBottom:"1px solid #e2e8f0"}}>{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {subjects.map((s,i)=>{
-                const pct=Math.round(s.present/s.total*100);
-                return (
-                  <tr key={s.code} style={{borderBottom:"1px solid #f1f5f9",background:i%2===0?"#fff":"#fafbff"}}>
-                    <td style={{padding:"11px 14px",color:"#6366f1",fontWeight:700}}>{s.code}</td>
-                    <td style={{padding:"11px 14px",color:"#0f172a",fontWeight:500}}>{s.name}</td>
-                    <td style={{padding:"11px 14px",color:"#64748b"}}>{s.faculty}</td>
-                    <td style={{padding:"11px 14px",textAlign:"center",fontWeight:600,color:"#334155"}}>{s.present}</td>
-                    <td style={{padding:"11px 14px",textAlign:"center",color:"#64748b"}}>{s.total}</td>
-                    <td style={{padding:"11px 14px"}}>
-                      <div style={{display:"flex",alignItems:"center",gap:8}}>
-                        <div style={{width:64,height:6,background:"#f1f5f9",borderRadius:3}}>
-                          <div style={{width:pct+"%",height:"100%",background:pct>=75?"#10b981":pct>=65?"#f59e0b":"#ef4444",borderRadius:3}}/>
-                        </div>
-                        <span style={{fontWeight:700,color:pct>=75?"#10b981":pct>=65?"#f59e0b":"#ef4444",fontSize:13}}>{pct}%</span>
-                      </div>
-                    </td>
-                    <td style={{padding:"11px 14px"}}>
-                      <span style={{padding:"3px 10px",borderRadius:6,fontSize:11,fontWeight:700,
-                        background:pct>=75?"#dcfce7":pct>=65?"#fef9c3":"#fee2e2",
-                        color:pct>=75?"#16a34a":pct>=65?"#ca8a04":"#dc2626"}}>
-                        {pct>=75?"Safe":pct>=65?"Warning":"Shortage"}
-                      </span>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
         </div>
       )}
 
@@ -3498,28 +3486,29 @@ function EvaluationView() {
   ];
   return (
     <Widget title="Assignment / Project Evaluation">
-      <table style={{width:"100%",borderCollapse:"collapse",fontSize:13}}>
-        <thead><tr style={{background:"#6366f1",color:"#fff"}}>
-          {["Student","Subject","Type","Title","Submitted","Max","Status","Action"].map(h=><th key={h} style={{padding:"7px 10px",textAlign:"left",fontSize:12}}>{h}</th>)}
-        </tr></thead>
-        <tbody>{items.map((e,i)=>(
-          <tr key={i} style={{borderBottom:"1px solid #eee",background:i%2===0?"#f9f9f9":"#fff"}}>
-            <td style={{padding:"9px 10px",color:"#333",fontWeight:500}}>{e.student}</td>
-            <td style={{padding:"9px 10px",color:"#6366f1",fontWeight:700}}>{e.subject}</td>
-            <td style={{padding:"9px 10px",color:"#555"}}>{e.type}</td>
-            <td style={{padding:"9px 10px",color:"#333"}}>{e.title}</td>
-            <td style={{padding:"9px 10px",color:"#888"}}>{e.submitted}</td>
-            <td style={{padding:"9px 10px",textAlign:"center"}}>{e.maxMarks}</td>
-            <td style={{padding:"9px 10px"}}>
-              <span style={{padding:"2px 8px",borderRadius:2,fontSize:11,fontWeight:700,background:e.status==="Graded"?"#e8f8f0":"#fff8e1",color:e.status==="Graded"?"#27ae60":"#f39c12"}}>{e.status}</span>
-            </td>
-            <td style={{padding:"9px 10px"}}>
-              {e.status==="Pending"?<button style={{padding:"4px 12px",background:"#6366f1",color:"#fff",border:"none",borderRadius:2,cursor:"pointer",fontSize:11,fontWeight:600}}>Grade</button>
-              :<span style={{fontWeight:700,color:"#27ae60"}}>{e.given}/{e.maxMarks}</span>}
-            </td>
-          </tr>
-        ))}</tbody>
-      </table>
+      <div style={{display:"flex",flexDirection:"column",gap:8}}>
+        {items.map((e,i)=>(
+          <div key={i} style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:11,padding:"12px 16px",display:"flex",alignItems:"center",gap:14}}>
+            <div style={{width:38,height:38,borderRadius:"50%",background:"linear-gradient(135deg,#6366f1,#8b5cf6)",display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",fontWeight:700,fontSize:15,flexShrink:0}}>{e.student[0]}</div>
+            <div style={{flex:1,minWidth:0}}>
+              <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
+                <span style={{fontWeight:700,fontSize:13,color:"#0f172a"}}>{e.student}</span>
+                <span style={{fontSize:11,color:"#6366f1",fontWeight:700}}>{e.subject}</span>
+              </div>
+              <div style={{fontSize:12,color:"#64748b",marginTop:2}}>{e.type} — {e.title} · Submitted {e.submitted}</div>
+            </div>
+            <div style={{textAlign:"center",flexShrink:0}}>
+              <div style={{fontSize:10,color:"#94a3b8",fontWeight:700}}>MAX</div>
+              <div style={{fontSize:14,fontWeight:700,color:"#64748b"}}>{e.maxMarks}</div>
+            </div>
+            <span style={{padding:"3px 10px",borderRadius:6,fontSize:11,fontWeight:700,background:e.status==="Graded"?"#dcfce7":"#fef9c3",color:e.status==="Graded"?"#16a34a":"#ca8a04",flexShrink:0}}>{e.status}</span>
+            <div style={{flexShrink:0}}>
+              {e.status==="Pending"?<button style={{padding:"6px 14px",background:"linear-gradient(135deg,#6366f1,#8b5cf6)",color:"#fff",border:"none",borderRadius:7,cursor:"pointer",fontSize:12,fontWeight:600}}>Grade</button>
+              :<span style={{fontWeight:800,fontSize:14,color:"#16a34a"}}>{e.given}/{e.maxMarks}</span>}
+            </div>
+          </div>
+        ))}
+      </div>
     </Widget>
   );
 }
@@ -4070,19 +4059,20 @@ function AppraisalView() {
         </div>
       )}
       {tab==="history"&&(
-        <div style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:12,overflow:"hidden"}}>
-          <table style={{width:"100%",borderCollapse:"collapse",fontSize:13}}>
-            <thead><tr style={{background:"#f8fafc"}}>{["Year","Score","Max","Grade","Status"].map(h=><th key={h} style={{padding:"10px 14px",textAlign:"left",fontWeight:600,color:"#475569",fontSize:12,borderBottom:"1px solid #e2e8f0"}}>{h}</th>)}</tr></thead>
-            <tbody>{prevYear.map((r,i)=>(
-              <tr key={i} style={{borderBottom:"1px solid #f1f5f9"}}>
-                <td style={{padding:"11px 14px",fontWeight:600,color:"#334155"}}>{r.year}</td>
-                <td style={{padding:"11px 14px",fontWeight:700,color:"#6366f1"}}>{r.total}</td>
-                <td style={{padding:"11px 14px",color:"#64748b"}}>{maxTotal}</td>
-                <td style={{padding:"11px 14px"}}><span style={{padding:"2px 8px",borderRadius:6,fontSize:11,fontWeight:700,background:r.grade==="Very Good"?"#dcfce7":"#fef9c3",color:r.grade==="Very Good"?"#16a34a":"#ca8a04"}}>{r.grade}</span></td>
-                <td style={{padding:"11px 14px"}}><span style={{padding:"2px 8px",borderRadius:6,fontSize:11,fontWeight:700,background:"#dcfce7",color:"#16a34a"}}>Accepted by HOD</span></td>
-              </tr>
-            ))}</tbody>
-          </table>
+        <div style={{display:"flex",flexDirection:"column",gap:8}}>
+          {prevYear.map((r,i)=>(
+            <div key={i} style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:11,padding:"12px 16px",display:"flex",alignItems:"center",gap:14}}>
+              <div style={{flex:1,minWidth:0}}>
+                <div style={{fontWeight:700,fontSize:13,color:"#0f172a"}}>{r.year}</div>
+              </div>
+              <div style={{textAlign:"center",flexShrink:0}}>
+                <div style={{fontSize:10,color:"#94a3b8",fontWeight:700}}>SCORE</div>
+                <div style={{fontSize:14,fontWeight:800,color:"#6366f1"}}>{r.total}/{maxTotal}</div>
+              </div>
+              <span style={{padding:"3px 10px",borderRadius:6,fontSize:11,fontWeight:700,background:r.grade==="Very Good"?"#dcfce7":"#fef9c3",color:r.grade==="Very Good"?"#16a34a":"#ca8a04",flexShrink:0}}>{r.grade}</span>
+              <span style={{padding:"3px 10px",borderRadius:6,fontSize:11,fontWeight:700,background:"#dcfce7",color:"#16a34a",flexShrink:0}}>Accepted by HOD</span>
+            </div>
+          ))}
         </div>
       )}
     </div>
@@ -4323,17 +4313,16 @@ function BestPerformanceAward() {
         </div>
       )}
       {tab==="history"&&(
-        <div style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:12,overflow:"hidden"}}>
-          <table style={{width:"100%",borderCollapse:"collapse",fontSize:13}}>
-            <thead><tr style={{background:"#f8fafc"}}>{["Award","Year","Status"].map(h=><th key={h} style={{padding:"10px 14px",textAlign:"left",fontWeight:600,color:"#475569",fontSize:12,borderBottom:"1px solid #e2e8f0"}}>{h}</th>)}</tr></thead>
-            <tbody>{myNominations.map((n,i)=>(
-              <tr key={i} style={{borderBottom:"1px solid #f1f5f9"}}>
-                <td style={{padding:"11px 14px",fontWeight:500,color:"#0f172a"}}>{n.award}</td>
-                <td style={{padding:"11px 14px",color:"#64748b"}}>{n.year}</td>
-                <td style={{padding:"11px 14px"}}><span style={{padding:"2px 8px",borderRadius:6,fontSize:11,fontWeight:700,background:n.status.includes("Winner")?"#dcfce7":"#fef9c3",color:n.status.includes("Winner")?"#16a34a":"#ca8a04"}}>{n.status}</span></td>
-              </tr>
-            ))}</tbody>
-          </table>
+        <div style={{display:"flex",flexDirection:"column",gap:8}}>
+          {myNominations.map((n,i)=>(
+            <div key={i} style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:11,padding:"12px 16px",display:"flex",alignItems:"center",gap:14}}>
+              <div style={{flex:1,minWidth:0}}>
+                <div style={{fontWeight:700,fontSize:13,color:"#0f172a"}}>{n.award}</div>
+                <div style={{fontSize:12,color:"#94a3b8",marginTop:2}}>{n.year}</div>
+              </div>
+              <span style={{padding:"3px 10px",borderRadius:6,fontSize:11,fontWeight:700,background:n.status.includes("Winner")?"#dcfce7":"#fef9c3",color:n.status.includes("Winner")?"#16a34a":"#ca8a04",flexShrink:0}}>{n.status}</span>
+            </div>
+          ))}
         </div>
       )}
     </div>
@@ -4444,19 +4433,23 @@ function PurchaseView() {
       </div>
       <div style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:12,overflow:"hidden"}}>
         <div style={{background:"linear-gradient(135deg,#6366f1,#8b5cf6)",padding:"12px 16px",color:"#fff",fontWeight:700,fontSize:13}}>My Indents</div>
-        <table style={{width:"100%",borderCollapse:"collapse",fontSize:13}}>
-          <thead><tr style={{background:"#f8fafc"}}>{["ID","Item","Qty","Cost","Status"].map(h=><th key={h} style={{padding:"9px 10px",textAlign:"left",fontWeight:600,color:"#475569",fontSize:11,borderBottom:"1px solid #e2e8f0"}}>{h}</th>)}</tr></thead>
-          <tbody>{myIndents.map((r,i)=>{const sc=statusColor(r.status);return(
-            <tr key={r.id} style={{borderBottom:"1px solid #f1f5f9",background:i%2===0?"#fff":"#fafbff"}}>
-              <td style={{padding:"9px 10px",color:"#6366f1",fontWeight:700,fontSize:11}}>{r.id}</td>
-              <td style={{padding:"9px 10px",color:"#334155",fontWeight:500,fontSize:12}}>{r.item}</td>
-              <td style={{padding:"9px 10px",textAlign:"center",color:"#64748b"}}>{r.qty}</td>
-              <td style={{padding:"9px 10px",color:"#334155",fontWeight:600}}>{r.cost}</td>
-              <td style={{padding:"9px 10px"}}><span style={{padding:"2px 7px",borderRadius:5,fontSize:10,fontWeight:700,background:sc.bg,color:sc.c}}>{r.status}</span></td>
-            </tr>
-          );})}
-          </tbody>
-        </table>
+        <div style={{padding:12,display:"flex",flexDirection:"column",gap:8}}>
+          {myIndents.map(r=>{
+            const sc=statusColor(r.status);
+            return (
+              <div key={r.id} style={{border:"1px solid #f1f5f9",borderRadius:9,padding:"10px 12px",display:"flex",alignItems:"center",gap:10}}>
+                <div style={{flex:1,minWidth:0}}>
+                  <div style={{display:"flex",alignItems:"center",gap:6,flexWrap:"wrap"}}>
+                    <span style={{fontWeight:700,fontSize:12,color:"#0f172a"}}>{r.item}</span>
+                    <span style={{fontSize:10,color:"#6366f1",fontWeight:700}}>{r.id}</span>
+                  </div>
+                  <div style={{fontSize:11,color:"#94a3b8",marginTop:2}}>Qty {r.qty} · {r.cost} · {r.date}</div>
+                </div>
+                <span style={{padding:"2px 8px",borderRadius:5,fontSize:10,fontWeight:700,background:sc.bg,color:sc.c,flexShrink:0}}>{r.status}</span>
+              </div>
+            );
+          })}
+        </div>
       </div>
     </div>
   );
@@ -4479,23 +4472,26 @@ function InternshipView() {
           </div>
         ))}
       </div>
-      <div style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:12,overflow:"hidden"}}>
-        <div style={{background:"linear-gradient(135deg,#6366f1,#8b5cf6)",padding:"12px 16px",color:"#fff",fontWeight:700,fontSize:13}}>Student Internships — My Supervised Students</div>
-        <table style={{width:"100%",borderCollapse:"collapse",fontSize:13}}>
-          <thead><tr style={{background:"#f8fafc"}}>{["Roll","Student","Company","Role","Period","Stipend","Status"].map(h=><th key={h} style={{padding:"9px 12px",textAlign:"left",fontWeight:600,color:"#475569",fontSize:12,borderBottom:"1px solid #e2e8f0"}}>{h}</th>)}</tr></thead>
-          <tbody>{students.map((s,i)=>{const sc=statusColor(s.status);return(
-            <tr key={s.roll} style={{borderBottom:"1px solid #f1f5f9",background:i%2===0?"#fff":"#fafbff"}}>
-              <td style={{padding:"10px 12px",color:"#6366f1",fontWeight:700}}>{s.roll}</td>
-              <td style={{padding:"10px 12px",fontWeight:600,color:"#0f172a"}}>{s.name}</td>
-              <td style={{padding:"10px 12px",color:"#334155"}}>{s.company}</td>
-              <td style={{padding:"10px 12px",color:"#64748b"}}>{s.role}</td>
-              <td style={{padding:"10px 12px",color:"#64748b",fontSize:12}}>{s.period}</td>
-              <td style={{padding:"10px 12px",fontWeight:600,color:"#334155"}}>{s.stipend}</td>
-              <td style={{padding:"10px 12px"}}><span style={{padding:"2px 8px",borderRadius:6,fontSize:11,fontWeight:700,background:sc.bg,color:sc.c}}>{s.status}</span></td>
-            </tr>
-          );})}
-          </tbody>
-        </table>
+      <div style={{display:"flex",flexDirection:"column",gap:8}}>
+        {students.map(s=>{
+          const sc=statusColor(s.status);
+          return (
+            <div key={s.roll} style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:11,padding:"12px 16px",display:"flex",alignItems:"center",gap:14}}>
+              <div style={{flex:1,minWidth:0}}>
+                <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
+                  <span style={{fontWeight:700,fontSize:13,color:"#0f172a"}}>{s.name}</span>
+                  <span style={{fontSize:11,color:"#6366f1",fontWeight:700}}>{s.roll}</span>
+                </div>
+                <div style={{fontSize:12,color:"#64748b",marginTop:2}}>{s.company} — {s.role} · {s.period}</div>
+              </div>
+              <div style={{textAlign:"center",flexShrink:0}}>
+                <div style={{fontSize:10,color:"#94a3b8",fontWeight:700}}>STIPEND</div>
+                <div style={{fontSize:13,fontWeight:700,color:"#334155"}}>{s.stipend}</div>
+              </div>
+              <span style={{padding:"3px 10px",borderRadius:6,fontSize:11,fontWeight:700,background:sc.bg,color:sc.c,flexShrink:0}}>{s.status}</span>
+            </div>
+          );
+        })}
       </div>
     </div>
   );
@@ -4540,23 +4536,22 @@ function DutyView() {
   ];
   return (
     <Widget title="Exam and Other Duty Management">
-      <table style={{width:"100%",borderCollapse:"collapse",fontSize:13}}>
-        <thead><tr style={{background:"#6366f1",color:"#fff"}}>
-          {["Date","Time","Duty Type","Venue","Exam","Status"].map(h=><th key={h} style={{padding:"7px 10px",textAlign:"left",fontSize:12}}>{h}</th>)}
-        </tr></thead>
-        <tbody>{duties.map((d,i)=>(
-          <tr key={i} style={{borderBottom:"1px solid #eee",background:i%2===0?"#f9f9f9":"#fff"}}>
-            <td style={{padding:"9px 10px",fontWeight:700,color:"#6366f1"}}>{d.date}</td>
-            <td style={{padding:"9px 10px",color:"#555"}}>{d.time}</td>
-            <td style={{padding:"9px 10px",color:"#333",fontWeight:500}}>{d.type}</td>
-            <td style={{padding:"9px 10px",color:"#555"}}>{d.room}</td>
-            <td style={{padding:"9px 10px",color:"#333"}}>{d.exam}</td>
-            <td style={{padding:"9px 10px"}}>
-              <span style={{padding:"2px 8px",borderRadius:2,fontSize:11,fontWeight:700,background:d.status==="Completed"?"#e8f8f0":"#fff8e1",color:d.status==="Completed"?"#27ae60":"#f39c12"}}>{d.status}</span>
-            </td>
-          </tr>
-        ))}</tbody>
-      </table>
+      <div style={{display:"flex",flexDirection:"column",gap:8}}>
+        {duties.map((d,i)=>(
+          <div key={i} style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:11,padding:"12px 16px",display:"flex",alignItems:"center",gap:14}}>
+            <div style={{width:60,textAlign:"center",flexShrink:0}}>
+              <div style={{fontWeight:800,fontSize:14,color:"#6366f1"}}>{d.date}</div>
+              <div style={{fontSize:10,color:"#94a3b8"}}>{d.time}</div>
+            </div>
+            <div style={{width:1,height:34,background:"#f1f5f9",flexShrink:0}}/>
+            <div style={{flex:1,minWidth:0}}>
+              <div style={{fontWeight:700,fontSize:13,color:"#0f172a"}}>{d.type}</div>
+              <div style={{fontSize:12,color:"#64748b",marginTop:2}}>{d.exam} · {d.room}</div>
+            </div>
+            <span style={{padding:"3px 10px",borderRadius:6,fontSize:11,fontWeight:700,background:d.status==="Completed"?"#dcfce7":"#fef9c3",color:d.status==="Completed"?"#16a34a":"#ca8a04",flexShrink:0}}>{d.status}</span>
+          </div>
+        ))}
+      </div>
     </Widget>
   );
 }
@@ -4573,22 +4568,22 @@ function LabView() {
   ];
   return (
     <Widget title="Laboratory Class Management — DBMS Lab (CS301L)">
-      <table style={{width:"100%",borderCollapse:"collapse",fontSize:13}}>
-        <thead><tr style={{background:"#6366f1",color:"#fff"}}>
-          {["#","Topic","Date","Files Submitted","Status"].map(h=><th key={h} style={{padding:"7px 10px",textAlign:"left",fontSize:12}}>{h}</th>)}
-        </tr></thead>
-        <tbody>{sessions.map((s,i)=>(
-          <tr key={i} style={{borderBottom:"1px solid #eee",background:i%2===0?"#f9f9f9":"#fff"}}>
-            <td style={{padding:"9px 10px",color:"#6366f1",fontWeight:700}}>{s.no}</td>
-            <td style={{padding:"9px 10px",color:"#333",fontWeight:500}}>{s.topic}</td>
-            <td style={{padding:"9px 10px",color:"#555"}}>{s.date}</td>
-            <td style={{padding:"9px 10px",textAlign:"center",color:"#333"}}>{s.submitted}{s.submitted!=="—"?"/48":""}</td>
-            <td style={{padding:"9px 10px"}}>
-              <span style={{padding:"2px 8px",borderRadius:2,fontSize:11,fontWeight:700,background:s.status==="Done"?"#e8f8f0":"#e8f0ff",color:s.status==="Done"?"#27ae60":"#6366f1"}}>{s.status}</span>
-            </td>
-          </tr>
-        ))}</tbody>
-      </table>
+      <div style={{display:"flex",flexDirection:"column",gap:8}}>
+        {sessions.map((s,i)=>(
+          <div key={i} style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:11,padding:"12px 16px",display:"flex",alignItems:"center",gap:14}}>
+            <div style={{width:32,height:32,borderRadius:8,background:"#eef2ff",display:"flex",alignItems:"center",justifyContent:"center",fontWeight:700,fontSize:13,color:"#6366f1",flexShrink:0}}>{s.no}</div>
+            <div style={{flex:1,minWidth:0}}>
+              <div style={{fontWeight:700,fontSize:13,color:"#0f172a"}}>{s.topic}</div>
+              <div style={{fontSize:12,color:"#64748b",marginTop:2}}>{s.date}</div>
+            </div>
+            <div style={{textAlign:"center",flexShrink:0}}>
+              <div style={{fontSize:10,color:"#94a3b8",fontWeight:700}}>SUBMITTED</div>
+              <div style={{fontSize:13,fontWeight:700,color:"#334155"}}>{s.submitted}{s.submitted!=="—"?"/48":""}</div>
+            </div>
+            <span style={{padding:"3px 10px",borderRadius:6,fontSize:11,fontWeight:700,background:s.status==="Done"?"#dcfce7":"#eef2ff",color:s.status==="Done"?"#16a34a":"#6366f1",flexShrink:0}}>{s.status}</span>
+          </div>
+        ))}
+      </div>
     </Widget>
   );
 }
@@ -4741,44 +4736,41 @@ function FacultyProfile({ user }) {
           </div>
 
           {/* Subject-wise breakdown */}
-          <div style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:12,overflow:"hidden"}}>
-            <div style={{background:"linear-gradient(135deg,#6366f1,#8b5cf6)",padding:"12px 16px",color:"#fff",fontWeight:700,fontSize:13}}>
-              📚 Subject-wise Teaching Load — {teachingLoad[0]?.semester}
+          <div style={{fontWeight:700,fontSize:13,color:"#0f172a",marginBottom:10}}>📚 Subject-wise Teaching Load — {teachingLoad[0]?.semester}</div>
+          <div style={{display:"flex",flexDirection:"column",gap:8}}>
+            {teachingLoad.map(t=>(
+              <div key={t.code} style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:11,padding:"12px 16px",display:"flex",alignItems:"center",gap:14}}>
+                <div style={{width:54,textAlign:"center",flexShrink:0}}>
+                  <div style={{fontWeight:800,fontSize:13,color:"#6366f1"}}>{t.code}</div>
+                </div>
+                <div style={{width:1,height:30,background:"#f1f5f9",flexShrink:0}}/>
+                <div style={{flex:1,minWidth:0}}>
+                  <div style={{fontWeight:700,fontSize:13,color:"#0f172a"}}>{t.name}</div>
+                  <div style={{fontSize:11,color:"#94a3b8",marginTop:2}}>{t.class}</div>
+                </div>
+                <span style={{padding:"2px 8px",borderRadius:6,fontSize:10,fontWeight:700,flexShrink:0,
+                  background:t.type==="Theory"?"#eef2ff":t.type==="Lab"?"#fef3c7":"#dcfce7",
+                  color:t.type==="Theory"?"#6366f1":t.type==="Lab"?"#d97706":"#16a34a"}}>{t.type}</span>
+                <div style={{textAlign:"center",flexShrink:0}}>
+                  <div style={{fontSize:10,color:"#94a3b8",fontWeight:700}}>STUDENTS</div>
+                  <div style={{fontSize:14,fontWeight:700,color:"#334155"}}>{t.students}</div>
+                </div>
+                <div style={{textAlign:"center",flexShrink:0}}>
+                  <div style={{fontSize:10,color:"#94a3b8",fontWeight:700}}>HRS/WK</div>
+                  <div style={{fontSize:14,fontWeight:700,color:"#6366f1"}}>{t.hoursPerWeek}</div>
+                </div>
+                <div style={{textAlign:"center",flexShrink:0}}>
+                  <div style={{fontSize:10,color:"#94a3b8",fontWeight:700}}>CREDITS</div>
+                  <div style={{fontSize:14,fontWeight:700,color:"#64748b"}}>{t.credits}</div>
+                </div>
+              </div>
+            ))}
+            <div style={{background:"#0f172a",borderRadius:11,padding:"12px 16px",display:"flex",alignItems:"center",gap:14}}>
+              <div style={{flex:1,fontWeight:700,fontSize:13,color:"#fff"}}>Total</div>
+              <div style={{textAlign:"center"}}><div style={{fontSize:10,color:"#94a3b8",fontWeight:700}}>STUDENTS</div><div style={{fontSize:14,fontWeight:800,color:"#fff"}}>{totalStudents}</div></div>
+              <div style={{textAlign:"center"}}><div style={{fontSize:10,color:"#94a3b8",fontWeight:700}}>HRS/WK</div><div style={{fontSize:14,fontWeight:800,color:"#a5b4fc"}}>{totalHours}</div></div>
+              <div style={{textAlign:"center"}}><div style={{fontSize:10,color:"#94a3b8",fontWeight:700}}>CREDITS</div><div style={{fontSize:14,fontWeight:800,color:"#fff"}}>{totalCredits}</div></div>
             </div>
-            <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
-              <thead>
-                <tr style={{background:"#f8fafc"}}>
-                  {["Code","Subject","Class/Batch","Type","Students","Hrs/Week","Credits"].map(h=>(
-                    <th key={h} style={{padding:"9px 12px",textAlign:"left",fontWeight:700,color:"#475569",fontSize:11,borderBottom:"1px solid #e2e8f0"}}>{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {teachingLoad.map((t,i)=>(
-                  <tr key={t.code} style={{borderBottom:"1px solid #f1f5f9",background:i%2===0?"#fff":"#fafbff"}}>
-                    <td style={{padding:"10px 12px",color:"#6366f1",fontWeight:700}}>{t.code}</td>
-                    <td style={{padding:"10px 12px",fontWeight:600,color:"#0f172a"}}>{t.name}</td>
-                    <td style={{padding:"10px 12px",color:"#64748b"}}>{t.class}</td>
-                    <td style={{padding:"10px 12px"}}>
-                      <span style={{padding:"2px 8px",borderRadius:6,fontSize:10,fontWeight:700,
-                        background:t.type==="Theory"?"#eef2ff":t.type==="Lab"?"#fef3c7":"#dcfce7",
-                        color:t.type==="Theory"?"#6366f1":t.type==="Lab"?"#d97706":"#16a34a"}}>{t.type}</span>
-                    </td>
-                    <td style={{padding:"10px 12px",textAlign:"center",fontWeight:600}}>{t.students}</td>
-                    <td style={{padding:"10px 12px",textAlign:"center",fontWeight:700,color:"#6366f1"}}>{t.hoursPerWeek}</td>
-                    <td style={{padding:"10px 12px",textAlign:"center",color:"#64748b"}}>{t.credits}</td>
-                  </tr>
-                ))}
-              </tbody>
-              <tfoot>
-                <tr style={{background:"#f8fafc",fontWeight:700}}>
-                  <td colSpan={4} style={{padding:"10px 12px",color:"#0f172a"}}>Total</td>
-                  <td style={{padding:"10px 12px",textAlign:"center",color:"#0f172a"}}>{totalStudents}</td>
-                  <td style={{padding:"10px 12px",textAlign:"center",color:"#6366f1"}}>{totalHours}</td>
-                  <td style={{padding:"10px 12px",textAlign:"center",color:"#0f172a"}}>{totalCredits}</td>
-                </tr>
-              </tfoot>
-            </table>
           </div>
         </div>
       )}
@@ -6683,20 +6675,28 @@ function CourseManagement() {
         </div>
         <button onClick={()=>setShow(true)} style={{padding:"9px 18px",background:"linear-gradient(135deg,#6366f1,#8b5cf6)",color:"#fff",border:"none",borderRadius:8,fontWeight:700,cursor:"pointer",fontSize:13}}>+ Add Course</button>
       </div>
-      <div style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:12,overflow:"hidden"}}>
-        <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
-          <thead><tr style={{background:"#6366f1",color:"#fff"}}>{["Code","Course Name","Dept","Sem","Credits","Type","Faculty","Enrolled"].map(h=><th key={h} style={{padding:"9px 12px",textAlign:"left",fontSize:11}}>{h}</th>)}</tr></thead>
-          <tbody>{filtered.map((c,i)=>(<tr key={c.id} style={{borderBottom:"1px solid #f1f5f9",background:i%2===0?"#fff":"#fafbff"}}>
-            <td style={{padding:"10px 12px",color:"#6366f1",fontWeight:700}}>{c.code}</td>
-            <td style={{padding:"10px 12px",fontWeight:600,color:"#0f172a"}}>{c.name}</td>
-            <td style={{padding:"10px 12px",color:"#64748b"}}>{c.dept}</td>
-            <td style={{padding:"10px 12px",textAlign:"center"}}>{c.sem}</td>
-            <td style={{padding:"10px 12px",textAlign:"center",fontWeight:700,color:"#6366f1"}}>{c.credits}</td>
-            <td style={{padding:"10px 12px"}}><span style={{padding:"2px 8px",borderRadius:6,fontSize:10,fontWeight:700,background:c.type==="Lab"?"#fef3c7":"#eef2ff",color:c.type==="Lab"?"#d97706":"#4338ca"}}>{c.type}</span></td>
-            <td style={{padding:"10px 12px",fontSize:11,color:"#64748b"}}>{c.faculty}</td>
-            <td style={{padding:"10px 12px",textAlign:"center",fontWeight:700,color:"#10b981"}}>{c.enrolled}</td>
-          </tr>))}</tbody>
-        </table>
+      <div style={{display:"flex",flexDirection:"column",gap:8}}>
+        {filtered.map(c=>(
+          <div key={c.id} style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:11,padding:"12px 16px",display:"flex",alignItems:"center",gap:14}}>
+            <div style={{width:54,textAlign:"center",flexShrink:0}}>
+              <div style={{fontWeight:800,fontSize:13,color:"#6366f1"}}>{c.code}</div>
+            </div>
+            <div style={{width:1,height:30,background:"#f1f5f9",flexShrink:0}}/>
+            <div style={{flex:1,minWidth:0}}>
+              <div style={{fontWeight:700,fontSize:13,color:"#0f172a"}}>{c.name}</div>
+              <div style={{fontSize:11,color:"#94a3b8",marginTop:2}}>{c.dept} · Sem {c.sem} · {c.faculty}</div>
+            </div>
+            <span style={{padding:"2px 8px",borderRadius:6,fontSize:10,fontWeight:700,background:c.type==="Lab"?"#fef3c7":"#eef2ff",color:c.type==="Lab"?"#d97706":"#4338ca",flexShrink:0}}>{c.type}</span>
+            <div style={{textAlign:"center",flexShrink:0}}>
+              <div style={{fontSize:10,color:"#94a3b8",fontWeight:700}}>CREDITS</div>
+              <div style={{fontSize:14,fontWeight:700,color:"#6366f1"}}>{c.credits}</div>
+            </div>
+            <div style={{textAlign:"center",flexShrink:0}}>
+              <div style={{fontSize:10,color:"#94a3b8",fontWeight:700}}>ENROLLED</div>
+              <div style={{fontSize:14,fontWeight:700,color:"#10b981"}}>{c.enrolled}</div>
+            </div>
+          </div>
+        ))}
       </div>
       {show&&(
         <div style={{position:"fixed",inset:0,background:"rgba(15,23,42,0.6)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center"}} onClick={()=>setShow(false)}>
@@ -6765,23 +6765,33 @@ function FeeManagement() {
         <button onClick={exportDues} style={{padding:"7px 16px",background:"#f0fdf4",color:"#16a34a",border:"1px solid #86efac",borderRadius:8,fontWeight:600,cursor:"pointer",fontSize:12}}>📥 Export Dues CSV</button>
       </div>
       {(tab==="overview"||tab==="defaulters")&&(
-        <div style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:12,overflow:"hidden"}}>
-          <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
-            <thead><tr style={{background:"#6366f1",color:"#fff"}}>{["Roll No","Name","Dept","Year","Total","Paid","Due","Status","Last Payment"].map(h=><th key={h} style={{padding:"9px 12px",textAlign:"left",fontSize:11}}>{h}</th>)}</tr></thead>
-            <tbody>{(tab==="defaulters"?feeData.filter(f=>f.due>0):feeData).map((f,i)=>(
-              <tr key={f.id} style={{borderBottom:"1px solid #f1f5f9",background:i%2===0?"#fff":"#fafbff"}}>
-                <td style={{padding:"10px 12px",color:"#6366f1",fontWeight:700}}>{f.id}</td>
-                <td style={{padding:"10px 12px",fontWeight:600,color:"#0f172a"}}>{f.name}</td>
-                <td style={{padding:"10px 12px",color:"#64748b"}}>{f.dept}</td>
-                <td style={{padding:"10px 12px",textAlign:"center"}}>{f.year}</td>
-                <td style={{padding:"10px 12px",fontWeight:600}}>₹{f.total.toLocaleString()}</td>
-                <td style={{padding:"10px 12px",color:"#10b981",fontWeight:600}}>₹{f.paid.toLocaleString()}</td>
-                <td style={{padding:"10px 12px",color:f.due>0?"#ef4444":"#10b981",fontWeight:700}}>₹{f.due.toLocaleString()}</td>
-                <td style={{padding:"10px 12px"}}><span style={{padding:"3px 8px",borderRadius:6,fontSize:10,fontWeight:700,background:sc[f.status].bg,color:sc[f.status].c}}>{f.status.toUpperCase()}</span></td>
-                <td style={{padding:"10px 12px",fontSize:11,color:"#94a3b8"}}>{f.last}</td>
-              </tr>
-            ))}</tbody>
-          </table>
+        <div style={{display:"flex",flexDirection:"column",gap:8}}>
+          {(tab==="defaulters"?feeData.filter(f=>f.due>0):feeData).map(f=>(
+            <div key={f.id} style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:11,padding:"12px 16px",display:"flex",alignItems:"center",gap:14}}>
+              <div style={{flex:1,minWidth:0}}>
+                <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
+                  <span style={{fontWeight:700,fontSize:13,color:"#0f172a"}}>{f.name}</span>
+                  <span style={{fontSize:11,color:"#6366f1",fontWeight:700}}>{f.id}</span>
+                </div>
+                <div style={{fontSize:11,color:"#94a3b8",marginTop:2}}>{f.dept} · Year {f.year} · Last payment: {f.last}</div>
+              </div>
+              <div style={{display:"flex",gap:14,flexShrink:0}}>
+                <div style={{textAlign:"center"}}>
+                  <div style={{fontSize:10,color:"#94a3b8",fontWeight:700}}>TOTAL</div>
+                  <div style={{fontSize:13,fontWeight:700,color:"#334155"}}>₹{f.total.toLocaleString()}</div>
+                </div>
+                <div style={{textAlign:"center"}}>
+                  <div style={{fontSize:10,color:"#94a3b8",fontWeight:700}}>PAID</div>
+                  <div style={{fontSize:13,fontWeight:700,color:"#10b981"}}>₹{f.paid.toLocaleString()}</div>
+                </div>
+                <div style={{textAlign:"center"}}>
+                  <div style={{fontSize:10,color:"#94a3b8",fontWeight:700}}>DUE</div>
+                  <div style={{fontSize:13,fontWeight:700,color:f.due>0?"#ef4444":"#10b981"}}>₹{f.due.toLocaleString()}</div>
+                </div>
+              </div>
+              <span style={{padding:"3px 8px",borderRadius:6,fontSize:10,fontWeight:700,background:sc[f.status].bg,color:sc[f.status].c,flexShrink:0}}>{f.status.toUpperCase()}</span>
+            </div>
+          ))}
         </div>
       )}
       {tab==="structure"&&(
@@ -6931,23 +6941,26 @@ function AdminNotices() {
       <div style={{display:"flex",justifyContent:"flex-end",marginBottom:14}}>
         <button onClick={()=>setShowForm(true)} style={{padding:"8px 18px",background:"linear-gradient(135deg,#6366f1,#8b5cf6)",color:"#fff",border:"none",borderRadius:8,fontWeight:600,cursor:"pointer",fontSize:13}}>+ Post Notice</button>
       </div>
-      <div style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:12,overflow:"hidden"}}>
-        <table style={{width:"100%",borderCollapse:"collapse",fontSize:13}}>
-          <thead><tr style={{background:"#f8fafc"}}>{["Title","Category","Audience","Date","Views","Action"].map(h=><th key={h} style={{padding:"10px 12px",textAlign:"left",fontWeight:600,color:"#475569",fontSize:12,borderBottom:"1px solid #e2e8f0"}}>{h}</th>)}</tr></thead>
-          <tbody>{notices.map((n,i)=>(
-            <tr key={i} style={{borderBottom:"1px solid #f1f5f9",background:i%2===0?"#fff":"#fafbff"}}>
-              <td style={{padding:"10px 12px",fontWeight:500,color:"#0f172a"}}>{n.title}</td>
-              <td style={{padding:"10px 12px"}}><span style={{padding:"2px 8px",borderRadius:6,fontSize:11,fontWeight:700,background:"#eef2ff",color:"#6366f1"}}>{n.category}</span></td>
-              <td style={{padding:"10px 12px",color:"#64748b"}}>{n.audience}</td>
-              <td style={{padding:"10px 12px",color:"#64748b"}}>{n.date}</td>
-              <td style={{padding:"10px 12px",fontWeight:600,color:"#334155"}}>{n.views.toLocaleString()}</td>
-              <td style={{padding:"10px 12px",display:"flex",gap:5}}>
-                <button style={{padding:"3px 8px",background:"#eef2ff",color:"#6366f1",border:"none",borderRadius:5,cursor:"pointer",fontSize:10,fontWeight:600}}>Edit</button>
-                <button style={{padding:"3px 8px",background:"#fee2e2",color:"#dc2626",border:"none",borderRadius:5,cursor:"pointer",fontSize:10,fontWeight:600}}>Delete</button>
-              </td>
-            </tr>
-          ))}</tbody>
-        </table>
+      <div style={{display:"flex",flexDirection:"column",gap:8}}>
+        {notices.map((n,i)=>(
+          <div key={i} style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:11,padding:"12px 16px",display:"flex",alignItems:"center",gap:14}}>
+            <div style={{flex:1,minWidth:0}}>
+              <div style={{fontWeight:700,fontSize:13,color:"#0f172a"}}>{n.title}</div>
+              <div style={{display:"flex",alignItems:"center",gap:8,marginTop:4}}>
+                <span style={{padding:"2px 8px",borderRadius:6,fontSize:10,fontWeight:700,background:"#eef2ff",color:"#6366f1"}}>{n.category}</span>
+                <span style={{fontSize:11,color:"#94a3b8"}}>{n.audience} · {n.date}</span>
+              </div>
+            </div>
+            <div style={{textAlign:"center",flexShrink:0}}>
+              <div style={{fontSize:10,color:"#94a3b8",fontWeight:700}}>VIEWS</div>
+              <div style={{fontSize:14,fontWeight:700,color:"#334155"}}>{n.views.toLocaleString()}</div>
+            </div>
+            <div style={{display:"flex",gap:6,flexShrink:0}}>
+              <button style={{padding:"5px 12px",background:"#eef2ff",color:"#6366f1",border:"none",borderRadius:6,cursor:"pointer",fontSize:11,fontWeight:600}}>Edit</button>
+              <button style={{padding:"5px 12px",background:"#fee2e2",color:"#dc2626",border:"none",borderRadius:6,cursor:"pointer",fontSize:11,fontWeight:600}}>Delete</button>
+            </div>
+          </div>
+        ))}
       </div>
       {showForm&&(
         <div style={{position:"fixed",inset:0,background:"rgba(15,23,42,0.6)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center"}} onClick={()=>setShowForm(false)}>
@@ -7270,28 +7283,25 @@ function LibraryView() {
       </div>
 
       {tab==="borrowed"&&(
-        <div style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:12,overflow:"hidden"}}>
-          <table style={{width:"100%",borderCollapse:"collapse",fontSize:13}}>
-            <thead><tr style={{background:"#f8fafc"}}>
-              {["Book","Author","Issued","Due Date","Days Overdue","Fine","Action"].map(h=>(
-                <th key={h} style={{padding:"10px 14px",textAlign:"left",fontWeight:600,color:"#475569",fontSize:12,borderBottom:"1px solid #e2e8f0"}}>{h}</th>
-              ))}
-            </tr></thead>
-            <tbody>{borrowed.map((b,i)=>(
-              <tr key={b.id} style={{borderBottom:"1px solid #f1f5f9",background:b.days>0?"#fff9f9":"#fff"}}>
-                <td style={{padding:"11px 14px",fontWeight:600,color:"#0f172a"}}>{b.title}</td>
-                <td style={{padding:"11px 14px",color:"#64748b"}}>{b.author}</td>
-                <td style={{padding:"11px 14px",color:"#64748b"}}>{b.issued}</td>
-                <td style={{padding:"11px 14px",fontWeight:600,color:b.days>0?"#ef4444":"#334155"}}>{b.due}</td>
-                <td style={{padding:"11px 14px",textAlign:"center",fontWeight:700,color:b.days>0?"#ef4444":"#10b981"}}>{b.days>0?b.days+" days":"On time"}</td>
-                <td style={{padding:"11px 14px",fontWeight:700,color:b.fine>0?"#ef4444":"#64748b"}}>{b.fine>0?`₹${b.fine}`:"—"}</td>
-                <td style={{padding:"11px 14px"}}>
-                  {b.fine>0?<button style={{padding:"4px 12px",background:"#ef4444",color:"#fff",border:"none",borderRadius:6,cursor:"pointer",fontSize:11,fontWeight:600}}>Pay ₹{b.fine}</button>
-                  :<button style={{padding:"4px 12px",background:"#f1f5f9",color:"#334155",border:"none",borderRadius:6,cursor:"pointer",fontSize:11,fontWeight:600}}>Renew</button>}
-                </td>
-              </tr>
-            ))}</tbody>
-          </table>
+        <div style={{display:"flex",flexDirection:"column",gap:8}}>
+          {borrowed.map(b=>(
+            <div key={b.id} style={{background:b.days>0?"#fff9f9":"#fff",border:"1px solid #e2e8f0",borderRadius:11,padding:"12px 16px",display:"flex",alignItems:"center",gap:14}}>
+              <div style={{flex:1,minWidth:0}}>
+                <div style={{fontWeight:700,fontSize:13,color:"#0f172a"}}>{b.title}</div>
+                <div style={{fontSize:12,color:"#64748b",marginTop:2}}>{b.author} · Issued {b.issued}</div>
+              </div>
+              <div style={{textAlign:"center",flexShrink:0}}>
+                <div style={{fontSize:10,color:"#94a3b8",fontWeight:700}}>DUE</div>
+                <div style={{fontSize:13,fontWeight:700,color:b.days>0?"#ef4444":"#334155"}}>{b.due}</div>
+              </div>
+              <div style={{textAlign:"center",flexShrink:0}}>
+                <div style={{fontSize:10,color:"#94a3b8",fontWeight:700}}>STATUS</div>
+                <div style={{fontSize:12,fontWeight:700,color:b.days>0?"#ef4444":"#10b981"}}>{b.days>0?b.days+" days late":"On time"}</div>
+              </div>
+              {b.fine>0?<button style={{padding:"6px 14px",background:"#ef4444",color:"#fff",border:"none",borderRadius:7,cursor:"pointer",fontSize:12,fontWeight:600,flexShrink:0}}>Pay ₹{b.fine}</button>
+              :<button style={{padding:"6px 14px",background:"#f1f5f9",color:"#334155",border:"none",borderRadius:7,cursor:"pointer",fontSize:12,fontWeight:600,flexShrink:0}}>Renew</button>}
+            </div>
+          ))}
         </div>
       )}
 
