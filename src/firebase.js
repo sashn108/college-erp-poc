@@ -37,6 +37,13 @@ export const getPendingUsers = (callback, onError) => {
     err => { console.error("getPendingUsers error:", err); if (onError) onError(err); }
   );
 };
+// DEBUG: fetch ALL users regardless of status, to diagnose missing pending users
+export const getAllUsersDebug = (callback, onError) => {
+  return onSnapshot(collection(db, "users"),
+    snap => callback(snap.docs.map(d => ({ id: d.id, uid: d.id, ...d.data() }))),
+    err => { console.error("getAllUsersDebug error:", err); if (onError) onError(err); }
+  );
+};
 export const approveUser = async (uid, role, extraData = {}) => {
   await updateDoc(doc(db, "users", uid), { status: "approved", role, ...extraData });
 };

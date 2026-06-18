@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import {
   auth, db, signInWithGoogle, logOut, onAuthStateChanged,
-  saveUserProfile, getUserProfile, getPendingUsers,
+  saveUserProfile, getUserProfile, getPendingUsers, getAllUsersDebug,
   approveUser, rejectUser,
   sendMessage, subscribeToMessages,
   submitFeedback, subscribeFeedbackAggregates,
@@ -236,6 +236,13 @@ export function AdminUserApprovals() {
   const [selected, setSelected] = useState(new Set());
   const [loadError, setLoadError] = useState(null);
   const [loaded, setLoaded] = useState(false);
+  const [allUsers, setAllUsers] = useState([]);
+  const [showDebug, setShowDebug] = useState(false);
+
+  useEffect(() => {
+    const unsub = getAllUsersDebug(setAllUsers, ()=>{});
+    return () => unsub();
+  }, []);
 
   useEffect(() => {
     const unsub = getPendingUsers(
@@ -306,6 +313,28 @@ export function AdminUserApprovals() {
           <div style={{fontSize:12,color:"#7f1d1d",marginTop:6}}>This usually means Firestore security rules are blocking the admin from reading other users' profiles. Check your rules for the "users" collection.</div>
         </div>
       )}
+
+      <div style={{marginBottom:14}}>
+        <button onClick={()=>setShowDebug(s=>!s)}
+          style={{padding:"6px 14px",background:"#f1f5f9",color:"#475569",border:"1px solid #e2e8f0",borderRadius:8,fontSize:11,fontWeight:600,cursor:"pointer"}}>
+          🔧 {showDebug?"Hide":"Show"} Debug — All Users in Firestore ({allUsers.length})
+        </button>
+        {showDebug && (
+          <div style={{marginTop:10,background:"#0f172a",borderRadius:10,padding:"14px 16px",overflowX:"auto"}}>
+            {allUsers.length === 0 ? (
+              <div style={{color:"#94a3b8",fontSize:12}}>No documents found in the "users" collection at all.</div>
+            ) : (
+              allUsers.map(u=>(
+                <div key={u.id} style={{borderBottom:"1px solid #1e293b",padding:"8px 0",fontFamily:"monospace",fontSize:11}}>
+                  <div style={{color:"#10b981"}}>docId: {u.id}</div>
+                  <div style={{color:"#e2e8f0"}}>name: {String(u.name)} | email: {String(u.email)}</div>
+                  <div style={{color:"#fbbf24"}}>role: {String(u.role)} | status: <strong>{String(u.status)}</strong> | requestedRole: {String(u.requestedRole)}</div>
+                </div>
+              ))
+            )}
+          </div>
+        )}
+      </div>
 
       {activePending.length === 0 && (
         <div style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:12,padding:"48px 0",textAlign:"center"}}>
