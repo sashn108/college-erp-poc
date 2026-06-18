@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import {
   auth, db, signInWithGoogle, logOut, onAuthStateChanged,
-  saveUserProfile, getUserProfile, getPendingUsers, getAllUsersDebug,
+  saveUserProfile, getUserProfile, getPendingUsers, getAllUsersDebug, adminCreateUser,
   approveUser, rejectUser,
   sendMessage, subscribeToMessages,
   submitFeedback, subscribeFeedbackAggregates,
@@ -238,6 +238,11 @@ export function AdminUserApprovals() {
   const [loaded, setLoaded] = useState(false);
   const [allUsers, setAllUsers] = useState([]);
   const [showDebug, setShowDebug] = useState(false);
+  const [showCreate, setShowCreate] = useState(false);
+  const [createForm, setCreateForm] = useState({name:"",email:"",password:"",role:"student",rollOrId:"",dept:"",status:"approved"});
+  const [createErr, setCreateErr] = useState("");
+  const [createLoading, setCreateLoading] = useState(false);
+  const [createSuccess, setCreateSuccess] = useState("");
 
   useEffect(() => {
     const unsub = getAllUsersDebug(setAllUsers, ()=>{});
@@ -251,6 +256,37 @@ export function AdminUserApprovals() {
     );
     return () => unsub();
   }, []);
+
+  const handleCreateUser = async () => {
+    setCreateErr(""); setCreateSuccess("");
+    if (!createForm.name.trim() || !createForm.email.trim() || !createForm.password) {
+      setCreateErr("Name, email, and password are required."); return;
+    }
+    if (createForm.password.length < 6) {
+      setCreateErr("Password must be at least 6 characters."); return;
+    }
+    setCreateLoading(true);
+    try {
+      await adminCreateUser(createForm.email.trim(), createForm.password, {
+        name: createForm.name.trim(),
+        role: createForm.role,
+        status: createForm.status,
+        requestedRole: createForm.role,
+        rollOrId: createForm.rollOrId.trim(),
+        dept: createForm.dept.trim(),
+        designation: createForm.role === "faculty" ? "Assistant Professor" : "",
+        createdAt: new Date().toISOString(),
+        createdByAdmin: true,
+      });
+      setCreateSuccess(`✅ Account created for ${createForm.email} — status: ${createForm.status}`);
+      setCreateForm({name:"",email:"",password:"",role:"student",rollOrId:"",dept:"",status:"approved"});
+      setTimeout(()=>{ setShowCreate(false); setCreateSuccess(""); }, 2200);
+    } catch (e) {
+      setCreateErr(e.code === "auth/email-already-in-use" ? "This email is already registered." : (e.message || "Failed to create user."));
+    } finally {
+      setCreateLoading(false);
+    }
+  };
 
   const approve = async (user) => {
     const finalRole = roleOverride[user.uid] || user.requestedRole || "student";
@@ -296,6 +332,10 @@ export function AdminUserApprovals() {
           <div style={{color:"rgba(255,255,255,0.8)",fontSize:12}}>New registrations require admin approval before access is granted</div>
         </div>
         <div style={{display:"flex",gap:10,alignItems:"center"}}>
+          <button onClick={()=>{setShowCreate(true);setCreateErr("");setCreateSuccess("");}}
+            style={{padding:"8px 16px",background:"rgba(255,255,255,0.95)",color:"#dc2626",border:"none",borderRadius:8,fontWeight:700,cursor:"pointer",fontSize:13}}>
+            ➕ Create User
+          </button>
           <div style={{background:"rgba(255,255,255,0.2)",borderRadius:8,padding:"6px 14px",color:"#fff",fontWeight:800,fontSize:20}}>{activePending.length}</div>
           {activePending.length > 0 && (
             <button onClick={bulkApproveAll} disabled={bulkLoading}
@@ -335,6 +375,85 @@ export function AdminUserApprovals() {
           </div>
         )}
       </div>
+
+      {showCreate && (
+        <div style={{position:"fixed",inset:0,background:"rgba(15,23,42,0.6)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center"}} onClick={()=>setShowCreate(false)}>
+          <div style={{background:"#fff",borderRadius:14,width:480,overflow:"hidden",boxShadow:"0 20px 60px rgba(0,0,0,0.25)"}} onClick={e=>e.stopPropagation()}>
+            <div style={{background:"linear-gradient(135deg,#ef4444,#dc2626)",padding:"14px 18px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+              <span style={{color:"#fff",fontWeight:700,fontSize:15}}>➕ Create User Account</span>
+              <button onClick={()=>setShowCreate(false)} style={{background:"rgba(255,255,255,0.2)",border:"none",borderRadius:6,color:"#fff",width:28,height:28,cursor:"pointer",fontSize:16}}>✕</button>
+            </div>
+            {createSuccess ? (
+              <div style={{padding:"40px",textAlign:"center"}}>
+                <div style={{fontSize:48,marginBottom:12}}>✅</div>
+                <div style={{fontWeight:700,fontSize:15,color:"#0f172a"}}>{createSuccess}</div>
+              </div>
+            ) : (
+              <div style={{padding:"20px 22px",display:"grid",gap:12}}>
+                <div>
+                  <label style={{fontSize:11,fontWeight:700,color:"#475569",display:"block",marginBottom:4}}>FULL NAME *</label>
+                  <input value={createForm.name} onChange={e=>setCreateForm(f=>({...f,name:e.target.value}))}
+                    placeholder="e.g. Subhashish Nayak"
+                    style={{width:"100%",boxSizing:"border-box",padding:"9px 12px",border:"1px solid #e2e8f0",borderRadius:8,fontSize:13,outline:"none",fontFamily:"inherit"}}/>
+                </div>
+                <div>
+                  <label style={{fontSize:11,fontWeight:700,color:"#475569",display:"block",marginBottom:4}}>EMAIL *</label>
+                  <input value={createForm.email} onChange={e=>setCreateForm(f=>({...f,email:e.target.value}))}
+                    placeholder="name@institution.ac.in"
+                    style={{width:"100%",boxSizing:"border-box",padding:"9px 12px",border:"1px solid #e2e8f0",borderRadius:8,fontSize:13,outline:"none",fontFamily:"inherit"}}/>
+                </div>
+                <div>
+                  <label style={{fontSize:11,fontWeight:700,color:"#475569",display:"block",marginBottom:4}}>TEMPORARY PASSWORD * <span style={{fontWeight:400,color:"#94a3b8"}}>(min 6 chars — share with user separately)</span></label>
+                  <input value={createForm.password} onChange={e=>setCreateForm(f=>({...f,password:e.target.value}))}
+                    placeholder="Temp@ITER2026" type="text"
+                    style={{width:"100%",boxSizing:"border-box",padding:"9px 12px",border:"1px solid #e2e8f0",borderRadius:8,fontSize:13,outline:"none",fontFamily:"inherit"}}/>
+                </div>
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+                  <div>
+                    <label style={{fontSize:11,fontWeight:700,color:"#475569",display:"block",marginBottom:4}}>ROLE</label>
+                    <select value={createForm.role} onChange={e=>setCreateForm(f=>({...f,role:e.target.value}))}
+                      style={{width:"100%",boxSizing:"border-box",padding:"9px 12px",border:"1px solid #e2e8f0",borderRadius:8,fontSize:13,outline:"none",fontFamily:"inherit"}}>
+                      <option value="student">Student</option>
+                      <option value="faculty">Faculty</option>
+                      <option value="admin">Admin</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label style={{fontSize:11,fontWeight:700,color:"#475569",display:"block",marginBottom:4}}>INITIAL STATUS</label>
+                    <select value={createForm.status} onChange={e=>setCreateForm(f=>({...f,status:e.target.value}))}
+                      style={{width:"100%",boxSizing:"border-box",padding:"9px 12px",border:"1px solid #e2e8f0",borderRadius:8,fontSize:13,outline:"none",fontFamily:"inherit"}}>
+                      <option value="approved">Approved (active now)</option>
+                      <option value="pending">Pending (needs approval)</option>
+                    </select>
+                  </div>
+                </div>
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+                  <div>
+                    <label style={{fontSize:11,fontWeight:700,color:"#475569",display:"block",marginBottom:4}}>ROLL NO. / FACULTY ID</label>
+                    <input value={createForm.rollOrId} onChange={e=>setCreateForm(f=>({...f,rollOrId:e.target.value}))}
+                      placeholder="e.g. 22CS045"
+                      style={{width:"100%",boxSizing:"border-box",padding:"9px 12px",border:"1px solid #e2e8f0",borderRadius:8,fontSize:13,outline:"none",fontFamily:"inherit"}}/>
+                  </div>
+                  <div>
+                    <label style={{fontSize:11,fontWeight:700,color:"#475569",display:"block",marginBottom:4}}>DEPARTMENT</label>
+                    <input value={createForm.dept} onChange={e=>setCreateForm(f=>({...f,dept:e.target.value}))}
+                      placeholder="e.g. CSE"
+                      style={{width:"100%",boxSizing:"border-box",padding:"9px 12px",border:"1px solid #e2e8f0",borderRadius:8,fontSize:13,outline:"none",fontFamily:"inherit"}}/>
+                  </div>
+                </div>
+                {createErr && <div style={{background:"#fee2e2",border:"1px solid #fca5a5",borderRadius:8,padding:"8px 12px",color:"#dc2626",fontSize:12,fontWeight:600}}>{createErr}</div>}
+                <button onClick={handleCreateUser} disabled={createLoading}
+                  style={{padding:"11px",background:createLoading?"#fca5a5":"linear-gradient(135deg,#ef4444,#dc2626)",color:"#fff",border:"none",borderRadius:8,fontWeight:700,cursor:createLoading?"wait":"pointer",fontSize:14}}>
+                  {createLoading?"⏳ Creating...":"✅ Create Account"}
+                </button>
+                <div style={{fontSize:11,color:"#94a3b8",textAlign:"center"}}>
+                  This creates a real login-capable account. Share the email + temporary password with the user securely.
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {activePending.length === 0 && (
         <div style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:12,padding:"48px 0",textAlign:"center"}}>

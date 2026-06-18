@@ -1,5 +1,5 @@
-import { initializeApp } from "firebase/app";
-import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "firebase/auth";
+import { initializeApp, getApps, deleteApp } from "firebase/app";
+import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged, createUserWithEmailAndPassword } from "firebase/auth";
 import { getFirestore, collection, doc, setDoc, getDoc, addDoc, onSnapshot, query, orderBy, serverTimestamp, updateDoc, where, getDocs } from "firebase/firestore";
 
 const firebaseConfig = {
@@ -19,6 +19,25 @@ export const googleProvider = new GoogleAuthProvider();
 export const signInWithGoogle = () => signInWithPopup(auth, googleProvider);
 export const logOut = () => signOut(auth);
 export { onAuthStateChanged, serverTimestamp };
+
+// ── Admin-side user creation ──────────────────────────────────────────────────
+// Uses a temporary secondary Firebase app instance so creating a new Auth user
+// does NOT sign out / replace the admin's current session (a client-SDK quirk:
+// createUserWithEmailAndPassword auto-signs-in as the new user on the app it runs on).
+export const adminCreateUser = async (email, password, profileData) => {
+  const tempAppName = `admin-create-${Date.now()}`;
+  const tempApp = initializeApp(firebaseConfig, tempAppName);
+  const tempAuth = getAuth(tempApp);
+  try {
+    const cred = await createUserWithEmailAndPassword(tempAuth, email, password);
+    const uid = cred.user.uid;
+    await setDoc(doc(db, "users", uid), { uid, email, ...profileData }, { merge: true });
+    await signOut(tempAuth);
+    return { uid, email };
+  } finally {
+    await deleteApp(tempApp);
+  }
+};
 
 // ── User profile ──────────────────────────────────────────────────────────────
 export const saveUserProfile = async (uid, data) => {
