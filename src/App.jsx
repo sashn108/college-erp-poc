@@ -506,24 +506,15 @@ function StudentDashboard({ user }) {
 
       {/* External Circulars */}
       <Widget title="External Circulars">
-        <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
-          <thead>
-            <tr style={{background:"#6366f1",color:"#fff"}}>
-              <th style={{padding:"6px 8px",textAlign:"left",width:24}}>#</th>
-              <th style={{padding:"6px 8px",textAlign:"left"}}>Circular Title</th>
-              <th style={{padding:"6px 8px",width:50}}>Details</th>
-            </tr>
-          </thead>
-          <tbody>
-            {circulars.map((c,i)=>(
-              <tr key={i} style={{borderBottom:"1px solid #eee",background:i%2===0?"#f9f9f9":"#fff"}}>
-                <td style={{padding:"6px 8px",color:"#555"}}>{i+1}</td>
-                <td style={{padding:"6px 8px",color:"#333"}}>{c}</td>
-                <td style={{padding:"6px 8px",textAlign:"center"}}><span style={{color:"#6366f1",cursor:"pointer",fontSize:16}}>📄</span></td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <div style={{display:"flex",flexDirection:"column",gap:8}}>
+          {circulars.map((c,i)=>(
+            <div key={i} style={{display:"flex",alignItems:"center",gap:10,background:"#f8fafc",border:"1px solid #f1f5f9",borderRadius:9,padding:"9px 12px"}}>
+              <div style={{width:26,height:26,borderRadius:7,background:"#eef2ff",display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:700,color:"#6366f1",flexShrink:0}}>{i+1}</div>
+              <div style={{flex:1,fontSize:12,color:"#334155",fontWeight:500}}>{c}</div>
+              <span style={{color:"#6366f1",cursor:"pointer",fontSize:15,flexShrink:0}}>📄</span>
+            </div>
+          ))}
+        </div>
       </Widget>
 
       {/* Registered Courses + Timetable */}
@@ -614,22 +605,14 @@ function StudentDashboard({ user }) {
 
       {/* Important Dates */}
       <Widget title="Important Dates">
-        <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
-          <thead>
-            <tr style={{background:"#6366f1",color:"#fff"}}>
-              <th style={{padding:"5px 8px",textAlign:"left"}}>Event</th>
-              <th style={{padding:"5px 8px",textAlign:"right",whiteSpace:"nowrap"}}>Last Date</th>
-            </tr>
-          </thead>
-          <tbody>
-            {importantDates.map(([evt,dt],i)=>(
-              <tr key={i} style={{borderBottom:"1px solid #eee",background:i%2===0?"#f9f9f9":"#fff"}}>
-                <td style={{padding:"5px 8px",color:"#333",fontSize:11}}>{evt}</td>
-                <td style={{padding:"5px 8px",color:"#c0392b",fontWeight:600,textAlign:"right",whiteSpace:"nowrap",fontSize:11}}>{dt}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <div style={{display:"flex",flexDirection:"column",gap:8}}>
+          {importantDates.map(([evt,dt],i)=>(
+            <div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",background:"#f8fafc",border:"1px solid #f1f5f9",borderRadius:9,padding:"9px 12px"}}>
+              <span style={{fontSize:12,color:"#334155",fontWeight:500}}>{evt}</span>
+              <span style={{fontSize:11,fontWeight:700,color:"#dc2626",background:"#fee2e2",padding:"3px 9px",borderRadius:6,whiteSpace:"nowrap"}}>{dt}</span>
+            </div>
+          ))}
+        </div>
       </Widget>
     </div>
   );
@@ -753,42 +736,26 @@ function FacultyDashboard({ user }) {
 
         {/* Circulars */}
         <Widget title="External Circulars">
-          <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
-            <thead>
-              <tr style={{background:"#6366f1",color:"#fff"}}>
-                <th style={{padding:"5px 6px",width:20}}>#</th>
-                <th style={{padding:"5px 6px",textAlign:"left"}}>Circular Title</th>
-              </tr>
-            </thead>
-            <tbody>
-              {circulars.map((c,i)=>(
-                <tr key={i} style={{borderBottom:"1px solid #eee",background:i%2===0?"#f9f9f9":"#fff"}}>
-                  <td style={{padding:"6px",color:"#555",textAlign:"center"}}>{i+1}</td>
-                  <td style={{padding:"6px",color:"#333",fontSize:12,lineHeight:1.4}}>{c}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <div style={{display:"flex",flexDirection:"column",gap:8}}>
+            {circulars.map((c,i)=>(
+              <div key={i} style={{display:"flex",alignItems:"center",gap:10,background:"#f8fafc",border:"1px solid #f1f5f9",borderRadius:9,padding:"9px 12px"}}>
+                <div style={{width:24,height:24,borderRadius:6,background:"#eef2ff",display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:700,color:"#6366f1",flexShrink:0}}>{i+1}</div>
+                <div style={{flex:1,fontSize:12,color:"#334155",lineHeight:1.4}}>{c}</div>
+              </div>
+            ))}
+          </div>
         </Widget>
 
         {/* Important Dates */}
         <Widget title="Important Dates">
-          <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
-            <thead>
-              <tr style={{background:"#6366f1",color:"#fff"}}>
-                <th style={{padding:"5px 8px",textAlign:"left"}}>Event</th>
-                <th style={{padding:"5px 8px",textAlign:"right"}}>Date</th>
-              </tr>
-            </thead>
-            <tbody>
-              {importantDates.map(([evt,dt],i)=>(
-                <tr key={i} style={{borderBottom:"1px solid #eee",background:i%2===0?"#f9f9f9":"#fff"}}>
-                  <td style={{padding:"5px 8px",color:"#333",fontSize:11}}>{evt}</td>
-                  <td style={{padding:"5px 8px",color:"#6366f1",fontWeight:600,textAlign:"right",whiteSpace:"nowrap",fontSize:11}}>{dt}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <div style={{display:"flex",flexDirection:"column",gap:8}}>
+            {importantDates.map(([evt,dt],i)=>(
+              <div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",background:"#f8fafc",border:"1px solid #f1f5f9",borderRadius:9,padding:"9px 12px"}}>
+                <span style={{fontSize:12,color:"#334155",fontWeight:500}}>{evt}</span>
+                <span style={{fontSize:11,fontWeight:700,color:"#6366f1",background:"#eef2ff",padding:"3px 9px",borderRadius:6,whiteSpace:"nowrap"}}>{dt}</span>
+              </div>
+            ))}
+          </div>
         </Widget>
       </div>
     </div>
@@ -1347,71 +1314,69 @@ function ExamView() {
 
       {/* Exam Schedule */}
       {tab==="schedule"&&(
-        <div style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:12,overflow:"hidden"}}>
-          <div style={{background:"linear-gradient(135deg,#6366f1,#8b5cf6)",padding:"11px 16px",color:"#fff",fontWeight:700,fontSize:13}}>
-            End Semester Exam Schedule — Sem {selSem} ({current.session})
+        <div>
+          <div style={{fontSize:13,fontWeight:700,color:"#0f172a",marginBottom:10}}>📋 End Semester Exam Schedule — Sem {selSem} ({current.session})</div>
+          <div style={{display:"flex",flexDirection:"column",gap:8}}>
+            {filteredSchedule.map((e,i)=>(
+              <div key={i} style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:11,padding:"12px 16px",display:"flex",alignItems:"center",gap:14}}>
+                <div style={{width:54,textAlign:"center",flexShrink:0}}>
+                  <div style={{fontWeight:800,fontSize:14,color:"#6366f1"}}>{e.date}</div>
+                </div>
+                <div style={{width:1,height:34,background:"#f1f5f9",flexShrink:0}}/>
+                <div style={{flex:1,minWidth:0}}>
+                  <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
+                    <span style={{fontWeight:700,fontSize:13,color:"#0f172a"}}>{e.code}</span>
+                    <span style={{padding:"2px 8px",borderRadius:6,fontSize:10,fontWeight:700,background:(typeColor[e.type]||"#6366f1")+"20",color:typeColor[e.type]||"#6366f1"}}>{typeLabel[e.type]}</span>
+                  </div>
+                  <div style={{fontSize:12,color:"#64748b",marginTop:2}}>{e.name}</div>
+                </div>
+                <div style={{textAlign:"right",flexShrink:0}}>
+                  <div style={{fontSize:12,fontWeight:600,color:"#334155"}}>{e.time}</div>
+                  <div style={{fontSize:11,color:"#94a3b8",marginTop:1}}>Room {e.room}</div>
+                </div>
+              </div>
+            ))}
           </div>
-          <table style={{width:"100%",borderCollapse:"collapse",fontSize:13}}>
-            <thead>
-              <tr style={{background:"#f8fafc"}}>
-                {["Date","Code","Subject","Type","Time","Room No."].map(h=>(
-                  <th key={h} style={{padding:"9px 14px",textAlign:"left",fontWeight:600,color:"#475569",fontSize:12,borderBottom:"1px solid #e2e8f0"}}>{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {filteredSchedule.map((e,i)=>(
-                <tr key={i} style={{borderBottom:"1px solid #f1f5f9",background:i%2===0?"#fff":"#fafbff"}}>
-                  <td style={{padding:"10px 14px",fontWeight:700,color:"#6366f1"}}>{e.date}</td>
-                  <td style={{padding:"10px 14px",fontWeight:600,color:"#334155"}}>{e.code}</td>
-                  <td style={{padding:"10px 14px",color:"#0f172a",fontWeight:500}}>{e.name}</td>
-                  <td style={{padding:"10px 14px"}}>
-                    <span style={{padding:"2px 8px",borderRadius:6,fontSize:11,fontWeight:700,background:(typeColor[e.type]||"#6366f1")+"20",color:typeColor[e.type]||"#6366f1"}}>{typeLabel[e.type]}</span>
-                  </td>
-                  <td style={{padding:"10px 14px",color:"#64748b"}}>{e.time}</td>
-                  <td style={{padding:"10px 14px",fontWeight:600,color:"#334155"}}>{e.room}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
         </div>
       )}
 
       {/* Courses & Marks */}
       {tab==="courses"&&(
-        <div style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:12,overflow:"hidden"}}>
-          <div style={{background:"linear-gradient(135deg,#6366f1,#8b5cf6)",padding:"11px 16px",color:"#fff",fontWeight:700,fontSize:13}}>
-            Course Details & Marks — Sem {selSem} ({current.session})
-          </div>
-          <table style={{width:"100%",borderCollapse:"collapse",fontSize:13}}>
-            <thead>
-              <tr style={{background:"#f8fafc"}}>
-                {["Code","Course Name","Type","Credits","Internal","External","Total","Grade"].map(h=>(
-                  <th key={h} style={{padding:"9px 14px",textAlign:"left",fontWeight:600,color:"#475569",fontSize:12,borderBottom:"1px solid #e2e8f0"}}>{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {filteredCourses.map((c,i)=>(
-                <tr key={c.code} style={{borderBottom:"1px solid #f1f5f9",background:i%2===0?"#fff":"#fafbff"}}>
-                  <td style={{padding:"10px 14px",fontWeight:700,color:"#6366f1"}}>{c.code}</td>
-                  <td style={{padding:"10px 14px",color:"#0f172a",fontWeight:500}}>{c.name}</td>
-                  <td style={{padding:"10px 14px"}}>
-                    <span style={{padding:"2px 8px",borderRadius:6,fontSize:11,fontWeight:700,background:(typeColor[c.type])+"20",color:typeColor[c.type]}}>{typeLabel[c.type]}</span>
-                  </td>
-                  <td style={{padding:"10px 14px",textAlign:"center",color:"#475569",fontWeight:600}}>{c.credits}</td>
-                  <td style={{padding:"10px 14px",textAlign:"center",color:"#64748b"}}>{c.internal??<span style={{color:"#cbd5e1"}}>—</span>}</td>
-                  <td style={{padding:"10px 14px",textAlign:"center",color:"#64748b"}}>{c.external??<span style={{color:"#cbd5e1"}}>—</span>}</td>
-                  <td style={{padding:"10px 14px",textAlign:"center",fontWeight:700,color:"#0f172a"}}>{c.total??<span style={{fontSize:11,color:"#f59e0b",fontWeight:600}}>Awaited</span>}</td>
-                  <td style={{padding:"10px 14px",textAlign:"center"}}>
+        <div>
+          <div style={{fontSize:13,fontWeight:700,color:"#0f172a",marginBottom:10}}>📚 Course Details & Marks — Sem {selSem} ({current.session})</div>
+          <div style={{display:"flex",flexDirection:"column",gap:8}}>
+            {filteredCourses.map((c,i)=>(
+              <div key={c.code} style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:11,padding:"12px 16px",display:"flex",alignItems:"center",gap:14}}>
+                <div style={{flex:1,minWidth:0}}>
+                  <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
+                    <span style={{fontWeight:700,fontSize:13,color:"#6366f1"}}>{c.code}</span>
+                    <span style={{padding:"2px 8px",borderRadius:6,fontSize:10,fontWeight:700,background:(typeColor[c.type])+"20",color:typeColor[c.type]}}>{typeLabel[c.type]}</span>
+                  </div>
+                  <div style={{fontSize:13,color:"#0f172a",fontWeight:500,marginTop:2}}>{c.name}</div>
+                  <div style={{fontSize:11,color:"#94a3b8",marginTop:2}}>{c.credits} Credits</div>
+                </div>
+                <div style={{display:"flex",gap:18,alignItems:"center",flexShrink:0}}>
+                  <div style={{textAlign:"center"}}>
+                    <div style={{fontSize:10,color:"#94a3b8",fontWeight:700}}>INTERNAL</div>
+                    <div style={{fontSize:14,fontWeight:700,color:"#64748b"}}>{c.internal??"—"}</div>
+                  </div>
+                  <div style={{textAlign:"center"}}>
+                    <div style={{fontSize:10,color:"#94a3b8",fontWeight:700}}>EXTERNAL</div>
+                    <div style={{fontSize:14,fontWeight:700,color:"#64748b"}}>{c.external??"—"}</div>
+                  </div>
+                  <div style={{textAlign:"center"}}>
+                    <div style={{fontSize:10,color:"#94a3b8",fontWeight:700}}>TOTAL</div>
+                    <div style={{fontSize:16,fontWeight:800,color:"#0f172a"}}>{c.total??<span style={{fontSize:10,color:"#f59e0b",fontWeight:600}}>Awaited</span>}</div>
+                  </div>
+                  <div style={{textAlign:"center",minWidth:40}}>
                     {c.grade
-                      ? <span style={{padding:"3px 10px",borderRadius:6,fontWeight:800,fontSize:12,background:(gradeColor(c.grade))+"20",color:gradeColor(c.grade)}}>{c.grade}</span>
+                      ? <span style={{padding:"4px 10px",borderRadius:7,fontWeight:800,fontSize:13,background:(gradeColor(c.grade))+"20",color:gradeColor(c.grade)}}>{c.grade}</span>
                       : <span style={{fontSize:11,color:"#94a3b8"}}>—</span>}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 
@@ -1836,36 +1801,38 @@ function FeeView() {
 
       {/* ── OTHER CHARGES TAB ── */}
       {tab==="other" && (
-        <div style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:12,overflow:"hidden"}}>
-          <table style={{width:"100%",borderCollapse:"collapse",fontSize:13}}>
-            <thead><tr style={{background:"#f8fafc"}}>
-              {["Fee Name","Year","Amount","Paid","Due","Status","Action"].map(h=>(
-                <th key={h} style={{padding:"10px 14px",textAlign:"left",fontWeight:600,color:"#475569",fontSize:12,borderBottom:"1px solid #e2e8f0"}}>{h}</th>
-              ))}
-            </tr></thead>
-            <tbody>{otherFees.map((f,i)=>{
-              const realStatus = payDone[f.id]?"Paid":f.status;
-              const realDue = payDone[f.id]?0:(f.due||0);
-              return (
-                <tr key={i} style={{borderBottom:"1px solid #f1f5f9",background:i%2===0?"#fff":"#fafbff"}}>
-                  <td style={{padding:"11px 14px",fontWeight:500,color:"#0f172a"}}>{f.name}</td>
-                  <td style={{padding:"11px 14px",color:"#64748b"}}>{f.year}</td>
-                  <td style={{padding:"11px 14px",fontWeight:600,color:"#334155"}}>{fmt(f.amount)}</td>
-                  <td style={{padding:"11px 14px",color:"#10b981",fontWeight:600}}>{fmt(payDone[f.id]?f.amount:f.paid)}</td>
-                  <td style={{padding:"11px 14px",color:realDue>0?"#ef4444":"#94a3b8",fontWeight:600}}>{realDue>0?fmt(realDue):"—"}</td>
-                  <td style={{padding:"11px 14px"}}>
-                    <span style={{padding:"2px 8px",borderRadius:6,fontSize:11,fontWeight:700,background:sc(realStatus).bg,color:sc(realStatus).c}}>{realStatus}</span>
-                  </td>
-                  <td style={{padding:"11px 14px"}}>
-                    {realDue>0&&<button onClick={()=>setPayModal({...f,realDue,sem:f.name})}
-                      style={{padding:"5px 12px",background:"linear-gradient(135deg,#6366f1,#8b5cf6)",color:"#fff",border:"none",borderRadius:7,cursor:"pointer",fontSize:11,fontWeight:600}}>
-                      Pay {fmt(realDue)}
-                    </button>}
-                  </td>
-                </tr>
-              );
-            })}</tbody>
-          </table>
+        <div style={{display:"flex",flexDirection:"column",gap:10}}>
+          {otherFees.map((f,i)=>{
+            const realStatus = payDone[f.id]?"Paid":f.status;
+            const realDue = payDone[f.id]?0:(f.due||0);
+            return (
+              <div key={i} style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:11,padding:"12px 16px",display:"flex",alignItems:"center",gap:14}}>
+                <div style={{flex:1,minWidth:0}}>
+                  <div style={{fontWeight:700,fontSize:14,color:"#0f172a"}}>{f.name}</div>
+                  <div style={{fontSize:11,color:"#94a3b8",marginTop:2}}>{f.year}</div>
+                </div>
+                <div style={{display:"flex",gap:18,alignItems:"center",flexShrink:0}}>
+                  <div style={{textAlign:"center"}}>
+                    <div style={{fontSize:10,color:"#94a3b8",fontWeight:700}}>AMOUNT</div>
+                    <div style={{fontSize:13,fontWeight:700,color:"#334155"}}>{fmt(f.amount)}</div>
+                  </div>
+                  <div style={{textAlign:"center"}}>
+                    <div style={{fontSize:10,color:"#94a3b8",fontWeight:700}}>PAID</div>
+                    <div style={{fontSize:13,fontWeight:700,color:"#10b981"}}>{fmt(payDone[f.id]?f.amount:f.paid)}</div>
+                  </div>
+                  <div style={{textAlign:"center"}}>
+                    <div style={{fontSize:10,color:"#94a3b8",fontWeight:700}}>DUE</div>
+                    <div style={{fontSize:13,fontWeight:700,color:realDue>0?"#ef4444":"#94a3b8"}}>{realDue>0?fmt(realDue):"—"}</div>
+                  </div>
+                  <span style={{padding:"3px 10px",borderRadius:6,fontSize:11,fontWeight:700,background:sc(realStatus).bg,color:sc(realStatus).c}}>{realStatus}</span>
+                  {realDue>0&&<button onClick={()=>setPayModal({...f,realDue,sem:f.name})}
+                    style={{padding:"7px 14px",background:"linear-gradient(135deg,#6366f1,#8b5cf6)",color:"#fff",border:"none",borderRadius:8,cursor:"pointer",fontSize:12,fontWeight:600,whiteSpace:"nowrap"}}>
+                    Pay {fmt(realDue)}
+                  </button>}
+                </div>
+              </div>
+            );
+          })}
         </div>
       )}
 
@@ -5899,25 +5866,28 @@ function AdminStudents() {
         </div>
       </div>
       {tab==="list"&&(
-        <div style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:12,overflow:"hidden"}}>
-          <table style={{width:"100%",borderCollapse:"collapse",fontSize:13}}>
-            <thead><tr style={{background:"#f8fafc"}}>{["Roll No.","Name","Dept","Year","Email","CGPA","Status","Action"].map(h=><th key={h} style={{padding:"10px 12px",textAlign:"left",fontWeight:600,color:"#475569",fontSize:12,borderBottom:"1px solid #e2e8f0"}}>{h}</th>)}</tr></thead>
-            <tbody>{filtered.map((s,i)=>(
-              <tr key={s.roll} style={{borderBottom:"1px solid #f1f5f9",background:i%2===0?"#fff":"#fafbff"}}>
-                <td style={{padding:"10px 12px",color:"#6366f1",fontWeight:700}}>{s.roll}</td>
-                <td style={{padding:"10px 12px",fontWeight:600,color:"#0f172a"}}>{s.name}</td>
-                <td style={{padding:"10px 12px",color:"#64748b"}}>{s.dept}</td>
-                <td style={{padding:"10px 12px",color:"#64748b"}}>{s.year}</td>
-                <td style={{padding:"10px 12px",color:"#64748b",fontSize:12}}>{s.email}</td>
-                <td style={{padding:"10px 12px",fontWeight:700,color:s.cgpa>=7.5?"#10b981":"#f59e0b"}}>{s.cgpa}</td>
-                <td style={{padding:"10px 12px"}}><span style={{padding:"2px 8px",borderRadius:6,fontSize:11,fontWeight:700,background:s.status==="Active"?"#dcfce7":"#fee2e2",color:s.status==="Active"?"#16a34a":"#dc2626"}}>{s.status}</span></td>
-                <td style={{padding:"10px 12px",display:"flex",gap:6}}>
-                  <button style={{padding:"3px 10px",background:"#eef2ff",color:"#6366f1",border:"none",borderRadius:5,cursor:"pointer",fontSize:11,fontWeight:600}}>Edit</button>
-                  <button style={{padding:"3px 10px",background:"#fee2e2",color:"#dc2626",border:"none",borderRadius:5,cursor:"pointer",fontSize:11,fontWeight:600}}>Block</button>
-                </td>
-              </tr>
-            ))}</tbody>
-          </table>
+        <div style={{display:"flex",flexDirection:"column",gap:8}}>
+          {filtered.map(s=>(
+            <div key={s.roll} style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:11,padding:"12px 16px",display:"flex",alignItems:"center",gap:14}}>
+              <div style={{width:38,height:38,borderRadius:"50%",background:"linear-gradient(135deg,#6366f1,#8b5cf6)",display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",fontWeight:700,fontSize:15,flexShrink:0}}>{s.name[0]}</div>
+              <div style={{flex:1,minWidth:0}}>
+                <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
+                  <span style={{fontWeight:700,fontSize:13,color:"#0f172a"}}>{s.name}</span>
+                  <span style={{fontSize:11,color:"#6366f1",fontWeight:700}}>{s.roll}</span>
+                </div>
+                <div style={{fontSize:11,color:"#94a3b8",marginTop:2}}>{s.dept} · {s.year} Year · {s.email}</div>
+              </div>
+              <div style={{textAlign:"center",flexShrink:0}}>
+                <div style={{fontSize:10,color:"#94a3b8",fontWeight:700}}>CGPA</div>
+                <div style={{fontSize:15,fontWeight:800,color:s.cgpa>=7.5?"#10b981":"#f59e0b"}}>{s.cgpa}</div>
+              </div>
+              <span style={{padding:"3px 10px",borderRadius:6,fontSize:11,fontWeight:700,background:s.status==="Active"?"#dcfce7":"#fee2e2",color:s.status==="Active"?"#16a34a":"#dc2626",flexShrink:0}}>{s.status}</span>
+              <div style={{display:"flex",gap:6,flexShrink:0}}>
+                <button style={{padding:"5px 12px",background:"#eef2ff",color:"#6366f1",border:"none",borderRadius:6,cursor:"pointer",fontSize:11,fontWeight:600}}>Edit</button>
+                <button style={{padding:"5px 12px",background:"#fee2e2",color:"#dc2626",border:"none",borderRadius:6,cursor:"pointer",fontSize:11,fontWeight:600}}>Block</button>
+              </div>
+            </div>
+          ))}
         </div>
       )}
       {tab==="admit"&&(
@@ -5982,26 +5952,28 @@ function AdminFaculty() {
           style={{padding:"8px 12px",border:"1px solid #e2e8f0",borderRadius:8,fontSize:12,outline:"none",width:220,fontFamily:"inherit"}}/>
         <button style={{padding:"8px 18px",background:"linear-gradient(135deg,#6366f1,#8b5cf6)",color:"#fff",border:"none",borderRadius:8,fontWeight:600,cursor:"pointer",fontSize:12}}>+ Add Faculty</button>
       </div>
-      <div style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:12,overflow:"hidden"}}>
-        <table style={{width:"100%",borderCollapse:"collapse",fontSize:13}}>
-          <thead><tr style={{background:"#f8fafc"}}>{["ID","Name","Dept","Designation","Experience","Email","Publications","Status","Action"].map(h=><th key={h} style={{padding:"10px 12px",textAlign:"left",fontWeight:600,color:"#475569",fontSize:11,borderBottom:"1px solid #e2e8f0"}}>{h}</th>)}</tr></thead>
-          <tbody>{filtered.map((f,i)=>(
-            <tr key={f.id} style={{borderBottom:"1px solid #f1f5f9",background:i%2===0?"#fff":"#fafbff"}}>
-              <td style={{padding:"10px 12px",color:"#6366f1",fontWeight:700}}>{f.id}</td>
-              <td style={{padding:"10px 12px",fontWeight:600,color:"#0f172a"}}>{f.name}</td>
-              <td style={{padding:"10px 12px",color:"#64748b"}}>{f.dept}</td>
-              <td style={{padding:"10px 12px",color:"#475569",fontSize:12}}>{f.designation}</td>
-              <td style={{padding:"10px 12px",color:"#64748b"}}>{f.exp}</td>
-              <td style={{padding:"10px 12px",color:"#64748b",fontSize:11}}>{f.email}</td>
-              <td style={{padding:"10px 12px",textAlign:"center",fontWeight:700,color:"#6366f1"}}>{f.pubs}</td>
-              <td style={{padding:"10px 12px"}}><span style={{padding:"2px 8px",borderRadius:6,fontSize:11,fontWeight:700,background:f.status==="Active"?"#dcfce7":"#fef9c3",color:f.status==="Active"?"#16a34a":"#ca8a04"}}>{f.status}</span></td>
-              <td style={{padding:"10px 12px",display:"flex",gap:5}}>
-                <button style={{padding:"3px 8px",background:"#eef2ff",color:"#6366f1",border:"none",borderRadius:5,cursor:"pointer",fontSize:10,fontWeight:600}}>Edit</button>
-                <button style={{padding:"3px 8px",background:"#fee2e2",color:"#dc2626",border:"none",borderRadius:5,cursor:"pointer",fontSize:10,fontWeight:600}}>Block</button>
-              </td>
-            </tr>
-          ))}</tbody>
-        </table>
+      <div style={{display:"flex",flexDirection:"column",gap:8}}>
+        {filtered.map(f=>(
+          <div key={f.id} style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:11,padding:"12px 16px",display:"flex",alignItems:"center",gap:14}}>
+            <div style={{width:38,height:38,borderRadius:"50%",background:"linear-gradient(135deg,#6366f1,#8b5cf6)",display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",fontWeight:700,fontSize:15,flexShrink:0}}>{f.name[0]}</div>
+            <div style={{flex:1,minWidth:0}}>
+              <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
+                <span style={{fontWeight:700,fontSize:13,color:"#0f172a"}}>{f.name}</span>
+                <span style={{fontSize:11,color:"#6366f1",fontWeight:700}}>{f.id}</span>
+              </div>
+              <div style={{fontSize:11,color:"#94a3b8",marginTop:2}}>{f.designation} · {f.dept} · {f.exp} exp · {f.email}</div>
+            </div>
+            <div style={{textAlign:"center",flexShrink:0}}>
+              <div style={{fontSize:10,color:"#94a3b8",fontWeight:700}}>PUBS</div>
+              <div style={{fontSize:15,fontWeight:800,color:"#6366f1"}}>{f.pubs}</div>
+            </div>
+            <span style={{padding:"3px 10px",borderRadius:6,fontSize:11,fontWeight:700,background:f.status==="Active"?"#dcfce7":"#fef9c3",color:f.status==="Active"?"#16a34a":"#ca8a04",flexShrink:0}}>{f.status}</span>
+            <div style={{display:"flex",gap:6,flexShrink:0}}>
+              <button style={{padding:"5px 12px",background:"#eef2ff",color:"#6366f1",border:"none",borderRadius:6,cursor:"pointer",fontSize:11,fontWeight:600}}>Edit</button>
+              <button style={{padding:"5px 12px",background:"#fee2e2",color:"#dc2626",border:"none",borderRadius:6,cursor:"pointer",fontSize:11,fontWeight:600}}>Block</button>
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   );
