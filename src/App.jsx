@@ -376,96 +376,6 @@ function Widget({ title, children, style={} }) {
 }
 
 // ─── Student Dashboard ────────────────────────────────────────────────────────
-// ─── CSV Student Upload ───────────────────────────────────────────────────────
-function CSVStudentUpload() {
-  const [students, setStudents] = useState([]);
-  const [error, setError] = useState("");
-  const [dragging, setDragging] = useState(false);
-
-  const parseCSV = (text) => {
-    setError("");
-    const lines = text.trim().split("\n").filter(Boolean);
-    if (lines.length < 2) { setError("CSV must have a header row and at least one data row."); return; }
-    const headers = lines[0].split(",").map(h => h.trim().toLowerCase().replace(/\s+/g,"_"));
-    const nameCol = headers.findIndex(h => h.includes("name"));
-    const rollCol = headers.findIndex(h => h.includes("roll") || h.includes("reg") || h.includes("id"));
-    const deptCol = headers.findIndex(h => h.includes("dept") || h.includes("branch"));
-    const yearCol = headers.findIndex(h => h.includes("year") || h.includes("sem"));
-    if (nameCol === -1 || rollCol === -1) { setError("CSV must have 'name' and 'roll/reg' columns."); return; }
-    const parsed = lines.slice(1).map((line, i) => {
-      const cols = line.split(",").map(c => c.trim());
-      return {
-        id: i + 1,
-        name: cols[nameCol] || "—",
-        roll: cols[rollCol] || "—",
-        dept: deptCol !== -1 ? cols[deptCol] : "—",
-        year: yearCol !== -1 ? cols[yearCol] : "—",
-      };
-    }).filter(s => s.name !== "—" || s.roll !== "—");
-    setStudents(parsed);
-  };
-
-  const handleFile = (file) => {
-    if (!file) return;
-    if (!file.name.endsWith(".csv")) { setError("Please upload a .csv file."); return; }
-    const reader = new FileReader();
-    reader.onload = e => parseCSV(e.target.result);
-    reader.readAsText(file);
-  };
-
-  const handleDrop = (e) => {
-    e.preventDefault(); setDragging(false);
-    handleFile(e.dataTransfer.files[0]);
-  };
-
-  return (
-    <Widget title="📤 CSV Student Upload — Auto Display">
-      {students.length === 0 ? (
-        <div
-          onDragOver={e=>{e.preventDefault();setDragging(true);}}
-          onDragLeave={()=>setDragging(false)}
-          onDrop={handleDrop}
-          style={{border:`2px dashed ${dragging?"#6366f1":"#e2e8f0"}`,borderRadius:10,padding:"28px 20px",textAlign:"center",background:dragging?"#eef2ff":"#fafafa",transition:"all .2s",cursor:"pointer"}}
-          onClick={()=>document.getElementById("csv-upload-input").click()}>
-          <div style={{fontSize:36,marginBottom:8}}>📂</div>
-          <div style={{fontWeight:600,color:"#334155",fontSize:14,marginBottom:4}}>Drag & Drop CSV file here</div>
-          <div style={{fontSize:12,color:"#94a3b8",marginBottom:14}}>or click to browse · Columns: Name, Roll/Reg No, Dept, Year</div>
-          <button style={{padding:"8px 20px",background:"linear-gradient(135deg,#6366f1,#8b5cf6)",color:"#fff",border:"none",borderRadius:8,fontWeight:600,cursor:"pointer",fontSize:13}}>Choose File</button>
-          <input id="csv-upload-input" type="file" accept=".csv" style={{display:"none"}} onChange={e=>handleFile(e.target.files[0])}/>
-          {error && <div style={{marginTop:10,color:"#ef4444",fontSize:12,fontWeight:600}}>{error}</div>}
-        </div>
-      ) : (
-        <div>
-          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
-            <div style={{fontSize:13,fontWeight:700,color:"#0f172a"}}>✅ {students.length} students loaded from CSV</div>
-            <button onClick={()=>setStudents([])} style={{padding:"5px 14px",background:"#fee2e2",color:"#dc2626",border:"none",borderRadius:7,fontWeight:600,cursor:"pointer",fontSize:12}}>Clear</button>
-          </div>
-          <div style={{overflowX:"auto",maxHeight:260,overflowY:"auto"}}>
-            <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
-              <thead style={{position:"sticky",top:0}}>
-                <tr style={{background:"#6366f1",color:"#fff"}}>
-                  {["#","Name","Roll / Reg No","Dept","Year"].map(h=><th key={h} style={{padding:"7px 10px",textAlign:"left",fontSize:11}}>{h}</th>)}
-                </tr>
-              </thead>
-              <tbody>
-                {students.map((s,i)=>(
-                  <tr key={s.id} style={{borderBottom:"1px solid #f1f5f9",background:i%2===0?"#fff":"#fafbff"}}>
-                    <td style={{padding:"6px 10px",color:"#94a3b8",fontSize:11}}>{s.id}</td>
-                    <td style={{padding:"6px 10px",fontWeight:600,color:"#0f172a"}}>{s.name}</td>
-                    <td style={{padding:"6px 10px",color:"#6366f1",fontWeight:700}}>{s.roll}</td>
-                    <td style={{padding:"6px 10px",color:"#64748b"}}>{s.dept}</td>
-                    <td style={{padding:"6px 10px",color:"#64748b"}}>{s.year}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
-    </Widget>
-  );
-}
-
 function StudentDashboard({ user }) {
   const importantDates = [
     ["Research Scholars' Week (Abstract Submission)","Apr 29, 2026"],
@@ -599,9 +509,6 @@ function StudentDashboard({ user }) {
           );
         })()}
       </Widget>
-
-      {/* CSV Student Upload (Admin uploads, reflects here) */}
-      <CSVStudentUpload/>
 
       {/* Important Dates */}
       <Widget title="Important Dates">
