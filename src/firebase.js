@@ -63,6 +63,20 @@ export const getAllUsersDebug = (callback, onError) => {
     err => { console.error("getAllUsersDebug error:", err); if (onError) onError(err); }
   );
 };
+// Repair: backfill status field for any user doc missing it (legacy/broken records)
+export const repairMissingStatus = async () => {
+  const snap = await getDocs(collection(db, "users"));
+  const fixes = [];
+  for (const d of snap.docs) {
+    const data = d.data();
+    if (data.status === undefined || data.status === null) {
+      const inferredStatus = data.role === "admin" ? "approved" : "pending";
+      await setDoc(doc(db, "users", d.id), { status: inferredStatus }, { merge: true });
+      fixes.push({ id: d.id, email: data.email, newStatus: inferredStatus });
+    }
+  }
+  return fixes;
+};
 export const approveUser = async (uid, role, extraData = {}) => {
   await updateDoc(doc(db, "users", uid), { status: "approved", role, ...extraData });
 };

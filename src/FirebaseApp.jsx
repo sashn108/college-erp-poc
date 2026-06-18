@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import {
   auth, db, signInWithGoogle, logOut, onAuthStateChanged,
-  saveUserProfile, getUserProfile, getPendingUsers, getAllUsersDebug, adminCreateUser,
+  saveUserProfile, getUserProfile, getPendingUsers, getAllUsersDebug, adminCreateUser, repairMissingStatus,
   approveUser, rejectUser,
   sendMessage, subscribeToMessages,
   submitFeedback, subscribeFeedbackAggregates,
@@ -243,6 +243,20 @@ export function AdminUserApprovals() {
   const [createErr, setCreateErr] = useState("");
   const [createLoading, setCreateLoading] = useState(false);
   const [createSuccess, setCreateSuccess] = useState("");
+  const [repairing, setRepairing] = useState(false);
+  const [repairResult, setRepairResult] = useState(null);
+
+  const handleRepair = async () => {
+    setRepairing(true); setRepairResult(null);
+    try {
+      const fixes = await repairMissingStatus();
+      setRepairResult(fixes);
+    } catch (e) {
+      setRepairResult({ error: e.message });
+    } finally {
+      setRepairing(false);
+    }
+  };
 
   useEffect(() => {
     const unsub = getAllUsersDebug(setAllUsers, ()=>{});
@@ -355,22 +369,48 @@ export function AdminUserApprovals() {
       )}
 
       <div style={{marginBottom:14}}>
-        <button onClick={()=>setShowDebug(s=>!s)}
-          style={{padding:"6px 14px",background:"#f1f5f9",color:"#475569",border:"1px solid #e2e8f0",borderRadius:8,fontSize:11,fontWeight:600,cursor:"pointer"}}>
-          🔧 {showDebug?"Hide":"Show"} Debug — All Users in Firestore ({allUsers.length})
-        </button>
+        <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
+          <button onClick={()=>setShowDebug(s=>!s)}
+            style={{padding:"6px 14px",background:"#f1f5f9",color:"#475569",border:"1px solid #e2e8f0",borderRadius:8,fontSize:11,fontWeight:600,cursor:"pointer"}}>
+            🔧 {showDebug?"Hide":"Show"} Debug — All Users in Firestore ({allUsers.length})
+          </button>
+          <button onClick={handleRepair} disabled={repairing}
+            style={{padding:"6px 14px",background:repairing?"#fef3c7":"#fee2e2",color:repairing?"#92400e":"#dc2626",border:"1px solid #fca5a5",borderRadius:8,fontSize:11,fontWeight:700,cursor:repairing?"wait":"pointer"}}>
+            {repairing?"⏳ Repairing...":"🩹 Repair Missing Status Fields"}
+          </button>
+        </div>
+        {repairResult && (
+          <div style={{marginTop:8,background:repairResult.error?"#fee2e2":"#dcfce7",border:`1px solid ${repairResult.error?"#fca5a5":"#86efac"}`,borderRadius:8,padding:"10px 14px",fontSize:12}}>
+            {repairResult.error
+              ? <span style={{color:"#dc2626",fontWeight:600}}>Error: {repairResult.error}</span>
+              : repairResult.length === 0
+                ? <span style={{color:"#16a34a",fontWeight:600}}>✅ No broken records found — all users have a valid status field.</span>
+                : (
+                  <div>
+                    <div style={{color:"#16a34a",fontWeight:700,marginBottom:4}}>✅ Fixed {repairResult.length} record{repairResult.length!==1?"s":""}:</div>
+                    {repairResult.map((f,i)=>(
+                      <div key={i} style={{color:"#15803d",fontFamily:"monospace"}}>{f.email} → status: {f.newStatus}</div>
+                    ))}
+                  </div>
+                )
+            }
+          </div>
+        )}
         {showDebug && (
           <div style={{marginTop:10,background:"#0f172a",borderRadius:10,padding:"14px 16px",overflowX:"auto"}}>
             {allUsers.length === 0 ? (
               <div style={{color:"#94a3b8",fontSize:12}}>No documents found in the "users" collection at all.</div>
             ) : (
-              allUsers.map(u=>(
-                <div key={u.id} style={{borderBottom:"1px solid #1e293b",padding:"8px 0",fontFamily:"monospace",fontSize:11}}>
-                  <div style={{color:"#10b981"}}>docId: {u.id}</div>
-                  <div style={{color:"#e2e8f0"}}>name: {String(u.name)} | email: {String(u.email)}</div>
-                  <div style={{color:"#fbbf24"}}>role: {String(u.role)} | status: <strong>{String(u.status)}</strong> | requestedRole: {String(u.requestedRole)}</div>
-                </div>
-              ))
+              allUsers.map(u=>{
+                const looksLikeValidUid = /^[A-Za-z0-9]{20,}$/.test(u.id);
+                return (
+                  <div key={u.id} style={{borderBottom:"1px solid #1e293b",padding:"8px 0",fontFamily:"monospace",fontSize:11}}>
+                    <div style={{color:looksLikeValidUid?"#10b981":"#ef4444"}}>docId: {u.id} {!looksLikeValidUid && "⚠️ NOT A VALID AUTH UID — this user can never log in"}</div>
+                    <div style={{color:"#e2e8f0"}}>name: {String(u.name)} | email: {String(u.email)}</div>
+                    <div style={{color:"#fbbf24"}}>role: {String(u.role)} | status: <strong>{String(u.status)}</strong> | requestedRole: {String(u.requestedRole)}</div>
+                  </div>
+                );
+              })
             )}
           </div>
         )}
