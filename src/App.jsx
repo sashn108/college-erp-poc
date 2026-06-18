@@ -2598,12 +2598,34 @@ function FacultySubjectsView() {
     ],
   };
 
-  const subjects = [
+  const [subjects, setSubjects] = useState([
     {code:"CS301",name:"Database Management Systems",class:"CSE 5A",type:"Theory"},
     {code:"CS301L",name:"DBMS Lab",class:"CSE 5B",type:"Lab"},
     {code:"CS302",name:"Operating Systems",class:"CSE 5C",type:"Theory"},
     {code:"CS499",name:"Final Year Project",class:"CSE 7A",type:"Project"},
-  ];
+  ]);
+  const [showAddSubject, setShowAddSubject] = useState(false);
+  const [newSubject, setNewSubject] = useState({code:"",name:"",class:"",type:"Theory"});
+  const [addSubjectErr, setAddSubjectErr] = useState("");
+  const [confirmDeleteSubject, setConfirmDeleteSubject] = useState(null);
+
+  const handleAddSubject = () => {
+    setAddSubjectErr("");
+    const code = newSubject.code.trim().toUpperCase();
+    const name = newSubject.name.trim();
+    const cls = newSubject.class.trim();
+    if (!code || !name || !cls) { setAddSubjectErr("Subject code, name, and class/batch are all required."); return; }
+    if (subjects.some(s=>s.code===code)) { setAddSubjectErr(`Subject code "${code}" already exists in your list.`); return; }
+    setSubjects(prev=>[...prev, {code, name, class:cls, type:newSubject.type}]);
+    setNewSubject({code:"",name:"",class:"",type:"Theory"});
+    setShowAddSubject(false);
+  };
+
+  const handleDeleteSubject = (code) => {
+    setSubjects(prev=>prev.filter(s=>s.code!==code));
+    if (sel?.code===code) setSel(null);
+    setConfirmDeleteSubject(null);
+  };
 
   const students = sel ? [...(subjectData[sel.code]||[]), ...(extraStudents[sel.code]||[])] : [];
   const unread = inbox.filter(m=>!m.read).length;
@@ -2701,25 +2723,109 @@ function FacultySubjectsView() {
           </div>
         </div>
       )}
+
+      {showAddSubject && (
+        <div style={{position:"fixed",inset:0,background:"rgba(15,23,42,0.6)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center"}} onClick={()=>setShowAddSubject(false)}>
+          <div style={{background:"#fff",borderRadius:14,width:440,overflow:"hidden",boxShadow:"0 20px 60px rgba(0,0,0,0.25)"}} onClick={e=>e.stopPropagation()}>
+            <div style={{background:"linear-gradient(135deg,#6366f1,#8b5cf6)",padding:"14px 18px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+              <span style={{color:"#fff",fontWeight:700,fontSize:15}}>➕ Add Subject</span>
+              <button onClick={()=>setShowAddSubject(false)} style={{background:"rgba(255,255,255,0.2)",border:"none",borderRadius:6,color:"#fff",width:28,height:28,cursor:"pointer",fontSize:16}}>✕</button>
+            </div>
+            <div style={{padding:"20px 22px",display:"grid",gap:12}}>
+              <div>
+                <label style={{fontSize:11,fontWeight:700,color:"#475569",display:"block",marginBottom:4}}>SUBJECT CODE *</label>
+                <input value={newSubject.code} onChange={e=>setNewSubject(f=>({...f,code:e.target.value}))}
+                  placeholder="e.g. CS305"
+                  style={{width:"100%",boxSizing:"border-box",padding:"9px 12px",border:"1px solid #e2e8f0",borderRadius:8,fontSize:13,outline:"none",fontFamily:"inherit"}}/>
+              </div>
+              <div>
+                <label style={{fontSize:11,fontWeight:700,color:"#475569",display:"block",marginBottom:4}}>SUBJECT NAME *</label>
+                <input value={newSubject.name} onChange={e=>setNewSubject(f=>({...f,name:e.target.value}))}
+                  placeholder="e.g. Software Engineering"
+                  style={{width:"100%",boxSizing:"border-box",padding:"9px 12px",border:"1px solid #e2e8f0",borderRadius:8,fontSize:13,outline:"none",fontFamily:"inherit"}}/>
+              </div>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+                <div>
+                  <label style={{fontSize:11,fontWeight:700,color:"#475569",display:"block",marginBottom:4}}>CLASS / BATCH *</label>
+                  <input value={newSubject.class} onChange={e=>setNewSubject(f=>({...f,class:e.target.value}))}
+                    placeholder="e.g. CSE 5A"
+                    style={{width:"100%",boxSizing:"border-box",padding:"9px 12px",border:"1px solid #e2e8f0",borderRadius:8,fontSize:13,outline:"none",fontFamily:"inherit"}}/>
+                </div>
+                <div>
+                  <label style={{fontSize:11,fontWeight:700,color:"#475569",display:"block",marginBottom:4}}>TYPE</label>
+                  <select value={newSubject.type} onChange={e=>setNewSubject(f=>({...f,type:e.target.value}))}
+                    style={{width:"100%",boxSizing:"border-box",padding:"9px 12px",border:"1px solid #e2e8f0",borderRadius:8,fontSize:13,outline:"none",fontFamily:"inherit"}}>
+                    <option value="Theory">Theory</option>
+                    <option value="Lab">Lab</option>
+                    <option value="Project">Project</option>
+                  </select>
+                </div>
+              </div>
+              {addSubjectErr && <div style={{background:"#fee2e2",border:"1px solid #fca5a5",borderRadius:8,padding:"8px 12px",color:"#dc2626",fontSize:12,fontWeight:600}}>{addSubjectErr}</div>}
+              <button onClick={handleAddSubject}
+                style={{padding:"11px",background:"linear-gradient(135deg,#6366f1,#8b5cf6)",color:"#fff",border:"none",borderRadius:8,fontWeight:700,cursor:"pointer",fontSize:14}}>
+                ✅ Add Subject
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {confirmDeleteSubject && (
+        <div style={{position:"fixed",inset:0,background:"rgba(15,23,42,0.6)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center"}} onClick={()=>setConfirmDeleteSubject(null)}>
+          <div style={{background:"#fff",borderRadius:14,width:400,overflow:"hidden",boxShadow:"0 20px 60px rgba(0,0,0,0.25)"}} onClick={e=>e.stopPropagation()}>
+            <div style={{padding:"24px 22px",textAlign:"center"}}>
+              <div style={{fontSize:40,marginBottom:10}}>⚠️</div>
+              <div style={{fontWeight:700,fontSize:15,color:"#0f172a",marginBottom:6}}>Remove {confirmDeleteSubject.code}?</div>
+              <div style={{fontSize:12,color:"#64748b",marginBottom:18}}>This removes "{confirmDeleteSubject.name}" from your subject list, including any students added via CSV upload.</div>
+              <div style={{display:"flex",gap:10}}>
+                <button onClick={()=>setConfirmDeleteSubject(null)}
+                  style={{flex:1,padding:"9px",background:"#f1f5f9",color:"#334155",border:"none",borderRadius:8,fontWeight:600,cursor:"pointer",fontSize:13}}>
+                  Cancel
+                </button>
+                <button onClick={()=>handleDeleteSubject(confirmDeleteSubject.code)}
+                  style={{flex:1,padding:"9px",background:"#ef4444",color:"#fff",border:"none",borderRadius:8,fontWeight:600,cursor:"pointer",fontSize:13}}>
+                  Remove
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
       <div style={{display:"grid",gridTemplateColumns:"210px 1fr",gap:14}}>
 
         {/* Subject List */}
         <div>
           <div style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:12,overflow:"hidden"}}>
-            <div style={{background:"linear-gradient(135deg,#6366f1,#8b5cf6)",padding:"12px 14px",color:"#fff",fontWeight:700,fontSize:13}}>My Subjects</div>
+            <div style={{background:"linear-gradient(135deg,#6366f1,#8b5cf6)",padding:"12px 14px",color:"#fff",fontWeight:700,fontSize:13,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+              <span>My Subjects</span>
+              <button onClick={()=>{setShowAddSubject(true);setAddSubjectErr("");}}
+                style={{background:"rgba(255,255,255,0.25)",border:"none",borderRadius:6,color:"#fff",width:22,height:22,cursor:"pointer",fontSize:14,fontWeight:700,lineHeight:1}}
+                title="Add Subject">+</button>
+            </div>
             {subjects.map(s=>(
               <div key={s.code} onClick={()=>{setSel(s);setActiveTab("students");}}
-                style={{padding:"12px 14px",borderBottom:"1px solid #f1f5f9",cursor:"pointer",
+                style={{padding:"12px 14px",borderBottom:"1px solid #f1f5f9",cursor:"pointer",position:"relative",
                   background:sel?.code===s.code?"#eef2ff":"#fff",
                   borderLeft:sel?.code===s.code?"4px solid #6366f1":"4px solid transparent"}}>
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:3}}>
                   <span style={{fontWeight:700,fontSize:13,color:"#6366f1"}}>{s.code}</span>
-                  <span style={{fontSize:10,fontWeight:700,padding:"1px 6px",borderRadius:20,background:(typeColor[s.type]||"#6366f1")+"20",color:typeColor[s.type]}}>{s.type}</span>
+                  <div style={{display:"flex",alignItems:"center",gap:6}}>
+                    <span style={{fontSize:10,fontWeight:700,padding:"1px 6px",borderRadius:20,background:(typeColor[s.type]||"#6366f1")+"20",color:typeColor[s.type]}}>{s.type}</span>
+                    <span onClick={e=>{e.stopPropagation();setConfirmDeleteSubject(s);}}
+                      style={{fontSize:13,color:"#cbd5e1",cursor:"pointer",lineHeight:1}}
+                      title="Remove subject">✕</span>
+                  </div>
                 </div>
                 <div style={{fontSize:12,color:"#334155",fontWeight:500,lineHeight:1.3}}>{s.name}</div>
                 <div style={{fontSize:11,color:"#94a3b8",marginTop:2}}>{s.class} · {(subjectData[s.code]||[]).length + (extraStudents[s.code]||[]).length} students</div>
               </div>
             ))}
+            {subjects.length===0 && (
+              <div style={{padding:"24px 14px",textAlign:"center",color:"#94a3b8",fontSize:12}}>
+                No subjects yet. Click + above to add one.
+              </div>
+            )}
           </div>
           {/* Inbox */}
           <div style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:12,overflow:"hidden",marginTop:14}}>
@@ -4744,8 +4850,8 @@ function FacultyProfile({ user }) {
               </div>
             ))}
           </div>
-          <div style={{marginTop:14,background:"#f0fdf4",border:"1px solid #86efac",borderRadius:10,padding:"12px 16px",fontSize:12,color:"#16a34a"}}>
-            ✅ All responsibilities verified and approved by Head of Department.
+          <div style={{marginTop:14,background:"#f0f4ff",border:"1px solid #c7d2fe",borderRadius:10,padding:"12px 16px",fontSize:12,color:"#4338ca"}}>
+            ℹ️ These responsibilities reflect official assignments recorded by the department. Contact your HOD for any changes.
           </div>
         </div>
       )}
