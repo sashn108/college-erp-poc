@@ -302,6 +302,13 @@ function Login({ onLogin }) {
 
 // ─── Top Header ───────────────────────────────────────────────────────────────
 function Header({ user, role, onLogout, academicOpen, setAcademicOpen, setActive }) {
+  const [profileOpen, setProfileOpen] = useState(false);
+  const profileRef = React.useRef(null);
+  useEffect(() => {
+    const handler = (e) => { if (profileRef.current && !profileRef.current.contains(e.target)) setProfileOpen(false); };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
   const now = new Date();
   const dateStr = now.toLocaleDateString("en-GB",{weekday:"short",day:"numeric",month:"short",year:"numeric"});
   const timeStr = now.toLocaleTimeString("en-GB",{hour:"2-digit",minute:"2-digit"});
@@ -342,9 +349,40 @@ function Header({ user, role, onLogout, academicOpen, setAcademicOpen, setActive
         <div style={{flex:1}}/>
         {/* Right side */}
         <div style={{fontSize:13,color:"#555",fontWeight:500}}>{dateStr} &nbsp; {timeStr}</div>
-        <div style={{width:34,height:34,borderRadius:"50%",background:"#6366f1",display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",fontWeight:700,fontSize:14,cursor:"pointer"}}
-          title="Logout" onClick={onLogout}>
-          {user.name[0]}
+        <div ref={profileRef} style={{position:"relative"}}>
+          <div onClick={()=>setProfileOpen(o=>!o)}
+            style={{display:"flex",alignItems:"center",gap:8,cursor:"pointer",padding:"4px 8px",borderRadius:8,transition:"background .15s"}}
+            onMouseEnter={e=>e.currentTarget.style.background="#f8fafc"}
+            onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
+            <div style={{width:34,height:34,borderRadius:"50%",background:"#6366f1",display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",fontWeight:700,fontSize:14,flexShrink:0}}>
+              {user.name[0]}
+            </div>
+            <div style={{display:"flex",flexDirection:"column",lineHeight:1.2}}>
+              <span style={{fontSize:12,fontWeight:700,color:"#0f172a"}}>{user.name}</span>
+              <span style={{fontSize:10,color:"#94a3b8",textTransform:"capitalize"}}>{role}</span>
+            </div>
+            <span style={{fontSize:9,color:"#94a3b8"}}>▼</span>
+          </div>
+          {profileOpen && (
+            <div style={{position:"absolute",top:46,right:0,background:"#fff",border:"1px solid #e2e8f0",borderRadius:10,boxShadow:"0 8px 24px rgba(0,0,0,0.12)",minWidth:180,zIndex:300,overflow:"hidden"}}>
+              <div style={{padding:"12px 16px",borderBottom:"1px solid #f1f5f9"}}>
+                <div style={{fontWeight:700,fontSize:13,color:"#0f172a"}}>{user.name}</div>
+                <div style={{fontSize:11,color:"#94a3b8",marginTop:2}}>{user.email||""}</div>
+              </div>
+              <div onClick={()=>{setActive("profile");setProfileOpen(false);}}
+                style={{padding:"10px 16px",fontSize:13,color:"#334155",cursor:"pointer",display:"flex",alignItems:"center",gap:8}}
+                onMouseEnter={e=>e.currentTarget.style.background="#f8fafc"}
+                onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
+                👤 My Profile
+              </div>
+              <div onClick={()=>{setProfileOpen(false);onLogout();}}
+                style={{padding:"10px 16px",fontSize:13,color:"#dc2626",fontWeight:600,cursor:"pointer",display:"flex",alignItems:"center",gap:8,borderTop:"1px solid #f1f5f9"}}
+                onMouseEnter={e=>e.currentTarget.style.background="#fee2e2"}
+                onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
+                🚪 Logout
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
@@ -7904,6 +7942,14 @@ export default function App() {
     setAuth(null); setRole(null); setUid(null);
   };
 
+  const [mainProfileOpen, setMainProfileOpen] = useState(false);
+  const mainProfileRef = React.useRef(null);
+  useEffect(() => {
+    const handler = (e) => { if (mainProfileRef.current && !mainProfileRef.current.contains(e.target)) setMainProfileOpen(false); };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
   const notifs = useNotifications(role);
   const unreadCount = notifs.filter(n=>!n.read&&!readNotifs.includes(n.id)).length;
 
@@ -8087,10 +8133,40 @@ export default function App() {
               </div>
             )}
           </div>
-          {/* User avatar */}
-          <div style={{width:34,height:34,borderRadius:"50%",background:"linear-gradient(135deg,#6366f1,#8b5cf6)",display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",fontWeight:700,fontSize:14,cursor:"pointer"}}
-            onClick={handleLogout}>
-            {auth.name[0]}
+          {/* User avatar + dropdown */}
+          <div ref={mainProfileRef} style={{position:"relative"}}>
+            <div onClick={()=>setMainProfileOpen(o=>!o)}
+              style={{display:"flex",alignItems:"center",gap:8,cursor:"pointer",padding:"4px 8px",borderRadius:8,transition:"background .15s"}}
+              onMouseEnter={e=>e.currentTarget.style.background="#f8fafc"}
+              onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
+              <div style={{width:34,height:34,borderRadius:"50%",background:"linear-gradient(135deg,#6366f1,#8b5cf6)",display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",fontWeight:700,fontSize:14,flexShrink:0}}>
+                {auth.name[0]}
+              </div>
+              <div style={{display:"none"}} className="profile-name-block">
+                <span style={{fontSize:12,fontWeight:700,color:"#0f172a"}}>{auth.name}</span>
+              </div>
+              <span style={{fontSize:9,color:"#94a3b8"}}>▼</span>
+            </div>
+            {mainProfileOpen && (
+              <div style={{position:"absolute",top:46,right:0,background:"#fff",border:"1px solid #e2e8f0",borderRadius:10,boxShadow:"0 8px 24px rgba(0,0,0,0.12)",minWidth:190,zIndex:400,overflow:"hidden"}}>
+                <div style={{padding:"12px 16px",borderBottom:"1px solid #f1f5f9"}}>
+                  <div style={{fontWeight:700,fontSize:13,color:"#0f172a"}}>{auth.name}</div>
+                  <div style={{fontSize:11,color:"#94a3b8",marginTop:2,textTransform:"capitalize"}}>{role}{auth.email?` · ${auth.email}`:""}</div>
+                </div>
+                <div onClick={()=>{setActive("profile");setMainProfileOpen(false);}}
+                  style={{padding:"10px 16px",fontSize:13,color:"#334155",cursor:"pointer",display:"flex",alignItems:"center",gap:8}}
+                  onMouseEnter={e=>e.currentTarget.style.background="#f8fafc"}
+                  onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
+                  👤 My Profile
+                </div>
+                <div onClick={()=>{setMainProfileOpen(false);handleLogout();}}
+                  style={{padding:"10px 16px",fontSize:13,color:"#dc2626",fontWeight:600,cursor:"pointer",display:"flex",alignItems:"center",gap:8,borderTop:"1px solid #f1f5f9"}}
+                  onMouseEnter={e=>e.currentTarget.style.background="#fee2e2"}
+                  onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
+                  🚪 Logout
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
