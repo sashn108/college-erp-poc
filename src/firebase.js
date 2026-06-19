@@ -77,6 +77,59 @@ export const repairMissingStatus = async () => {
   }
   return fixes;
 };
+
+// ── Subject enrollment (faculty enrolls students; students read their own) ───
+// Doc id pattern: `${subjectCode}_${studentRollOrEmail}` for natural de-duplication.
+const enrollmentDocId = (subjectCode, rollOrEmail) =>
+  `${subjectCode}_${rollOrEmail}`.replace(/[\/\s]+/g, "_");
+
+export const enrollStudent = async (subjectCode, subjectName, facultyUid, facultyName, student) => {
+  const id = enrollmentDocId(subjectCode, student.roll || student.email);
+  await setDoc(doc(db, "enrollments", id), {
+    subjectCode, subjectName, facultyUid, facultyName,
+    studentRoll: student.roll || "", studentEmail: student.email || "",
+    studentName: student.name || "",
+    enrolledAt: new Date().toISOString(),
+  }, { merge: true });
+  return id;
+};
+
+export const unenrollStudent = async (subjectCode, rollOrEmail) => {
+  const id = enrollmentDocId(subjectCode, rollOrEmail);
+  await setDoc(doc(db, "enrollments", id), { removed: true, removedAt: new Date().toISOString() }, { merge: true });
+};
+
+// Faculty-side: live roster for one subject (excludes removed)
+export const subscribeSubjectEnrollments = (subjectCode, callback, onError) => {
+  const q = query(collection(db, "enrollments"), where("subjectCode", "==", subjectCode));
+  return onSnapshot(q,
+    snap => callback(snap.docs.map(d => ({ id: d.id, ...d.data() })).filter(e => !e.removed)),
+    err => { console.error("subscribeSubjectEnrollments error:", err); if (onError) onError(err); }
+  );
+};
+
+// Student-side: live list of subjects this student is enrolled in, matched by email or roll
+export const subscribeMyEnrollments = (studentEmail, studentRoll, callback, onError) => {
+  const qByEmail = studentEmail ? query(collection(db, "enrollments"), where("studentEmail", "==", studentEmail)) : null;
+  const qByRoll = studentRoll ? query(collection(db, "enrollments"), where("studentRoll", "==", studentRoll)) : null;
+  let latestByEmail = [], latestByRoll = [];
+  const merge = () => {
+    const all = [...latestByEmail, ...latestByRoll].filter(e => !e.removed);
+    const seen = new Set();
+    const deduped = all.filter(e => { if (seen.has(e.id)) return false; seen.add(e.id); return true; });
+    callback(deduped);
+  };
+  const unsubs = [];
+  if (qByEmail) unsubs.push(onSnapshot(qByEmail,
+    snap => { latestByEmail = snap.docs.map(d => ({ id: d.id, ...d.data() })); merge(); },
+    err => { console.error("subscribeMyEnrollments(email) error:", err); if (onError) onError(err); }
+  ));
+  if (qByRoll) unsubs.push(onSnapshot(qByRoll,
+    snap => { latestByRoll = snap.docs.map(d => ({ id: d.id, ...d.data() })); merge(); },
+    err => { console.error("subscribeMyEnrollments(roll) error:", err); if (onError) onError(err); }
+  ));
+  return () => unsubs.forEach(u => u());
+};
 export const approveUser = async (uid, role, extraData = {}) => {
   await updateDoc(doc(db, "users", uid), { status: "approved", role, ...extraData });
 };

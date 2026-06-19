@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { FirebaseLogin, RealtimeChat, LiveFeedbackView, LiveFacultyFeedback, useFirebaseAuth, AdminUserApprovals } from "./FirebaseApp.jsx";
-import { logOut, getPendingUsers } from "./firebase.js";
+import { logOut, getPendingUsers, enrollStudent, unenrollStudent, subscribeSubjectEnrollments, subscribeMyEnrollments } from "./firebase.js";
 
 // ─── Odisha Holidays 2026 ─────────────────────────────────────────────────────
 const ODISHA_HOLIDAYS = {
@@ -2527,7 +2527,7 @@ function FacultyTimetable() {
   );
 }
 
-function FacultySubjectsView() {
+function FacultySubjectsView({ faculty }) {
   const [sel, setSel] = useState(null);
   const [modal, setModal] = useState(null);
   const [activeTab, setActiveTab] = useState("students");
@@ -2538,7 +2538,10 @@ function FacultySubjectsView() {
   const [csvError, setCsvError] = useState("");
   const [csvSuccess, setCsvSuccess] = useState("");
   const [showCsvUpload, setShowCsvUpload] = useState(false);
-  const [extraStudents, setExtraStudents] = useState({}); // {subjectCode: [students]}
+  const [liveEnrollments, setLiveEnrollments] = useState([]);
+  const [enrollError, setEnrollError] = useState("");
+  const [showManualEnroll, setShowManualEnroll] = useState(false);
+  const [manualEnroll, setManualEnroll] = useState({name:"",roll:"",email:""});
   const [inbox, setInbox] = useState([
     {from:"Riya Patel",roll:"22CS001",subj:"Query about Assignment #4",msg:"Ma'am, can you clarify the ER diagram requirements?",time:"Jun 8, 9:42 AM",read:false},
     {from:"Amit Kumar",roll:"22CS005",subj:"Lab file submission",msg:"Sir, I submitted the lab file. Please check.",time:"Jun 7, 2:15 PM",read:true},
@@ -2627,7 +2630,16 @@ function FacultySubjectsView() {
     setConfirmDeleteSubject(null);
   };
 
-  const students = sel ? [...(subjectData[sel.code]||[]), ...(extraStudents[sel.code]||[])] : [];
+  const students = sel ? [...(subjectData[sel.code]||[]), ...liveEnrollments] : [];
+
+  useEffect(() => {
+    if (!sel) { setLiveEnrollments([]); return; }
+    const unsub = subscribeSubjectEnrollments(sel.code,
+      (rows) => setLiveEnrollments(rows.map(r => ({ roll: r.studentRoll, name: r.studentName, email: r.studentEmail, project:"—", _enrollmentId: r.id }))),
+      (err) => setEnrollError(err.message || "Failed to load enrolled students")
+    );
+    return () => unsub();
+  }, [sel?.code]);
   const unread = inbox.filter(m=>!m.read).length;
   const typeColor = {Theory:"#6366f1",Lab:"#f59e0b",Project:"#10b981"};
 
@@ -2657,8 +2669,8 @@ function FacultySubjectsView() {
 
   const attStatusColor = s => s==="P"?{bg:"#dcfce7",c:"#16a34a"}:s==="A"?{bg:"#fee2e2",c:"#dc2626"}:{bg:"#fef9c3",c:"#ca8a04"};
 
-  // CSV upload — parse and add students to currently selected subject
-  const parseCsvForSubject = (text) => {
+  // CSV upload — parse and enroll students to currently selected subject via Firestore
+  const parseCsvForSubject = async (text) => {
     setCsvError(""); setCsvSuccess("");
     if (!sel) { setCsvError("Select a subject first."); return; }
     const lines = text.trim().split("\n").filter(Boolean);
@@ -2675,13 +2687,44 @@ function FacultySubjectsView() {
         roll: cols[rollCol] || "—",
         name: cols[nameCol] || "—",
         email: emailCol !== -1 ? (cols[emailCol]||"") : "",
-        project: "—",
       };
     }).filter(s => s.name !== "—" && s.roll !== "—" && !existingRolls.has(s.roll));
     if (parsed.length === 0) { setCsvError("No new students found (duplicates or invalid rows skipped)."); return; }
-    setExtraStudents(prev => ({...prev, [sel.code]: [...(prev[sel.code]||[]), ...parsed]}));
-    setCsvSuccess(`✅ ${parsed.length} student${parsed.length!==1?"s":""} added to ${sel.code}`);
-    setTimeout(()=>{setCsvSuccess(""); setShowCsvUpload(false);}, 2500);
+    try {
+      for (const s of parsed) {
+        await enrollStudent(sel.code, sel.name, faculty?.uid || faculty?.id, faculty?.name, s);
+      }
+      setCsvSuccess(`✅ ${parsed.length} student${parsed.length!==1?"s":""} enrolled in ${sel.code}`);
+      setTimeout(()=>{setCsvSuccess(""); setShowCsvUpload(false);}, 2500);
+    } catch (e) {
+      setCsvError(e.message || "Failed to enroll students. Please try again.");
+    }
+  };
+
+  const handleManualEnroll = async () => {
+    setEnrollError("");
+    if (!manualEnroll.name.trim() || !manualEnroll.roll.trim()) {
+      setEnrollError("Name and Roll No. are required."); return;
+    }
+    if (students.some(s=>s.roll===manualEnroll.roll.trim())) {
+      setEnrollError("This roll number is already enrolled in this subject."); return;
+    }
+    try {
+      await enrollStudent(sel.code, sel.name, faculty?.uid || faculty?.id, faculty?.name, manualEnroll);
+      setManualEnroll({name:"",roll:"",email:""});
+      setShowManualEnroll(false);
+    } catch (e) {
+      setEnrollError(e.message || "Failed to enroll student.");
+    }
+  };
+
+  const handleUnenroll = async (student) => {
+    if (!student._enrollmentId) return; // can't remove seeded demo students
+    try {
+      await unenrollStudent(sel.code, student.roll || student.email);
+    } catch (e) {
+      setEnrollError(e.message || "Failed to remove student.");
+    }
   };
 
   const handleCsvFile = (file) => {
@@ -2719,6 +2762,42 @@ function FacultySubjectsView() {
               <div style={{marginTop:14,fontSize:11,color:"#94a3b8"}}>
                 ℹ️ Students will be added only to <strong>{sel?.code} — {sel?.name}</strong>. Duplicate roll numbers are automatically skipped.
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showManualEnroll && (
+        <div style={{position:"fixed",inset:0,background:"rgba(15,23,42,0.6)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center"}} onClick={()=>setShowManualEnroll(false)}>
+          <div style={{background:"#fff",borderRadius:14,width:420,overflow:"hidden",boxShadow:"0 20px 60px rgba(0,0,0,0.25)"}} onClick={e=>e.stopPropagation()}>
+            <div style={{background:"linear-gradient(135deg,#6366f1,#8b5cf6)",padding:"14px 18px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+              <span style={{color:"#fff",fontWeight:700,fontSize:15}}>➕ Enroll Student — {sel?.code}</span>
+              <button onClick={()=>setShowManualEnroll(false)} style={{background:"rgba(255,255,255,0.2)",border:"none",borderRadius:6,color:"#fff",width:28,height:28,cursor:"pointer",fontSize:16}}>✕</button>
+            </div>
+            <div style={{padding:"20px 22px",display:"grid",gap:12}}>
+              <div>
+                <label style={{fontSize:11,fontWeight:700,color:"#475569",display:"block",marginBottom:4}}>STUDENT NAME *</label>
+                <input value={manualEnroll.name} onChange={e=>setManualEnroll(f=>({...f,name:e.target.value}))}
+                  placeholder="e.g. Ankit Sahoo"
+                  style={{width:"100%",boxSizing:"border-box",padding:"9px 12px",border:"1px solid #e2e8f0",borderRadius:8,fontSize:13,outline:"none",fontFamily:"inherit"}}/>
+              </div>
+              <div>
+                <label style={{fontSize:11,fontWeight:700,color:"#475569",display:"block",marginBottom:4}}>ROLL / REG NO. *</label>
+                <input value={manualEnroll.roll} onChange={e=>setManualEnroll(f=>({...f,roll:e.target.value}))}
+                  placeholder="e.g. 22CS045"
+                  style={{width:"100%",boxSizing:"border-box",padding:"9px 12px",border:"1px solid #e2e8f0",borderRadius:8,fontSize:13,outline:"none",fontFamily:"inherit"}}/>
+              </div>
+              <div>
+                <label style={{fontSize:11,fontWeight:700,color:"#475569",display:"block",marginBottom:4}}>EMAIL <span style={{fontWeight:400,color:"#94a3b8"}}>(matches their student login, so they see this subject)</span></label>
+                <input value={manualEnroll.email} onChange={e=>setManualEnroll(f=>({...f,email:e.target.value}))}
+                  placeholder="student@iter.ac.in"
+                  style={{width:"100%",boxSizing:"border-box",padding:"9px 12px",border:"1px solid #e2e8f0",borderRadius:8,fontSize:13,outline:"none",fontFamily:"inherit"}}/>
+              </div>
+              {enrollError && <div style={{background:"#fee2e2",border:"1px solid #fca5a5",borderRadius:8,padding:"8px 12px",color:"#dc2626",fontSize:12,fontWeight:600}}>{enrollError}</div>}
+              <button onClick={handleManualEnroll}
+                style={{padding:"11px",background:"linear-gradient(135deg,#6366f1,#8b5cf6)",color:"#fff",border:"none",borderRadius:8,fontWeight:700,cursor:"pointer",fontSize:14}}>
+                ✅ Enroll
+              </button>
             </div>
           </div>
         </div>
@@ -2818,7 +2897,7 @@ function FacultySubjectsView() {
                   </div>
                 </div>
                 <div style={{fontSize:12,color:"#334155",fontWeight:500,lineHeight:1.3}}>{s.name}</div>
-                <div style={{fontSize:11,color:"#94a3b8",marginTop:2}}>{s.class} · {(subjectData[s.code]||[]).length + (extraStudents[s.code]||[]).length} students</div>
+                <div style={{fontSize:11,color:"#94a3b8",marginTop:2}}>{s.class} · {(subjectData[s.code]||[]).length + (sel?.code===s.code ? liveEnrollments.length : 0)} students</div>
               </div>
             ))}
             {subjects.length===0 && (
@@ -2888,42 +2967,52 @@ function FacultySubjectsView() {
 
               {/* Students tab */}
               {activeTab==="students" && (
-                <table style={{width:"100%",borderCollapse:"collapse",fontSize:13}}>
-                  <thead>
-                    <tr style={{background:"#f8fafc"}}>
-                      {["Roll No.","Name","Email","Project","Attendance","Message"].map(h=>(
-                        <th key={h} style={{padding:"10px 14px",textAlign:"left",fontWeight:600,color:"#475569",fontSize:12,borderBottom:"1px solid #e2e8f0"}}>{h}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {students.map((s,i)=>{
+                <div style={{padding:16}}>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
+                    <div style={{fontSize:13,fontWeight:700,color:"#0f172a"}}>👥 Enrolled Students ({students.length})</div>
+                    <button onClick={()=>{setShowManualEnroll(true);setEnrollError("");}}
+                      style={{padding:"6px 14px",background:"linear-gradient(135deg,#6366f1,#8b5cf6)",color:"#fff",border:"none",borderRadius:8,fontWeight:600,cursor:"pointer",fontSize:12}}>
+                      ➕ Enroll Student
+                    </button>
+                  </div>
+                  {enrollError && <div style={{marginBottom:10,background:"#fee2e2",border:"1px solid #fca5a5",borderRadius:8,padding:"8px 12px",color:"#dc2626",fontSize:12,fontWeight:600}}>{enrollError}</div>}
+                  <div style={{display:"flex",flexDirection:"column",gap:8}}>
+                    {students.map(s=>{
                       const pct = getAttPct(sel.code,s.roll);
                       return (
-                        <tr key={s.roll} style={{borderBottom:"1px solid #f1f5f9",background:i%2===0?"#fff":"#fafbff"}}>
-                          <td style={{padding:"11px 14px",color:"#6366f1",fontWeight:700}}>{s.roll}</td>
-                          <td style={{padding:"11px 14px",color:"#0f172a",fontWeight:600}}>
-                            <div style={{display:"flex",alignItems:"center",gap:8}}>
-                              <div style={{width:28,height:28,borderRadius:"50%",background:"linear-gradient(135deg,#6366f1,#8b5cf6)",display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",fontSize:12,fontWeight:700,flexShrink:0}}>{s.name[0]}</div>
-                              {s.name}
+                        <div key={s.roll} style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:11,padding:"11px 14px",display:"flex",alignItems:"center",gap:12}}>
+                          <div style={{width:32,height:32,borderRadius:"50%",background:"linear-gradient(135deg,#6366f1,#8b5cf6)",display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",fontSize:13,fontWeight:700,flexShrink:0}}>{s.name[0]}</div>
+                          <div style={{flex:1,minWidth:0}}>
+                            <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
+                              <span style={{fontWeight:700,fontSize:13,color:"#0f172a"}}>{s.name}</span>
+                              <span style={{fontSize:11,color:"#6366f1",fontWeight:700}}>{s.roll}</span>
+                              {s._enrollmentId && <span style={{fontSize:9,fontWeight:700,color:"#10b981",background:"#dcfce7",padding:"1px 6px",borderRadius:10}}>LIVE</span>}
                             </div>
-                          </td>
-                          <td style={{padding:"11px 14px",color:"#64748b",fontSize:12}}>{s.email}</td>
-                          <td style={{padding:"11px 14px",color:"#64748b",fontSize:12}}>{s.project}</td>
-                          <td style={{padding:"11px 14px"}}>
-                            <span style={{fontWeight:700,color:pct>=75?"#10b981":pct>=65?"#f59e0b":"#ef4444"}}>{pct}%</span>
-                          </td>
-                          <td style={{padding:"11px 14px"}}>
-                            <button onClick={()=>setModal({to:s,toAll:false,subjectName:sel.name})}
-                              style={{padding:"5px 12px",background:"linear-gradient(135deg,#6366f1,#8b5cf6)",color:"#fff",border:"none",borderRadius:7,cursor:"pointer",fontSize:11,fontWeight:600}}>
-                              ✉ Message
-                            </button>
-                          </td>
-                        </tr>
+                            <div style={{fontSize:11,color:"#94a3b8",marginTop:1}}>{s.email||"—"}</div>
+                          </div>
+                          <div style={{textAlign:"center",flexShrink:0}}>
+                            <div style={{fontSize:10,color:"#94a3b8",fontWeight:700}}>ATTENDANCE</div>
+                            <div style={{fontWeight:700,fontSize:13,color:pct>=75?"#10b981":pct>=65?"#f59e0b":"#ef4444"}}>{pct}%</div>
+                          </div>
+                          <button onClick={()=>setModal({to:s,toAll:false,subjectName:sel.name})}
+                            style={{padding:"6px 12px",background:"#eef2ff",color:"#6366f1",border:"none",borderRadius:7,cursor:"pointer",fontSize:11,fontWeight:600,flexShrink:0}}>
+                            ✉ Message
+                          </button>
+                          {s._enrollmentId && (
+                            <button onClick={()=>handleUnenroll(s)}
+                              style={{padding:"6px 10px",background:"#fee2e2",color:"#dc2626",border:"none",borderRadius:7,cursor:"pointer",fontSize:11,fontWeight:600,flexShrink:0}}
+                              title="Remove from subject">✕</button>
+                          )}
+                        </div>
                       );
                     })}
-                  </tbody>
-                </table>
+                    {students.length===0 && (
+                      <div style={{padding:"32px",textAlign:"center",color:"#94a3b8",fontSize:13}}>
+                        No students enrolled yet. Click "Enroll Student" or upload a CSV roster.
+                      </div>
+                    )}
+                  </div>
+                </div>
               )}
 
               {/* Attendance tab */}
@@ -7458,6 +7547,59 @@ function PlacementView() {
 }
 
 // ─── COURSE REGISTRATION ──────────────────────────────────────────────────────
+// ─── My Enrolled Subjects (Live, faculty-assigned) ───────────────────────────
+function MyEnrolledSubjects({ user }) {
+  const [enrollments, setEnrollments] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    const unsub = subscribeMyEnrollments(user?.email, user?.rollOrId || user?.roll,
+      (rows) => { setEnrollments(rows); setLoading(false); },
+      (err) => { setError(err.message || "Failed to load enrolled subjects"); setLoading(false); }
+    );
+    return () => unsub();
+  }, [user?.email, user?.rollOrId, user?.roll]);
+
+  return (
+    <div>
+      <div style={{marginBottom:14}}>
+        <div style={{fontWeight:700,fontSize:15,color:"#0f172a"}}>📚 My Subjects — Assigned by Faculty</div>
+        <div style={{fontSize:12,color:"#94a3b8",marginTop:2}}>These appear automatically once a faculty member enrolls you in their subject.</div>
+      </div>
+
+      {error && (
+        <div style={{background:"#fee2e2",border:"1px solid #fca5a5",borderRadius:10,padding:"12px 16px",marginBottom:14,color:"#dc2626",fontSize:12,fontWeight:600}}>
+          ⚠️ {error}
+        </div>
+      )}
+
+      {loading ? (
+        <div style={{padding:"32px",textAlign:"center",color:"#94a3b8",fontSize:13}}>Loading...</div>
+      ) : enrollments.length === 0 ? (
+        <div style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:12,padding:"40px 20px",textAlign:"center"}}>
+          <div style={{fontSize:40,marginBottom:10}}>📭</div>
+          <div style={{fontWeight:700,fontSize:14,color:"#0f172a",marginBottom:4}}>No subjects assigned yet</div>
+          <div style={{fontSize:12,color:"#94a3b8"}}>Once a faculty member enrolls you (by roll number or email), it will show up here in real time.</div>
+        </div>
+      ) : (
+        <div style={{display:"flex",flexDirection:"column",gap:8}}>
+          {enrollments.map(e=>(
+            <div key={e.id} style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:11,padding:"12px 16px",display:"flex",alignItems:"center",gap:14}}>
+              <div style={{width:46,height:46,borderRadius:10,background:"#eef2ff",display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:800,color:"#6366f1",flexShrink:0}}>{e.subjectCode}</div>
+              <div style={{flex:1,minWidth:0}}>
+                <div style={{fontWeight:700,fontSize:13,color:"#0f172a"}}>{e.subjectName}</div>
+                <div style={{fontSize:11,color:"#94a3b8",marginTop:2}}>Faculty: {e.facultyName||"—"} · Enrolled {e.enrolledAt?new Date(e.enrolledAt).toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric"}):""}</div>
+              </div>
+              <span style={{padding:"3px 10px",borderRadius:6,fontSize:11,fontWeight:700,background:"#dcfce7",color:"#16a34a",flexShrink:0}}>✅ Active</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function CourseRegistration() {
   const maxCredits = 24;
   const [registered, setRegistered] = useState([
@@ -8067,6 +8209,7 @@ export default function App() {
     hallticket:<HallTicket user={auth}/>, grievance:<GrievancePortal/>,
     library:<LibraryView/>, placement:<PlacementView/>,
     registration:<CourseRegistration/>,
+    mysubjects:<MyEnrolledSubjects user={auth}/>,
     feedback: uid ? <LiveFeedbackView uid={uid}/> : <FeedbackView/>,
     messages:<StudentMessaging user={auth}/>,
     internalmarks:<InternalMarksView/>,
@@ -8076,12 +8219,12 @@ export default function App() {
     marksheet:<MarksheetView user={auth}/>,
   };
   const facultyViews = {
-    dashboard:<FacultyDashboard user={auth}/>, subjects:<FacultySubjectsView/>,
+    dashboard:<FacultyDashboard user={auth}/>, subjects:<FacultySubjectsView faculty={auth}/>,
     assignments:<AssignmentsView role="faculty"/>,
     bulkmessage:<BulkMessagingView role="faculty"/>,
     attendanceexport:<AttendanceExport/>,
     facultytimetable:<FacultyTimetable/>,
-    lab:<LabView/>, attendance:<FacultySubjectsView/>, evaluation:<EvaluationView/>,
+    lab:<LabView/>, attendance:<FacultySubjectsView faculty={auth}/>, evaluation:<EvaluationView/>,
     research:<ResearchView/>, duty:<DutyView/>, notices:<NoticesView/>,
     copo:<COPOView/>,
     feedback: uid ? <LiveFacultyFeedback/> : <FacultyFeedbackView/>,
@@ -8114,7 +8257,7 @@ export default function App() {
     ["Hall Ticket","hallticket"],["Assignments","assignments"],["Fee Payment","fee"],
     ["Library","library"],["Placement Cell","placement"],["E-Learning","elearning"],
     ["Transport","transport"],["Alumni Connect","alumni"],
-    ["Course Registration","registration"],["Grievance","grievance"],
+    ["Course Registration","registration"],["My Subjects (Live)","mysubjects"],["Grievance","grievance"],
     ["Feedback","feedback"],["Messages","messages"],
     ["Internal Marks","internalmarks"],["Live Attendance","liveattendance"],
     ["Timetable","timetable"],
