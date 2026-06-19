@@ -8096,6 +8096,15 @@ export default function App() {
     }
   }, [fbUser, fbProfile]);
 
+  const [mainProfileOpen, setMainProfileOpen] = useState(false);
+  const mainProfileRef = React.useRef(null);
+  useEffect(() => {
+    const handler = (e) => { if (mainProfileRef.current && !mainProfileRef.current.contains(e.target)) setMainProfileOpen(false); };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+  const notifs = useNotifications(role);
+
   // ── Loading screen ──
   if (fbLoading) return (
     <div style={{minHeight:"100vh",background:"linear-gradient(135deg,#0f172a,#1e293b)",display:"flex",alignItems:"center",justifyContent:"center"}}>
@@ -8190,15 +8199,6 @@ export default function App() {
     setAuth(null); setRole(null); setUid(null);
   };
 
-  const [mainProfileOpen, setMainProfileOpen] = useState(false);
-  const mainProfileRef = React.useRef(null);
-  useEffect(() => {
-    const handler = (e) => { if (mainProfileRef.current && !mainProfileRef.current.contains(e.target)) setMainProfileOpen(false); };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, []);
-
-  const notifs = useNotifications(role);
   const unreadCount = notifs.filter(n=>!n.read&&!readNotifs.includes(n.id)).length;
 
   const studentViews = {

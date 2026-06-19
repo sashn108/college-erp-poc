@@ -130,6 +130,52 @@ export const subscribeMyEnrollments = (studentEmail, studentRoll, callback, onEr
   ));
   return () => unsubs.forEach(u => u());
 };
+
+// ── Attendance (faculty marks; student reads own record) ─────────────────────
+// Doc id pattern: `${subjectCode}_${rollOrEmail}_${dateStr}` for natural de-duplication.
+const attendanceDocId = (subjectCode, rollOrEmail, dateStr) =>
+  `${subjectCode}_${rollOrEmail}_${dateStr}`.replace(/[\/\s]+/g, "_");
+
+export const markAttendance = async (subjectCode, subjectName, dateStr, student, status, facultyName) => {
+  const id = attendanceDocId(subjectCode, student.roll || student.email, dateStr);
+  await setDoc(doc(db, "attendanceRecords", id), {
+    subjectCode, subjectName, dateStr, status, facultyName,
+    studentRoll: student.roll || "", studentEmail: student.email || "", studentName: student.name || "",
+    markedAt: new Date().toISOString(),
+  }, { merge: true });
+};
+
+// Faculty-side: live attendance for one subject (all students, all dates)
+export const subscribeSubjectAttendance = (subjectCode, callback, onError) => {
+  const q = query(collection(db, "attendanceRecords"), where("subjectCode", "==", subjectCode));
+  return onSnapshot(q,
+    snap => callback(snap.docs.map(d => ({ id: d.id, ...d.data() }))),
+    err => { console.error("subscribeSubjectAttendance error:", err); if (onError) onError(err); }
+  );
+};
+
+// Student-side: live attendance for this student across all subjects, matched by email or roll
+export const subscribeMyAttendance = (studentEmail, studentRoll, callback, onError) => {
+  const qByEmail = studentEmail ? query(collection(db, "attendanceRecords"), where("studentEmail", "==", studentEmail)) : null;
+  const qByRoll = studentRoll ? query(collection(db, "attendanceRecords"), where("studentRoll", "==", studentRoll)) : null;
+  let latestByEmail = [], latestByRoll = [];
+  const merge = () => {
+    const all = [...latestByEmail, ...latestByRoll];
+    const seen = new Set();
+    const deduped = all.filter(e => { if (seen.has(e.id)) return false; seen.add(e.id); return true; });
+    callback(deduped);
+  };
+  const unsubs = [];
+  if (qByEmail) unsubs.push(onSnapshot(qByEmail,
+    snap => { latestByEmail = snap.docs.map(d => ({ id: d.id, ...d.data() })); merge(); },
+    err => { console.error("subscribeMyAttendance(email) error:", err); if (onError) onError(err); }
+  ));
+  if (qByRoll) unsubs.push(onSnapshot(qByRoll,
+    snap => { latestByRoll = snap.docs.map(d => ({ id: d.id, ...d.data() })); merge(); },
+    err => { console.error("subscribeMyAttendance(roll) error:", err); if (onError) onError(err); }
+  ));
+  return () => unsubs.forEach(u => u());
+};
 export const approveUser = async (uid, role, extraData = {}) => {
   await updateDoc(doc(db, "users", uid), { status: "approved", role, ...extraData });
 };
