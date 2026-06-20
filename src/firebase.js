@@ -78,7 +78,14 @@ export const repairMissingStatus = async () => {
   return fixes;
 };
 
-// ── Subject enrollment (faculty enrolls students; students read their own) ───
+// ── Approved faculty directory (for student messaging) ────────────────────────
+export const subscribeApprovedFaculty = (callback, onError) => {
+  const q = query(collection(db, "users"), where("role", "==", "faculty"), where("status", "==", "approved"));
+  return onSnapshot(q,
+    snap => callback(snap.docs.map(d => ({ uid: d.id, ...d.data() }))),
+    err => { console.error("subscribeApprovedFaculty error:", err); if (onError) onError(err); }
+  );
+};
 // Doc id pattern: `${subjectCode}_${studentRollOrEmail}` for natural de-duplication.
 const enrollmentDocId = (subjectCode, rollOrEmail) =>
   `${subjectCode}_${rollOrEmail}`.replace(/[\/\s]+/g, "_");

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import * as XLSX from "xlsx";
 import { FirebaseLogin, RealtimeChat, LiveFeedbackView, LiveFacultyFeedback, useFirebaseAuth, AdminUserApprovals } from "./FirebaseApp.jsx";
-import { logOut, getPendingUsers, enrollStudent, unenrollStudent, subscribeSubjectEnrollments, subscribeMyEnrollments } from "./firebase.js";
+import { logOut, getPendingUsers, enrollStudent, unenrollStudent, subscribeSubjectEnrollments, subscribeMyEnrollments, subscribeApprovedFaculty, sendMessage, subscribeToMessages, pushNotification } from "./firebase.js";
 
 // ─── Odisha Holidays 2026 ─────────────────────────────────────────────────────
 const ODISHA_HOLIDAYS = {
@@ -8018,112 +8018,144 @@ function useNotifications(role) {
 // ─── STUDENT FEEDBACK VIEW ────────────────────────────────────────────────────
 // ─── Student Messaging ────────────────────────────────────────────────────────
 function StudentMessaging({ user }) {
-  const faculty = [
-    {id:"F001",name:"Dr. Priya Singh",dept:"CSE",subject:"DBMS",avatar:"P"},
-    {id:"F002",name:"Prof. Ramesh Panda",dept:"CSE",subject:"OS",avatar:"R"},
-    {id:"F003",name:"Dr. Sunita Das",dept:"CSE",subject:"CN",avatar:"S"},
-    {id:"F004",name:"Dr. K. Rath",dept:"CSE",subject:"TOC",avatar:"K"},
-    {id:"F005",name:"Prof. M. Behera",dept:"CSE",subject:"SE",avatar:"M"},
-  ];
-  const [selected, setSelected] = useState(faculty[0]);
-  const [conversations, setConversations] = useState({
-    F001:[
-      {id:1,from:"student",text:"Sir, I have a doubt in ER diagram normalization.",time:"10:20 AM",date:"Today"},
-      {id:2,from:"faculty",text:"Sure, which normal form are you having trouble with?",time:"10:35 AM",date:"Today"},
-    ],
-    F002:[
-      {id:1,from:"faculty",text:"Please submit the CPU scheduling assignment by tomorrow.",time:"9:00 AM",date:"Yesterday"},
-    ],
-  });
+  const [facultyList, setFacultyList] = useState([]);
+  const [loadingFaculty, setLoadingFaculty] = useState(true);
+  const [facultyError, setFacultyError] = useState("");
+  const [selected, setSelected] = useState(null);
+  const [messages, setMessages] = useState([]);
   const [msg, setMsg] = useState("");
+  const [sending, setSending] = useState(false);
   const msgEnd = React.useRef(null);
 
-  useEffect(()=>{ msgEnd.current?.scrollIntoView({behavior:"smooth"}); },[selected,conversations]);
+  const myUid = user?.uid || user?.email; // fallback if uid isn't on the profile object
 
-  const sendMsg = () => {
-    if (!msg.trim()) return;
-    const now = new Date();
-    const timeStr = now.toLocaleTimeString("en-GB",{hour:"2-digit",minute:"2-digit"});
-    setConversations(prev=>({
-      ...prev,
-      [selected.id]: [...(prev[selected.id]||[]),{id:Date.now(),from:"student",text:msg.trim(),time:timeStr,date:"Today"}]
-    }));
+  useEffect(() => {
+    const unsub = subscribeApprovedFaculty(
+      (rows) => { setFacultyList(rows); setLoadingFaculty(false); if (rows.length>0 && !selected) setSelected(rows[0]); },
+      (err) => { setFacultyError(err.message || "Failed to load faculty list"); setLoadingFaculty(false); }
+    );
+    return () => unsub();
+  }, []);
+
+  const convId = selected ? [myUid, selected.uid].sort().join("_") : null;
+
+  useEffect(() => {
+    if (!convId) return;
+    const unsub = subscribeToMessages(convId, setMessages);
+    return () => unsub();
+  }, [convId]);
+
+  useEffect(()=>{ msgEnd.current?.scrollIntoView({behavior:"smooth"}); },[selected,messages]);
+
+  const sendMsg = async () => {
+    if (!msg.trim() || !selected || sending) return;
+    setSending(true);
+    const text = msg.trim();
     setMsg("");
-    // Simulate faculty reply
-    setTimeout(()=>{
-      setConversations(prev=>({
-        ...prev,
-        [selected.id]: [...(prev[selected.id]||[]),{id:Date.now()+1,from:"faculty",text:"Thanks for reaching out! I'll get back to you soon.",time:new Date().toLocaleTimeString("en-GB",{hour:"2-digit",minute:"2-digit"}),date:"Today"}]
-      }));
-    }, 2000);
+    try {
+      await sendMessage(convId, { text, senderUid: myUid, senderName: user?.name||"Student" });
+      await pushNotification(selected.uid, { text: `New message from ${user?.name||"a student"}: "${text.slice(0,60)}"`, type: "message" });
+    } catch (e) {
+      console.error("Send message failed:", e);
+    } finally {
+      setSending(false);
+    }
   };
 
-  const msgs = conversations[selected.id] || [];
+  if (loadingFaculty) {
+    return (
+      <div style={{background:"#fff",borderRadius:14,border:"1px solid #e2e8f0",padding:"60px 20px",textAlign:"center",color:"#94a3b8",fontSize:13}}>
+        Loading faculty directory...
+      </div>
+    );
+  }
+
+  if (facultyError) {
+    return (
+      <div style={{background:"#fee2e2",border:"1px solid #fca5a5",borderRadius:12,padding:"20px",color:"#dc2626",fontSize:13,fontWeight:600}}>
+        ⚠️ {facultyError}
+      </div>
+    );
+  }
+
+  if (facultyList.length === 0) {
+    return (
+      <div style={{background:"#fff",borderRadius:14,border:"1px solid #e2e8f0",padding:"50px 20px",textAlign:"center"}}>
+        <div style={{fontSize:40,marginBottom:10}}>👨‍🏫</div>
+        <div style={{fontWeight:700,fontSize:14,color:"#0f172a",marginBottom:4}}>No faculty available yet</div>
+        <div style={{fontSize:12,color:"#94a3b8"}}>Once a faculty account is approved by admin, they'll appear here for messaging.</div>
+      </div>
+    );
+  }
 
   return (
     <div style={{background:"#fff",borderRadius:14,border:"1px solid #e2e8f0",overflow:"hidden",height:560,display:"flex"}}>
-      {/* Faculty list */}
-      <div style={{width:220,borderRight:"1px solid #e2e8f0",flexShrink:0,overflowY:"auto"}}>
+      {/* Faculty list — real, approved accounts only */}
+      <div style={{width:230,borderRight:"1px solid #e2e8f0",flexShrink:0,overflowY:"auto"}}>
         <div style={{padding:"12px 14px",borderBottom:"1px solid #f1f5f9",fontWeight:700,fontSize:13,color:"#0f172a",background:"#f8fafc"}}>
-          💬 Message Faculty
+          💬 Message Faculty ({facultyList.length})
         </div>
-        {faculty.map(f=>{
-          const unread = !conversations[f.id] || conversations[f.id].every(m=>m.from==="student");
-          const last = conversations[f.id]?.slice(-1)[0];
-          return (
-            <div key={f.id} onClick={()=>setSelected(f)}
-              style={{padding:"10px 14px",cursor:"pointer",borderBottom:"1px solid #f8fafc",background:selected.id===f.id?"#eef2ff":"#fff",transition:"background .1s"}}
-              onMouseEnter={e=>{ if(selected.id!==f.id) e.currentTarget.style.background="#fafbff"; }}
-              onMouseLeave={e=>{ if(selected.id!==f.id) e.currentTarget.style.background="#fff"; }}>
-              <div style={{display:"flex",alignItems:"center",gap:9}}>
-                <div style={{width:36,height:36,borderRadius:"50%",background:"linear-gradient(135deg,#6366f1,#8b5cf6)",display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",fontWeight:700,fontSize:14,flexShrink:0}}>{f.avatar}</div>
-                <div style={{flex:1,minWidth:0}}>
-                  <div style={{fontWeight:600,fontSize:12,color:"#0f172a",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{f.name}</div>
-                  <div style={{fontSize:10,color:"#94a3b8"}}>{f.subject}</div>
-                  {last && <div style={{fontSize:10,color:"#64748b",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",marginTop:1}}>{last.text.slice(0,28)}...</div>}
-                </div>
+        {facultyList.map(f=>(
+          <div key={f.uid} onClick={()=>setSelected(f)}
+            style={{padding:"10px 14px",cursor:"pointer",borderBottom:"1px solid #f8fafc",background:selected?.uid===f.uid?"#eef2ff":"#fff",transition:"background .1s"}}
+            onMouseEnter={e=>{ if(selected?.uid!==f.uid) e.currentTarget.style.background="#fafbff"; }}
+            onMouseLeave={e=>{ if(selected?.uid!==f.uid) e.currentTarget.style.background="#fff"; }}>
+            <div style={{display:"flex",alignItems:"center",gap:9}}>
+              <div style={{width:36,height:36,borderRadius:"50%",background:"linear-gradient(135deg,#6366f1,#8b5cf6)",display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",fontWeight:700,fontSize:14,flexShrink:0}}>{(f.name||"F")[0]}</div>
+              <div style={{flex:1,minWidth:0}}>
+                <div style={{fontWeight:600,fontSize:12,color:"#0f172a",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{f.name}</div>
+                <div style={{fontSize:10,color:"#94a3b8"}}>{f.designation||"Faculty"} · {f.dept||""}</div>
               </div>
             </div>
-          );
-        })}
-      </div>
-      {/* Chat area */}
-      <div style={{flex:1,display:"flex",flexDirection:"column"}}>
-        <div style={{padding:"12px 16px",borderBottom:"1px solid #f1f5f9",background:"#f8fafc",display:"flex",alignItems:"center",gap:10}}>
-          <div style={{width:34,height:34,borderRadius:"50%",background:"linear-gradient(135deg,#6366f1,#8b5cf6)",display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",fontWeight:700,fontSize:14}}>{selected.avatar}</div>
-          <div>
-            <div style={{fontWeight:700,fontSize:13,color:"#0f172a"}}>{selected.name}</div>
-            <div style={{fontSize:11,color:"#94a3b8"}}>{selected.subject} · {selected.dept}</div>
           </div>
-        </div>
-        <div style={{flex:1,overflowY:"auto",padding:"16px",display:"flex",flexDirection:"column",gap:10}}>
-          {msgs.length === 0 && (
-            <div style={{textAlign:"center",color:"#94a3b8",fontSize:13,marginTop:40}}>
-              No messages yet. Start the conversation!
-            </div>
-          )}
-          {msgs.map(m=>(
-            <div key={m.id} style={{display:"flex",justifyContent:m.from==="student"?"flex-end":"flex-start"}}>
-              <div style={{maxWidth:"70%"}}>
-                <div style={{background:m.from==="student"?"linear-gradient(135deg,#6366f1,#8b5cf6)":"#f1f5f9",color:m.from==="student"?"#fff":"#0f172a",padding:"9px 13px",borderRadius:m.from==="student"?"12px 12px 2px 12px":"12px 12px 12px 2px",fontSize:13,lineHeight:1.5}}>
-                  {m.text}
-                </div>
-                <div style={{fontSize:10,color:"#94a3b8",marginTop:3,textAlign:m.from==="student"?"right":"left"}}>{m.time}</div>
+        ))}
+      </div>
+      {/* Chat area — real Firestore conversation */}
+      <div style={{flex:1,display:"flex",flexDirection:"column"}}>
+        {selected && (
+          <>
+            <div style={{padding:"12px 16px",borderBottom:"1px solid #f1f5f9",background:"#f8fafc",display:"flex",alignItems:"center",gap:10}}>
+              <div style={{width:34,height:34,borderRadius:"50%",background:"linear-gradient(135deg,#6366f1,#8b5cf6)",display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",fontWeight:700,fontSize:14}}>{(selected.name||"F")[0]}</div>
+              <div>
+                <div style={{fontWeight:700,fontSize:13,color:"#0f172a"}}>{selected.name}</div>
+                <div style={{fontSize:11,color:"#94a3b8"}}>{selected.designation||"Faculty"} · {selected.dept||""} · <span style={{color:"#10b981"}}>Real-time</span></div>
               </div>
             </div>
-          ))}
-          <div ref={msgEnd}/>
-        </div>
-        <div style={{padding:"12px 16px",borderTop:"1px solid #f1f5f9",display:"flex",gap:8}}>
-          <input value={msg} onChange={e=>setMsg(e.target.value)}
-            onKeyDown={e=>{ if(e.key==="Enter"&&!e.shiftKey){ e.preventDefault(); sendMsg(); }}}
-            placeholder={`Message ${selected.name}...`}
-            style={{flex:1,padding:"9px 13px",border:"1px solid #e2e8f0",borderRadius:10,fontSize:13,outline:"none",fontFamily:"inherit"}}/>
-          <button onClick={sendMsg} disabled={!msg.trim()}
-            style={{padding:"9px 16px",background:msg.trim()?"linear-gradient(135deg,#6366f1,#8b5cf6)":"#e2e8f0",color:msg.trim()?"#fff":"#94a3b8",border:"none",borderRadius:10,fontWeight:600,cursor:msg.trim()?"pointer":"not-allowed",fontSize:13,transition:"all .15s"}}>
-            Send ➤
-          </button>
-        </div>
+            <div style={{flex:1,overflowY:"auto",padding:"16px",display:"flex",flexDirection:"column",gap:10}}>
+              {messages.length === 0 && (
+                <div style={{textAlign:"center",color:"#94a3b8",fontSize:13,marginTop:40}}>
+                  No messages yet. Start the conversation — it goes directly to {selected.name}.
+                </div>
+              )}
+              {messages.map(m=>{
+                const isMe = m.senderUid === myUid;
+                return (
+                  <div key={m.id} style={{display:"flex",justifyContent:isMe?"flex-end":"flex-start"}}>
+                    <div style={{maxWidth:"70%"}}>
+                      <div style={{background:isMe?"linear-gradient(135deg,#6366f1,#8b5cf6)":"#f1f5f9",color:isMe?"#fff":"#0f172a",padding:"9px 13px",borderRadius:isMe?"12px 12px 2px 12px":"12px 12px 12px 2px",fontSize:13,lineHeight:1.5}}>
+                        {m.text}
+                      </div>
+                      <div style={{fontSize:10,color:"#94a3b8",marginTop:3,textAlign:isMe?"right":"left"}}>
+                        {m.timestamp?.toDate ? m.timestamp.toDate().toLocaleTimeString("en-GB",{hour:"2-digit",minute:"2-digit"}) : "sending..."}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+              <div ref={msgEnd}/>
+            </div>
+            <div style={{padding:"12px 16px",borderTop:"1px solid #f1f5f9",display:"flex",gap:8}}>
+              <input value={msg} onChange={e=>setMsg(e.target.value)}
+                onKeyDown={e=>{ if(e.key==="Enter"&&!e.shiftKey){ e.preventDefault(); sendMsg(); }}}
+                placeholder={`Message ${selected.name}...`}
+                style={{flex:1,padding:"9px 13px",border:"1px solid #e2e8f0",borderRadius:10,fontSize:13,outline:"none",fontFamily:"inherit"}}/>
+              <button onClick={sendMsg} disabled={!msg.trim()||sending}
+                style={{padding:"9px 16px",background:(msg.trim()&&!sending)?"linear-gradient(135deg,#6366f1,#8b5cf6)":"#e2e8f0",color:(msg.trim()&&!sending)?"#fff":"#94a3b8",border:"none",borderRadius:10,fontWeight:600,cursor:(msg.trim()&&!sending)?"pointer":"not-allowed",fontSize:13,transition:"all .15s"}}>
+                {sending?"...":"Send ➤"}
+              </button>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );
