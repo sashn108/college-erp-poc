@@ -195,10 +195,28 @@ export const sendMessage = async (conversationId, message) => {
   await addDoc(collection(db, "messages", conversationId, "msgs"), {
     ...message, timestamp: serverTimestamp(),
   });
+  // Update a lightweight conversation index so both participants can discover this thread
+  if (message.participantUids && message.participantNames) {
+    await setDoc(doc(db, "conversationIndex", conversationId), {
+      participantUids: message.participantUids,
+      participantNames: message.participantNames,
+      lastMessage: message.text,
+      lastSenderUid: message.senderUid,
+      lastAt: serverTimestamp(),
+    }, { merge: true });
+  }
 };
 export const subscribeToMessages = (conversationId, callback) => {
   const q = query(collection(db, "messages", conversationId, "msgs"), orderBy("timestamp", "asc"));
   return onSnapshot(q, snap => callback(snap.docs.map(d => ({ id: d.id, ...d.data() }))));
+};
+// Find all conversations involving a given uid (for an inbox view)
+export const subscribeMyConversations = (uid, callback, onError) => {
+  const q = query(collection(db, "conversationIndex"), where("participantUids", "array-contains", uid));
+  return onSnapshot(q,
+    snap => callback(snap.docs.map(d => ({ id: d.id, ...d.data() }))),
+    err => { console.error("subscribeMyConversations error:", err); if (onError) onError(err); }
+  );
 };
 
 // ── Feedback ──────────────────────────────────────────────────────────────────
@@ -228,4 +246,10 @@ export const pushNotification = async (toUid, notif) => {
 export const subscribeNotifications = (uid, callback) => {
   const q = query(collection(db, "notifications", uid, "items"), orderBy("timestamp", "desc"));
   return onSnapshot(q, snap => callback(snap.docs.map(d => ({ id: d.id, ...d.data() }))));
+};
+export const markNotificationRead = async (uid, notifId) => {
+  await updateDoc(doc(db, "notifications", uid, "items", notifId), { read: true });
+};
+export const markAllNotificationsRead = async (uid, notifIds) => {
+  await Promise.all(notifIds.map(id => updateDoc(doc(db, "notifications", uid, "items", id), { read: true })));
 };

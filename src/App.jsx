@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import * as XLSX from "xlsx";
 import { FirebaseLogin, RealtimeChat, LiveFeedbackView, LiveFacultyFeedback, useFirebaseAuth, AdminUserApprovals } from "./FirebaseApp.jsx";
-import { logOut, getPendingUsers, enrollStudent, unenrollStudent, subscribeSubjectEnrollments, subscribeMyEnrollments, subscribeApprovedFaculty, sendMessage, subscribeToMessages, pushNotification } from "./firebase.js";
+import { logOut, getPendingUsers, enrollStudent, unenrollStudent, subscribeSubjectEnrollments, subscribeMyEnrollments, subscribeApprovedFaculty, sendMessage, subscribeToMessages, pushNotification, subscribeNotifications, markNotificationRead, markAllNotificationsRead, subscribeMyConversations } from "./firebase.js";
 
 // ─── Odisha Holidays 2026 ─────────────────────────────────────────────────────
 const ODISHA_HOLIDAYS = {
@@ -7998,21 +7998,33 @@ function COPOView() {
 }
 
 // ─── NOTIFICATIONS BELL ───────────────────────────────────────────────────────
-function useNotifications(role) {
-  const studentNotifs = [
-    {id:1,text:"Mid-term marks for CS301 are now available",time:"2h ago",read:false,type:"marks"},
-    {id:2,text:"Leave application L002 is pending Dean approval",time:"5h ago",read:false,type:"leave"},
-    {id:3,text:"Assignment CS304 due tomorrow — Jun 15",time:"1d ago",read:true,type:"assignment"},
-    {id:4,text:"Infosys shortlisted you for Technical Round",time:"1d ago",read:false,type:"placement"},
-    {id:5,text:"Library book overdue: Introduction to Algorithms",time:"2d ago",read:true,type:"library"},
-  ];
-  const facultyNotifs = [
-    {id:1,text:"3 new assignment submissions in CS301",time:"1h ago",read:false,type:"assignment"},
-    {id:2,text:"Rohit Sharma submitted thesis Chapter 4",time:"3h ago",read:false,type:"research"},
-    {id:3,text:"Attendance for Jun 14 not yet submitted — CS302",time:"5h ago",read:false,type:"attendance"},
-    {id:4,text:"Leave request from Priya Nair approved by HOD",time:"1d ago",read:true,type:"leave"},
-  ];
-  return role==="student"?studentNotifs:facultyNotifs;
+function useNotifications(uid) {
+  const [notifs, setNotifs] = useState([]);
+  useEffect(() => {
+    if (!uid) { setNotifs([]); return; }
+    const unsub = subscribeNotifications(uid, (rows) => {
+      setNotifs(rows.map(r => ({
+        id: r.id,
+        text: r.text || "",
+        type: r.type || "general",
+        read: !!r.read,
+        time: r.timestamp?.toDate ? timeAgo(r.timestamp.toDate()) : "just now",
+      })));
+    });
+    return () => unsub();
+  }, [uid]);
+  return notifs;
+}
+
+function timeAgo(date) {
+  const seconds = Math.floor((new Date() - date) / 1000);
+  if (seconds < 60) return "just now";
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  return `${days}d ago`;
 }
 
 // ─── STUDENT FEEDBACK VIEW ────────────────────────────────────────────────────
@@ -8053,7 +8065,11 @@ function StudentMessaging({ user }) {
     const text = msg.trim();
     setMsg("");
     try {
-      await sendMessage(convId, { text, senderUid: myUid, senderName: user?.name||"Student" });
+      await sendMessage(convId, {
+        text, senderUid: myUid, senderName: user?.name||"Student",
+        participantUids: [myUid, selected.uid],
+        participantNames: { [myUid]: user?.name||"Student", [selected.uid]: selected.name },
+      });
       await pushNotification(selected.uid, { text: `New message from ${user?.name||"a student"}: "${text.slice(0,60)}"`, type: "message" });
     } catch (e) {
       console.error("Send message failed:", e);
@@ -8148,6 +8164,170 @@ function StudentMessaging({ user }) {
               <input value={msg} onChange={e=>setMsg(e.target.value)}
                 onKeyDown={e=>{ if(e.key==="Enter"&&!e.shiftKey){ e.preventDefault(); sendMsg(); }}}
                 placeholder={`Message ${selected.name}...`}
+                style={{flex:1,padding:"9px 13px",border:"1px solid #e2e8f0",borderRadius:10,fontSize:13,outline:"none",fontFamily:"inherit"}}/>
+              <button onClick={sendMsg} disabled={!msg.trim()||sending}
+                style={{padding:"9px 16px",background:(msg.trim()&&!sending)?"linear-gradient(135deg,#6366f1,#8b5cf6)":"#e2e8f0",color:(msg.trim()&&!sending)?"#fff":"#94a3b8",border:"none",borderRadius:10,fontWeight:600,cursor:(msg.trim()&&!sending)?"pointer":"not-allowed",fontSize:13,transition:"all .15s"}}>
+                {sending?"...":"Send ➤"}
+              </button>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── Faculty Messaging Inbox ──────────────────────────────────────────────────
+function FacultyMessaging({ user }) {
+  const [conversations, setConversations] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [selected, setSelected] = useState(null);
+  const [messages, setMessages] = useState([]);
+  const [msg, setMsg] = useState("");
+  const [sending, setSending] = useState(false);
+  const msgEnd = React.useRef(null);
+
+  const myUid = user?.uid || user?.email;
+
+  useEffect(() => {
+    if (!myUid) return;
+    const unsub = subscribeMyConversations(myUid,
+      (rows) => {
+        const sorted = rows.slice().sort((a,b) => (b.lastAt?.toMillis?.()||0) - (a.lastAt?.toMillis?.()||0));
+        setConversations(sorted);
+        setLoading(false);
+        if (sorted.length>0 && !selected) setSelected(sorted[0]);
+      },
+      (err) => { setError(err.message || "Failed to load conversations"); setLoading(false); }
+    );
+    return () => unsub();
+  }, [myUid]);
+
+  useEffect(() => {
+    if (!selected) return;
+    const unsub = subscribeToMessages(selected.id, setMessages);
+    return () => unsub();
+  }, [selected?.id]);
+
+  useEffect(()=>{ msgEnd.current?.scrollIntoView({behavior:"smooth"}); },[selected,messages]);
+
+  const getOtherParticipant = (conv) => {
+    if (!conv) return { uid:"", name:"" };
+    const otherUid = conv.participantUids?.find(u => u !== myUid) || "";
+    return { uid: otherUid, name: conv.participantNames?.[otherUid] || "Student" };
+  };
+
+  const sendMsg = async () => {
+    if (!msg.trim() || !selected || sending) return;
+    setSending(true);
+    const text = msg.trim();
+    setMsg("");
+    const other = getOtherParticipant(selected);
+    try {
+      await sendMessage(selected.id, {
+        text, senderUid: myUid, senderName: user?.name||"Faculty",
+        participantUids: selected.participantUids,
+        participantNames: selected.participantNames,
+      });
+      if (other.uid) await pushNotification(other.uid, { text: `New message from ${user?.name||"your faculty"}: "${text.slice(0,60)}"`, type: "message" });
+    } catch (e) {
+      console.error("Send message failed:", e);
+    } finally {
+      setSending(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div style={{background:"#fff",borderRadius:14,border:"1px solid #e2e8f0",padding:"60px 20px",textAlign:"center",color:"#94a3b8",fontSize:13}}>
+        Loading conversations...
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div style={{background:"#fee2e2",border:"1px solid #fca5a5",borderRadius:12,padding:"20px",color:"#dc2626",fontSize:13,fontWeight:600}}>
+        ⚠️ {error}
+      </div>
+    );
+  }
+
+  if (conversations.length === 0) {
+    return (
+      <div style={{background:"#fff",borderRadius:14,border:"1px solid #e2e8f0",padding:"50px 20px",textAlign:"center"}}>
+        <div style={{fontSize:40,marginBottom:10}}>📭</div>
+        <div style={{fontWeight:700,fontSize:14,color:"#0f172a",marginBottom:4}}>No messages yet</div>
+        <div style={{fontSize:12,color:"#94a3b8"}}>When a student messages you, the conversation will appear here in real time.</div>
+      </div>
+    );
+  }
+
+  const other = getOtherParticipant(selected);
+
+  return (
+    <div style={{background:"#fff",borderRadius:14,border:"1px solid #e2e8f0",overflow:"hidden",height:560,display:"flex"}}>
+      {/* Conversation list — real students who have messaged */}
+      <div style={{width:230,borderRight:"1px solid #e2e8f0",flexShrink:0,overflowY:"auto"}}>
+        <div style={{padding:"12px 14px",borderBottom:"1px solid #f1f5f9",fontWeight:700,fontSize:13,color:"#0f172a",background:"#f8fafc"}}>
+          💬 Student Messages ({conversations.length})
+        </div>
+        {conversations.map(c=>{
+          const o = getOtherParticipant(c);
+          const isUnread = c.lastSenderUid !== myUid;
+          return (
+            <div key={c.id} onClick={()=>setSelected(c)}
+              style={{padding:"10px 14px",cursor:"pointer",borderBottom:"1px solid #f8fafc",background:selected?.id===c.id?"#eef2ff":"#fff",transition:"background .1s"}}
+              onMouseEnter={e=>{ if(selected?.id!==c.id) e.currentTarget.style.background="#fafbff"; }}
+              onMouseLeave={e=>{ if(selected?.id!==c.id) e.currentTarget.style.background="#fff"; }}>
+              <div style={{display:"flex",alignItems:"center",gap:9}}>
+                <div style={{width:36,height:36,borderRadius:"50%",background:"linear-gradient(135deg,#6366f1,#8b5cf6)",display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",fontWeight:700,fontSize:14,flexShrink:0}}>{(o.name||"S")[0]}</div>
+                <div style={{flex:1,minWidth:0}}>
+                  <div style={{display:"flex",alignItems:"center",gap:5}}>
+                    <span style={{fontWeight:isUnread?700:600,fontSize:12,color:"#0f172a",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{o.name}</span>
+                    {isUnread && <span style={{width:6,height:6,borderRadius:"50%",background:"#6366f1",flexShrink:0}}/>}
+                  </div>
+                  <div style={{fontSize:10,color:"#94a3b8",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{c.lastMessage}</div>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      {/* Chat area */}
+      <div style={{flex:1,display:"flex",flexDirection:"column"}}>
+        {selected && (
+          <>
+            <div style={{padding:"12px 16px",borderBottom:"1px solid #f1f5f9",background:"#f8fafc",display:"flex",alignItems:"center",gap:10}}>
+              <div style={{width:34,height:34,borderRadius:"50%",background:"linear-gradient(135deg,#6366f1,#8b5cf6)",display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",fontWeight:700,fontSize:14}}>{(other.name||"S")[0]}</div>
+              <div>
+                <div style={{fontWeight:700,fontSize:13,color:"#0f172a"}}>{other.name}</div>
+                <div style={{fontSize:11,color:"#10b981"}}>Real-time</div>
+              </div>
+            </div>
+            <div style={{flex:1,overflowY:"auto",padding:"16px",display:"flex",flexDirection:"column",gap:10}}>
+              {messages.map(m=>{
+                const isMe = m.senderUid === myUid;
+                return (
+                  <div key={m.id} style={{display:"flex",justifyContent:isMe?"flex-end":"flex-start"}}>
+                    <div style={{maxWidth:"70%"}}>
+                      <div style={{background:isMe?"linear-gradient(135deg,#6366f1,#8b5cf6)":"#f1f5f9",color:isMe?"#fff":"#0f172a",padding:"9px 13px",borderRadius:isMe?"12px 12px 2px 12px":"12px 12px 12px 2px",fontSize:13,lineHeight:1.5}}>
+                        {m.text}
+                      </div>
+                      <div style={{fontSize:10,color:"#94a3b8",marginTop:3,textAlign:isMe?"right":"left"}}>
+                        {m.timestamp?.toDate ? m.timestamp.toDate().toLocaleTimeString("en-GB",{hour:"2-digit",minute:"2-digit"}) : "sending..."}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+              <div ref={msgEnd}/>
+            </div>
+            <div style={{padding:"12px 16px",borderTop:"1px solid #f1f5f9",display:"flex",gap:8}}>
+              <input value={msg} onChange={e=>setMsg(e.target.value)}
+                onKeyDown={e=>{ if(e.key==="Enter"&&!e.shiftKey){ e.preventDefault(); sendMsg(); }}}
+                placeholder={`Reply to ${other.name}...`}
                 style={{flex:1,padding:"9px 13px",border:"1px solid #e2e8f0",borderRadius:10,fontSize:13,outline:"none",fontFamily:"inherit"}}/>
               <button onClick={sendMsg} disabled={!msg.trim()||sending}
                 style={{padding:"9px 16px",background:(msg.trim()&&!sending)?"linear-gradient(135deg,#6366f1,#8b5cf6)":"#e2e8f0",color:(msg.trim()&&!sending)?"#fff":"#94a3b8",border:"none",borderRadius:10,fontWeight:600,cursor:(msg.trim()&&!sending)?"pointer":"not-allowed",fontSize:13,transition:"all .15s"}}>
@@ -8323,7 +8503,7 @@ export default function App() {
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
   }, []);
-  const notifs = useNotifications(role);
+  const notifs = useNotifications(uid);
 
   // ── Auto-logout after 1 hour of inactivity ──
   const IDLE_TIMEOUT_MS = 60 * 60 * 1000; // 1 hour
@@ -8462,6 +8642,7 @@ export default function App() {
     dashboard:<FacultyDashboard user={auth}/>, subjects:<FacultySubjectsView faculty={auth}/>,
     assignments:<AssignmentsView role="faculty"/>,
     bulkmessage:<BulkMessagingView role="faculty"/>,
+    messages:<FacultyMessaging user={auth}/>,
     attendanceexport:<AttendanceExport/>,
     facultytimetable:<FacultyTimetable/>,
     lab:<LabView/>, attendance:<FacultySubjectsView faculty={auth}/>, evaluation:<EvaluationView/>,
@@ -8506,7 +8687,7 @@ export default function App() {
   const facultySidebarLinks = [
     ["Dashboard","dashboard"],["Subjects & Students","subjects"],["Lab","lab"],
     ["My Class Attendance","attendance"],["Evaluation","evaluation"],["Assignments","assignments"],
-    ["Bulk Message","bulkmessage"],["Attendance Export","attendanceexport"],
+    ["Bulk Message","bulkmessage"],["Student Messages","messages"],["Attendance Export","attendanceexport"],
     ["My Timetable","facultytimetable"],
     ["Research","research"],
     ["CO/PO Attainment","copo"],["Syllabus Tracker","syllabus"],["Question Paper","qpaper"],["File Tracking","fts"],["Services","services"],
@@ -8593,16 +8774,19 @@ export default function App() {
               {unreadCount>0&&<span style={{position:"absolute",top:4,right:4,width:8,height:8,background:"#ef4444",borderRadius:"50%",border:"2px solid #fff"}}/>}
             </button>
             {notifOpen&&(
-              <div style={{position:"absolute",right:0,top:44,width:320,background:"#fff",border:"1px solid #e2e8f0",borderRadius:12,boxShadow:"0 8px 32px rgba(0,0,0,0.12)",zIndex:300}}>
+              <div style={{position:"absolute",right:0,top:44,width:320,background:"#fff",border:"1px solid #e2e8f0",borderRadius:12,boxShadow:"0 8px 32px rgba(0,0,0,0.12)",zIndex:300,maxHeight:400,overflowY:"auto"}}>
                 <div style={{padding:"12px 14px",fontWeight:700,fontSize:14,borderBottom:"1px solid #f1f5f9",display:"flex",justifyContent:"space-between"}}>
                   Notifications
                   {unreadCount>0&&<span style={{background:"#ef4444",color:"#fff",borderRadius:20,fontSize:11,padding:"1px 8px"}}>{unreadCount} new</span>}
                 </div>
+                {notifs.length===0 && (
+                  <div style={{padding:"30px 14px",textAlign:"center",color:"#94a3b8",fontSize:12}}>No notifications yet.</div>
+                )}
                 {notifs.map(n=>{
                   const isRead = n.read||readNotifs.includes(n.id);
-                  const iconMap = {marks:"📊",leave:"📋",assignment:"📝",placement:"💼",library:"📚",research:"🔬",attendance:"✅"};
+                  const iconMap = {marks:"📊",leave:"📋",assignment:"📝",placement:"💼",library:"📚",research:"🔬",attendance:"✅",message:"✉️"};
                   return (
-                    <div key={n.id} onClick={()=>setReadNotifs(p=>[...p,n.id])}
+                    <div key={n.id} onClick={()=>{ setReadNotifs(p=>[...p,n.id]); if(uid) markNotificationRead(uid,n.id); }}
                       style={{padding:"10px 14px",borderBottom:"1px solid #f8fafc",background:isRead?"#fff":"#f0f4ff",cursor:"pointer"}}>
                       <div style={{display:"flex",gap:10,alignItems:"flex-start"}}>
                         <span style={{fontSize:16,flexShrink:0}}>{iconMap[n.type]||"📌"}</span>
@@ -8615,10 +8799,12 @@ export default function App() {
                     </div>
                   );
                 })}
-                <div style={{padding:"8px 14px",textAlign:"center",fontSize:12,color:"#6366f1",fontWeight:600,cursor:"pointer"}}
-                  onClick={()=>setReadNotifs(notifs.map(n=>n.id))}>
-                  Mark all as read
-                </div>
+                {notifs.length>0 && (
+                  <div style={{padding:"8px 14px",textAlign:"center",fontSize:12,color:"#6366f1",fontWeight:600,cursor:"pointer"}}
+                    onClick={()=>{ const ids=notifs.map(n=>n.id); setReadNotifs(ids); if(uid) markAllNotificationsRead(uid,ids); }}>
+                    Mark all as read
+                  </div>
+                )}
               </div>
             )}
           </div>
