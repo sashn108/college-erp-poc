@@ -8273,6 +8273,26 @@ export default function App() {
   }, []);
   const notifs = useNotifications(role);
 
+  // ── Auto-logout after 1 hour of inactivity ──
+  const IDLE_TIMEOUT_MS = 60 * 60 * 1000; // 1 hour
+  const idleTimerRef = React.useRef(null);
+  useEffect(() => {
+    if (!auth) return; // only run the idle timer while logged in
+    const resetIdleTimer = () => {
+      if (idleTimerRef.current) clearTimeout(idleTimerRef.current);
+      idleTimerRef.current = setTimeout(() => {
+        logOut().finally(() => { setAuth(null); setRole(null); setUid(null); });
+      }, IDLE_TIMEOUT_MS);
+    };
+    const activityEvents = ["mousedown", "mousemove", "keydown", "scroll", "touchstart", "click"];
+    activityEvents.forEach(ev => window.addEventListener(ev, resetIdleTimer));
+    resetIdleTimer(); // start the timer immediately on login / mount
+    return () => {
+      activityEvents.forEach(ev => window.removeEventListener(ev, resetIdleTimer));
+      if (idleTimerRef.current) clearTimeout(idleTimerRef.current);
+    };
+  }, [auth]);
+
   // ── Loading screen ──
   if (fbLoading) return (
     <div style={{minHeight:"100vh",background:"linear-gradient(135deg,#0f172a,#1e293b)",display:"flex",alignItems:"center",justifyContent:"center"}}>
