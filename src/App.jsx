@@ -2542,6 +2542,13 @@ function FacultySubjectsView({ faculty }) {
   const [enrollError, setEnrollError] = useState("");
   const [showManualEnroll, setShowManualEnroll] = useState(false);
   const [manualEnroll, setManualEnroll] = useState({name:"",roll:"",email:""});
+  // Class Roster: upload CSV independent of any subject, then map to one or more subjects
+  const [showClassRoster, setShowClassRoster] = useState(false);
+  const [rosterStudents, setRosterStudents] = useState([]);
+  const [rosterError, setRosterError] = useState("");
+  const [rosterMapSubjects, setRosterMapSubjects] = useState([]); // selected subject codes to map to
+  const [rosterMapping, setRosterMapping] = useState(false);
+  const [rosterMapResult, setRosterMapResult] = useState(null);
   const [inbox, setInbox] = useState([
     {from:"Riya Patel",roll:"22CS001",subj:"Query about Assignment #4",msg:"Ma'am, can you clarify the ER diagram requirements?",time:"Jun 8, 9:42 AM",read:false},
     {from:"Amit Kumar",roll:"22CS005",subj:"Lab file submission",msg:"Sir, I submitted the lab file. Please check.",time:"Jun 7, 2:15 PM",read:true},
@@ -2735,6 +2742,67 @@ function FacultySubjectsView({ faculty }) {
     reader.readAsText(file);
   };
 
+  // ── Class Roster: parse a whole-class CSV (no subject required), then map afterward ──
+  const parseClassRoster = (text) => {
+    setRosterError(""); setRosterMapResult(null);
+    const lines = text.trim().split("\n").filter(Boolean);
+    if (lines.length < 2) { setRosterError("CSV must have a header row and at least one data row."); return; }
+    const headers = lines[0].split(",").map(h => h.trim().toLowerCase().replace(/\s+/g,"_"));
+    const nameCol = headers.findIndex(h => h.includes("name"));
+    const rollCol = headers.findIndex(h => h.includes("roll") || h.includes("reg") || h.includes("id"));
+    const emailCol = headers.findIndex(h => h.includes("email"));
+    if (nameCol === -1 || rollCol === -1) { setRosterError("CSV must have 'name' and 'roll/reg' (registration) columns."); return; }
+    const parsed = lines.slice(1).map((line, i) => {
+      const cols = line.split(",").map(c => c.trim());
+      return {
+        id: i,
+        roll: cols[rollCol] || "—",
+        name: cols[nameCol] || "—",
+        email: emailCol !== -1 ? (cols[emailCol]||"") : "",
+      };
+    }).filter(s => s.name !== "—" && s.roll !== "—");
+    if (parsed.length === 0) { setRosterError("No valid student rows found in this CSV."); return; }
+    setRosterStudents(parsed);
+  };
+
+  const handleRosterFile = (file) => {
+    if (!file) return;
+    if (!file.name.endsWith(".csv")) { setRosterError("Please upload a .csv file."); return; }
+    const reader = new FileReader();
+    reader.onload = e => parseClassRoster(e.target.result);
+    reader.readAsText(file);
+  };
+
+  const toggleRosterSubject = (code) => {
+    setRosterMapSubjects(prev => prev.includes(code) ? prev.filter(c=>c!==code) : [...prev, code]);
+  };
+
+  const handleMapRosterToSubjects = async () => {
+    if (rosterStudents.length === 0 || rosterMapSubjects.length === 0) return;
+    setRosterMapping(true); setRosterMapResult(null);
+    try {
+      let count = 0;
+      for (const code of rosterMapSubjects) {
+        const subj = subjects.find(s=>s.code===code);
+        if (!subj) continue;
+        for (const s of rosterStudents) {
+          await enrollStudent(code, subj.name, faculty?.uid || faculty?.id, faculty?.name, s);
+          count++;
+        }
+      }
+      setRosterMapResult({ success: true, count, subjectCount: rosterMapSubjects.length, studentCount: rosterStudents.length });
+      setRosterMapSubjects([]);
+    } catch (e) {
+      setRosterMapResult({ success: false, error: e.message || "Failed to map roster to subjects." });
+    } finally {
+      setRosterMapping(false);
+    }
+  };
+
+  const resetClassRoster = () => {
+    setRosterStudents([]); setRosterError(""); setRosterMapSubjects([]); setRosterMapResult(null);
+  };
+
   return (
     <>
       {modal && <MessageModal to={modal.to} toAll={modal.toAll} subject={modal.subjectName} onClose={()=>setModal(null)}/>}
@@ -2871,6 +2939,106 @@ function FacultySubjectsView({ faculty }) {
           </div>
         </div>
       )}
+
+      {showClassRoster && (
+        <div style={{position:"fixed",inset:0,background:"rgba(15,23,42,0.6)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center"}} onClick={()=>setShowClassRoster(false)}>
+          <div style={{background:"#fff",borderRadius:14,width:640,maxHeight:"85vh",overflow:"auto",boxShadow:"0 20px 60px rgba(0,0,0,0.25)"}} onClick={e=>e.stopPropagation()}>
+            <div style={{background:"linear-gradient(135deg,#10b981,#059669)",padding:"14px 18px",display:"flex",justifyContent:"space-between",alignItems:"center",position:"sticky",top:0,zIndex:1}}>
+              <span style={{color:"#fff",fontWeight:700,fontSize:15}}>📋 Class Roster Upload & Subject Mapping</span>
+              <button onClick={()=>setShowClassRoster(false)} style={{background:"rgba(255,255,255,0.2)",border:"none",borderRadius:6,color:"#fff",width:28,height:28,cursor:"pointer",fontSize:16}}>✕</button>
+            </div>
+
+            <div style={{padding:"20px 22px"}}>
+              {rosterStudents.length === 0 ? (
+                <>
+                  <div
+                    onDragOver={e=>e.preventDefault()}
+                    onDrop={e=>{e.preventDefault();handleRosterFile(e.dataTransfer.files[0]);}}
+                    onClick={()=>document.getElementById("roster-csv-input").click()}
+                    style={{border:"2px dashed #e2e8f0",borderRadius:10,padding:"32px 20px",textAlign:"center",background:"#fafafa",cursor:"pointer"}}>
+                    <div style={{fontSize:40,marginBottom:8}}>📂</div>
+                    <div style={{fontWeight:600,color:"#334155",fontSize:14,marginBottom:4}}>Drag & Drop Whole-Class CSV here</div>
+                    <div style={{fontSize:12,color:"#94a3b8",marginBottom:14}}>Columns: Name, Roll/Registration No., Email (optional) — works for an entire class, no subject needed yet</div>
+                    <button style={{padding:"8px 20px",background:"linear-gradient(135deg,#10b981,#059669)",color:"#fff",border:"none",borderRadius:8,fontWeight:600,cursor:"pointer",fontSize:13}}>Choose File</button>
+                    <input id="roster-csv-input" type="file" accept=".csv" style={{display:"none"}} onChange={e=>handleRosterFile(e.target.files[0])}/>
+                  </div>
+                  {rosterError && <div style={{marginTop:12,background:"#fee2e2",border:"1px solid #fca5a5",borderRadius:8,padding:"8px 12px",color:"#dc2626",fontSize:12,fontWeight:600}}>{rosterError}</div>}
+                </>
+              ) : rosterMapResult?.success ? (
+                <div style={{textAlign:"center",padding:"24px 0"}}>
+                  <div style={{fontSize:48,marginBottom:12}}>✅</div>
+                  <div style={{fontWeight:700,fontSize:16,color:"#0f172a",marginBottom:6}}>Roster Mapped Successfully!</div>
+                  <div style={{fontSize:13,color:"#64748b",marginBottom:18}}>
+                    {rosterMapResult.studentCount} students mapped to {rosterMapResult.subjectCount} subject{rosterMapResult.subjectCount!==1?"s":""} — {rosterMapResult.count} total enrollment{rosterMapResult.count!==1?"s":""} created.
+                  </div>
+                  <div style={{display:"flex",gap:10,justifyContent:"center"}}>
+                    <button onClick={resetClassRoster}
+                      style={{padding:"9px 18px",background:"#f1f5f9",color:"#334155",border:"none",borderRadius:8,fontWeight:600,cursor:"pointer",fontSize:13}}>
+                      Upload Another Roster
+                    </button>
+                    <button onClick={()=>setShowClassRoster(false)}
+                      style={{padding:"9px 18px",background:"linear-gradient(135deg,#6366f1,#8b5cf6)",color:"#fff",border:"none",borderRadius:8,fontWeight:600,cursor:"pointer",fontSize:13}}>
+                      Done
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  {/* Step 1: Preview parsed roster */}
+                  <div style={{marginBottom:16}}>
+                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
+                      <div style={{fontSize:13,fontWeight:700,color:"#0f172a"}}>✅ {rosterStudents.length} students parsed from CSV</div>
+                      <button onClick={resetClassRoster} style={{padding:"4px 12px",background:"#fee2e2",color:"#dc2626",border:"none",borderRadius:6,fontWeight:600,cursor:"pointer",fontSize:11}}>Clear & Re-upload</button>
+                    </div>
+                    <div style={{maxHeight:160,overflowY:"auto",border:"1px solid #f1f5f9",borderRadius:8}}>
+                      {rosterStudents.map(s=>(
+                        <div key={s.id} style={{display:"flex",gap:10,padding:"7px 12px",borderBottom:"1px solid #f8fafc",fontSize:12}}>
+                          <span style={{color:"#6366f1",fontWeight:700,width:90}}>{s.roll}</span>
+                          <span style={{color:"#0f172a",fontWeight:500,flex:1}}>{s.name}</span>
+                          <span style={{color:"#94a3b8"}}>{s.email||"—"}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Step 2: Map to subjects */}
+                  <div>
+                    <div style={{fontSize:13,fontWeight:700,color:"#0f172a",marginBottom:8}}>Map this roster to subject(s):</div>
+                    {subjects.length === 0 ? (
+                      <div style={{fontSize:12,color:"#94a3b8",padding:"12px 0"}}>You have no subjects yet. Add a subject first, then come back to map this roster.</div>
+                    ) : (
+                      <div style={{display:"flex",flexDirection:"column",gap:6,marginBottom:14}}>
+                        {subjects.map(s=>(
+                          <div key={s.code} onClick={()=>toggleRosterSubject(s.code)}
+                            style={{display:"flex",alignItems:"center",gap:10,padding:"9px 12px",border:`2px solid ${rosterMapSubjects.includes(s.code)?"#10b981":"#e2e8f0"}`,borderRadius:9,cursor:"pointer",background:rosterMapSubjects.includes(s.code)?"#f0fdf4":"#fff"}}>
+                            <div style={{width:18,height:18,borderRadius:5,border:`2px solid ${rosterMapSubjects.includes(s.code)?"#10b981":"#cbd5e1"}`,background:rosterMapSubjects.includes(s.code)?"#10b981":"#fff",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                              {rosterMapSubjects.includes(s.code) && <span style={{color:"#fff",fontSize:11}}>✓</span>}
+                            </div>
+                            <span style={{fontWeight:700,fontSize:12,color:"#6366f1",width:60}}>{s.code}</span>
+                            <span style={{fontSize:12,color:"#334155",flex:1}}>{s.name}</span>
+                            <span style={{fontSize:11,color:"#94a3b8"}}>{s.class}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    {rosterMapResult?.error && <div style={{marginBottom:12,background:"#fee2e2",border:"1px solid #fca5a5",borderRadius:8,padding:"8px 12px",color:"#dc2626",fontSize:12,fontWeight:600}}>{rosterMapResult.error}</div>}
+                    <button onClick={handleMapRosterToSubjects} disabled={rosterMapSubjects.length===0||rosterMapping}
+                      style={{width:"100%",padding:"11px",background:(rosterMapSubjects.length===0||rosterMapping)?"#d1fae5":"linear-gradient(135deg,#10b981,#059669)",color:(rosterMapSubjects.length===0||rosterMapping)?"#6b7280":"#fff",border:"none",borderRadius:8,fontWeight:700,cursor:(rosterMapSubjects.length===0||rosterMapping)?"not-allowed":"pointer",fontSize:14}}>
+                      {rosterMapping ? "⏳ Mapping..." : `✅ Map ${rosterStudents.length} Students to ${rosterMapSubjects.length} Subject${rosterMapSubjects.length!==1?"s":""}`}
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+      <div style={{display:"flex",justifyContent:"flex-end",marginBottom:12}}>
+        <button onClick={()=>{setShowClassRoster(true);resetClassRoster();}}
+          style={{padding:"8px 16px",background:"linear-gradient(135deg,#10b981,#059669)",color:"#fff",border:"none",borderRadius:8,fontWeight:600,cursor:"pointer",fontSize:12,display:"flex",alignItems:"center",gap:6}}>
+          📋 Upload Class Roster & Map to Subjects
+        </button>
+      </div>
       <div style={{display:"grid",gridTemplateColumns:"210px 1fr",gap:14}}>
 
         {/* Subject List */}
