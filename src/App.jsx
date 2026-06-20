@@ -8059,8 +8059,16 @@ function StudentMessaging({ user }) {
 
   useEffect(()=>{ msgEnd.current?.scrollIntoView({behavior:"smooth"}); },[selected,messages]);
 
+  const [sendError, setSendError] = useState("");
+
   const sendMsg = async () => {
     if (!msg.trim() || !selected || sending) return;
+    setSendError("");
+    if (!myUid || !selected.uid) {
+      setSendError("Couldn't identify your account or the faculty's account. Try refreshing the page.");
+      console.error("Cannot send: missing uid", {myUid, selectedUid: selected.uid});
+      return;
+    }
     setSending(true);
     const text = msg.trim();
     setMsg("");
@@ -8068,11 +8076,12 @@ function StudentMessaging({ user }) {
       await sendMessage(convId, {
         text, senderUid: myUid, senderName: user?.name||"Student",
         participantUids: [myUid, selected.uid],
-        participantNames: { [myUid]: user?.name||"Student", [selected.uid]: selected.name },
+        participantNames: { [myUid]: user?.name||"Student", [selected.uid]: selected.name||"Faculty" },
       });
       await pushNotification(selected.uid, { text: `New message from ${user?.name||"a student"}: "${text.slice(0,60)}"`, type: "message" });
     } catch (e) {
       console.error("Send message failed:", e);
+      setSendError(e.message || "Failed to send message.");
     } finally {
       setSending(false);
     }
@@ -8160,6 +8169,11 @@ function StudentMessaging({ user }) {
               })}
               <div ref={msgEnd}/>
             </div>
+            {sendError && (
+              <div style={{padding:"8px 16px",background:"#fee2e2",borderTop:"1px solid #fca5a5",color:"#dc2626",fontSize:12,fontWeight:600}}>
+                ⚠️ {sendError}
+              </div>
+            )}
             <div style={{padding:"12px 16px",borderTop:"1px solid #f1f5f9",display:"flex",gap:8}}>
               <input value={msg} onChange={e=>setMsg(e.target.value)}
                 onKeyDown={e=>{ if(e.key==="Enter"&&!e.shiftKey){ e.preventDefault(); sendMsg(); }}}
@@ -8260,6 +8274,14 @@ function FacultyMessaging({ user }) {
         <div style={{fontSize:40,marginBottom:10}}>📭</div>
         <div style={{fontWeight:700,fontSize:14,color:"#0f172a",marginBottom:4}}>No messages yet</div>
         <div style={{fontSize:12,color:"#94a3b8"}}>When a student messages you, the conversation will appear here in real time.</div>
+        <details style={{marginTop:20,textAlign:"left",fontSize:11,color:"#94a3b8",background:"#f8fafc",borderRadius:8,padding:"10px 14px"}}>
+          <summary style={{cursor:"pointer",fontWeight:600}}>🔧 Debug info (tap to expand)</summary>
+          <div style={{marginTop:8,fontFamily:"monospace"}}>
+            <div>My UID: {myUid || "❌ MISSING — this is the problem if blank"}</div>
+            <div>My name: {user?.name || "—"}</div>
+            <div>My email: {user?.email || "—"}</div>
+          </div>
+        </details>
       </div>
     );
   }
@@ -8771,7 +8793,11 @@ export default function App() {
             <button onClick={()=>{setNotifOpen(o=>!o);setAcademicOpen(false);setServicesOpen(false);}}
               style={{width:36,height:36,borderRadius:10,background:"#f8fafc",border:"1px solid #e2e8f0",display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",fontSize:16,position:"relative"}}>
               🔔
-              {unreadCount>0&&<span style={{position:"absolute",top:4,right:4,width:8,height:8,background:"#ef4444",borderRadius:"50%",border:"2px solid #fff"}}/>}
+              {unreadCount>0&&(
+                <span style={{position:"absolute",top:-2,right:-2,minWidth:16,height:16,padding:"0 3px",background:"#ef4444",borderRadius:10,border:"2px solid #fff",color:"#fff",fontSize:10,fontWeight:700,display:"flex",alignItems:"center",justifyContent:"center"}}>
+                  {unreadCount>99?"99+":unreadCount}
+                </span>
+              )}
             </button>
             {notifOpen&&(
               <div style={{position:"absolute",right:0,top:44,width:320,background:"#fff",border:"1px solid #e2e8f0",borderRadius:12,boxShadow:"0 8px 32px rgba(0,0,0,0.12)",zIndex:300,maxHeight:400,overflowY:"auto"}}>
@@ -8782,13 +8808,14 @@ export default function App() {
                 {notifs.length===0 && (
                   <div style={{padding:"30px 14px",textAlign:"center",color:"#94a3b8",fontSize:12}}>No notifications yet.</div>
                 )}
-                {notifs.map(n=>{
+                {notifs.map((n,idx)=>{
                   const isRead = n.read||readNotifs.includes(n.id);
                   const iconMap = {marks:"📊",leave:"📋",assignment:"📝",placement:"💼",library:"📚",research:"🔬",attendance:"✅",message:"✉️"};
                   return (
                     <div key={n.id} onClick={()=>{ setReadNotifs(p=>[...p,n.id]); if(uid) markNotificationRead(uid,n.id); }}
                       style={{padding:"10px 14px",borderBottom:"1px solid #f8fafc",background:isRead?"#fff":"#f0f4ff",cursor:"pointer"}}>
                       <div style={{display:"flex",gap:10,alignItems:"flex-start"}}>
+                        <span style={{fontSize:11,fontWeight:700,color:"#94a3b8",flexShrink:0,width:16,textAlign:"center",marginTop:2}}>{idx+1}</span>
                         <span style={{fontSize:16,flexShrink:0}}>{iconMap[n.type]||"📌"}</span>
                         <div style={{flex:1}}>
                           <div style={{fontSize:12,fontWeight:isRead?400:600,color:"#334155"}}>{n.text}</div>
