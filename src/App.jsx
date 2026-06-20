@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import * as XLSX from "xlsx";
 import { FirebaseLogin, RealtimeChat, LiveFeedbackView, LiveFacultyFeedback, useFirebaseAuth, AdminUserApprovals } from "./FirebaseApp.jsx";
 import { logOut, getPendingUsers, enrollStudent, unenrollStudent, subscribeSubjectEnrollments, subscribeMyEnrollments } from "./firebase.js";
 
@@ -2527,6 +2528,62 @@ function FacultyTimetable() {
   );
 }
 
+// ─── Shared file parser: extracts {roll, name, email} rows from CSV or XLSX ──
+// Returns { rows, error } — rows is [] and error is set if something's wrong.
+function extractStudentRows(rawRows) {
+  if (!rawRows || rawRows.length < 2) {
+    return { rows: [], error: "File must have a header row and at least one data row." };
+  }
+  const headers = rawRows[0].map(h => String(h ?? "").trim().toLowerCase().replace(/\s+/g, "_"));
+  const nameCol = headers.findIndex(h => h.includes("name"));
+  const rollCol = headers.findIndex(h => h.includes("roll") || h.includes("reg") || h.includes("id"));
+  const emailCol = headers.findIndex(h => h.includes("email"));
+  if (nameCol === -1 || rollCol === -1) {
+    return { rows: [], error: "File must have 'name' and 'roll/reg' columns in the header row." };
+  }
+  const rows = rawRows.slice(1).map(cols => ({
+    roll: String(cols[rollCol] ?? "").trim() || "—",
+    name: String(cols[nameCol] ?? "").trim() || "—",
+    email: emailCol !== -1 ? String(cols[emailCol] ?? "").trim() : "",
+  })).filter(s => s.name !== "—" && s.roll !== "—");
+  return { rows, error: rows.length === 0 ? "No valid student rows found." : null };
+}
+
+// Parses a File (CSV or XLSX) and returns rows via callback(rows, error)
+function parseStudentFile(file, callback) {
+  if (!file) return;
+  const isCsv = file.name.toLowerCase().endsWith(".csv");
+  const isXlsx = file.name.toLowerCase().endsWith(".xlsx") || file.name.toLowerCase().endsWith(".xls");
+  if (!isCsv && !isXlsx) {
+    callback([], "Please upload a .csv or .xlsx file.");
+    return;
+  }
+  const reader = new FileReader();
+  if (isCsv) {
+    reader.onload = e => {
+      const text = e.target.result;
+      const rawRows = text.trim().split("\n").filter(Boolean).map(line => line.split(","));
+      const { rows, error } = extractStudentRows(rawRows);
+      callback(rows, error);
+    };
+    reader.readAsText(file);
+  } else {
+    reader.onload = e => {
+      try {
+        const data = new Uint8Array(e.target.result);
+        const workbook = XLSX.read(data, { type: "array" });
+        const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+        const rawRows = XLSX.utils.sheet_to_json(firstSheet, { header: 1, defval: "" });
+        const { rows, error } = extractStudentRows(rawRows);
+        callback(rows, error);
+      } catch (err) {
+        callback([], "Could not read this Excel file. Please check the format.");
+      }
+    };
+    reader.readAsArrayBuffer(file);
+  }
+}
+
 function FacultySubjectsView({ faculty }) {
   const [sel, setSel] = useState(null);
   const [modal, setModal] = useState(null);
@@ -2676,26 +2733,11 @@ function FacultySubjectsView({ faculty }) {
 
   const attStatusColor = s => s==="P"?{bg:"#dcfce7",c:"#16a34a"}:s==="A"?{bg:"#fee2e2",c:"#dc2626"}:{bg:"#fef9c3",c:"#ca8a04"};
 
-  // CSV upload — parse and enroll students to currently selected subject via Firestore
-  const parseCsvForSubject = async (text) => {
-    setCsvError(""); setCsvSuccess("");
+  // File upload — parse (CSV or XLSX) and enroll students to currently selected subject via Firestore
+  const enrollParsedRows = async (rows) => {
     if (!sel) { setCsvError("Select a subject first."); return; }
-    const lines = text.trim().split("\n").filter(Boolean);
-    if (lines.length < 2) { setCsvError("CSV must have a header row and at least one data row."); return; }
-    const headers = lines[0].split(",").map(h => h.trim().toLowerCase().replace(/\s+/g,"_"));
-    const nameCol = headers.findIndex(h => h.includes("name"));
-    const rollCol = headers.findIndex(h => h.includes("roll") || h.includes("reg") || h.includes("id"));
-    const emailCol = headers.findIndex(h => h.includes("email"));
-    if (nameCol === -1 || rollCol === -1) { setCsvError("CSV must have 'name' and 'roll/reg' columns."); return; }
     const existingRolls = new Set(students.map(s=>s.roll));
-    const parsed = lines.slice(1).map(line => {
-      const cols = line.split(",").map(c => c.trim());
-      return {
-        roll: cols[rollCol] || "—",
-        name: cols[nameCol] || "—",
-        email: emailCol !== -1 ? (cols[emailCol]||"") : "",
-      };
-    }).filter(s => s.name !== "—" && s.roll !== "—" && !existingRolls.has(s.roll));
+    const parsed = rows.filter(s => !existingRolls.has(s.roll));
     if (parsed.length === 0) { setCsvError("No new students found (duplicates or invalid rows skipped)."); return; }
     try {
       for (const s of parsed) {
@@ -2735,42 +2777,20 @@ function FacultySubjectsView({ faculty }) {
   };
 
   const handleCsvFile = (file) => {
-    if (!file) return;
-    if (!file.name.endsWith(".csv")) { setCsvError("Please upload a .csv file."); return; }
-    const reader = new FileReader();
-    reader.onload = e => parseCsvForSubject(e.target.result);
-    reader.readAsText(file);
+    setCsvError(""); setCsvSuccess("");
+    parseStudentFile(file, (rows, error) => {
+      if (error) { setCsvError(error); return; }
+      enrollParsedRows(rows);
+    });
   };
 
-  // ── Class Roster: parse a whole-class CSV (no subject required), then map afterward ──
-  const parseClassRoster = (text) => {
-    setRosterError(""); setRosterMapResult(null);
-    const lines = text.trim().split("\n").filter(Boolean);
-    if (lines.length < 2) { setRosterError("CSV must have a header row and at least one data row."); return; }
-    const headers = lines[0].split(",").map(h => h.trim().toLowerCase().replace(/\s+/g,"_"));
-    const nameCol = headers.findIndex(h => h.includes("name"));
-    const rollCol = headers.findIndex(h => h.includes("roll") || h.includes("reg") || h.includes("id"));
-    const emailCol = headers.findIndex(h => h.includes("email"));
-    if (nameCol === -1 || rollCol === -1) { setRosterError("CSV must have 'name' and 'roll/reg' (registration) columns."); return; }
-    const parsed = lines.slice(1).map((line, i) => {
-      const cols = line.split(",").map(c => c.trim());
-      return {
-        id: i,
-        roll: cols[rollCol] || "—",
-        name: cols[nameCol] || "—",
-        email: emailCol !== -1 ? (cols[emailCol]||"") : "",
-      };
-    }).filter(s => s.name !== "—" && s.roll !== "—");
-    if (parsed.length === 0) { setRosterError("No valid student rows found in this CSV."); return; }
-    setRosterStudents(parsed);
-  };
-
+  // ── Class Roster: parse a whole-class CSV/XLSX (no subject required), then map afterward ──
   const handleRosterFile = (file) => {
-    if (!file) return;
-    if (!file.name.endsWith(".csv")) { setRosterError("Please upload a .csv file."); return; }
-    const reader = new FileReader();
-    reader.onload = e => parseClassRoster(e.target.result);
-    reader.readAsText(file);
+    setRosterError(""); setRosterMapResult(null);
+    parseStudentFile(file, (rows, error) => {
+      if (error) { setRosterError(error); return; }
+      setRosterStudents(rows.map((r,i)=>({ ...r, id:i })));
+    });
   };
 
   const toggleRosterSubject = (code) => {
@@ -2820,10 +2840,10 @@ function FacultySubjectsView({ faculty }) {
                 onClick={()=>document.getElementById("faculty-csv-input").click()}
                 style={{border:"2px dashed #e2e8f0",borderRadius:10,padding:"28px 20px",textAlign:"center",background:"#fafafa",cursor:"pointer",transition:"all .2s"}}>
                 <div style={{fontSize:36,marginBottom:8}}>📂</div>
-                <div style={{fontWeight:600,color:"#334155",fontSize:14,marginBottom:4}}>Drag & Drop CSV file here</div>
-                <div style={{fontSize:12,color:"#94a3b8",marginBottom:14}}>or click to browse · Columns: Name, Roll/Reg No, Email (optional)</div>
+                <div style={{fontWeight:600,color:"#334155",fontSize:14,marginBottom:4}}>Drag & Drop CSV or Excel file here</div>
+                <div style={{fontSize:12,color:"#94a3b8",marginBottom:14}}>or click to browse · .csv or .xlsx · Columns: Name, Roll/Reg No, Email (optional)</div>
                 <button style={{padding:"8px 20px",background:"linear-gradient(135deg,#6366f1,#8b5cf6)",color:"#fff",border:"none",borderRadius:8,fontWeight:600,cursor:"pointer",fontSize:13}}>Choose File</button>
-                <input id="faculty-csv-input" type="file" accept=".csv" style={{display:"none"}} onChange={e=>handleCsvFile(e.target.files[0])}/>
+                <input id="faculty-csv-input" type="file" accept=".csv,.xlsx,.xls" style={{display:"none"}} onChange={e=>handleCsvFile(e.target.files[0])}/>
               </div>
               {csvError && <div style={{marginTop:12,background:"#fee2e2",border:"1px solid #fca5a5",borderRadius:8,padding:"8px 12px",color:"#dc2626",fontSize:12,fontWeight:600}}>{csvError}</div>}
               {csvSuccess && <div style={{marginTop:12,background:"#dcfce7",border:"1px solid #86efac",borderRadius:8,padding:"8px 12px",color:"#16a34a",fontSize:12,fontWeight:600}}>{csvSuccess}</div>}
@@ -2957,10 +2977,10 @@ function FacultySubjectsView({ faculty }) {
                     onClick={()=>document.getElementById("roster-csv-input").click()}
                     style={{border:"2px dashed #e2e8f0",borderRadius:10,padding:"32px 20px",textAlign:"center",background:"#fafafa",cursor:"pointer"}}>
                     <div style={{fontSize:40,marginBottom:8}}>📂</div>
-                    <div style={{fontWeight:600,color:"#334155",fontSize:14,marginBottom:4}}>Drag & Drop Whole-Class CSV here</div>
-                    <div style={{fontSize:12,color:"#94a3b8",marginBottom:14}}>Columns: Name, Roll/Registration No., Email (optional) — works for an entire class, no subject needed yet</div>
+                    <div style={{fontWeight:600,color:"#334155",fontSize:14,marginBottom:4}}>Drag & Drop Whole-Class CSV or Excel here</div>
+                    <div style={{fontSize:12,color:"#94a3b8",marginBottom:14}}>.csv or .xlsx · Columns: Name, Roll/Registration No., Email (optional) — works for an entire class, no subject needed yet</div>
                     <button style={{padding:"8px 20px",background:"linear-gradient(135deg,#10b981,#059669)",color:"#fff",border:"none",borderRadius:8,fontWeight:600,cursor:"pointer",fontSize:13}}>Choose File</button>
-                    <input id="roster-csv-input" type="file" accept=".csv" style={{display:"none"}} onChange={e=>handleRosterFile(e.target.files[0])}/>
+                    <input id="roster-csv-input" type="file" accept=".csv,.xlsx,.xls" style={{display:"none"}} onChange={e=>handleRosterFile(e.target.files[0])}/>
                   </div>
                   {rosterError && <div style={{marginTop:12,background:"#fee2e2",border:"1px solid #fca5a5",borderRadius:8,padding:"8px 12px",color:"#dc2626",fontSize:12,fontWeight:600}}>{rosterError}</div>}
                 </>
