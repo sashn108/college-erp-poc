@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import * as XLSX from "xlsx";
 import { FirebaseLogin, RealtimeChat, LiveFeedbackView, LiveFacultyFeedback, useFirebaseAuth, AdminUserApprovals } from "./FirebaseApp.jsx";
-import { logOut, getPendingUsers, enrollStudent, unenrollStudent, subscribeSubjectEnrollments, subscribeMyEnrollments, subscribeApprovedFaculty, sendMessage, subscribeToMessages, pushNotification, subscribeNotifications, markNotificationRead, markAllNotificationsRead, subscribeMyConversations } from "./firebase.js";
+import { logOut, getPendingUsers, enrollStudent, unenrollStudent, subscribeSubjectEnrollments, subscribeMyEnrollments, subscribeApprovedFaculty, sendMessage, subscribeToMessages, pushNotification, subscribeNotifications, markNotificationRead, markAllNotificationsRead, subscribeMyConversations, createAssignment, subscribeSubjectAssignments, subscribeAssignmentsForSubjects, sendBulkMessageToSubject, addFacultySubject, removeFacultySubject, subscribeFacultySubjects, fetchMyBulkMessageLog } from "./firebase.js";
 
 // ─── Odisha Holidays 2026 ─────────────────────────────────────────────────────
 const ODISHA_HOLIDAYS = {
@@ -1843,34 +1843,84 @@ function FeeView() {
 }
 
 // ─── Assignments View ─────────────────────────────────────────────────────────
-function AssignmentsView({ role }) {
-  const [assignments, setAssignments] = useState([
-    {id:1,sub:"DBMS",title:"ER Diagram for Hospital DB",due:"2026-06-20",marks:20,status:"Pending",desc:"Design a complete ER diagram for a hospital management system including entities, relationships, and cardinalities."},
-    {id:2,sub:"OS",title:"CPU Scheduling Algorithms",due:"2026-06-18",marks:15,status:"Submitted",desc:"Implement FCFS, SJF, and Round Robin scheduling algorithms in C and compare their performance."},
-    {id:3,sub:"CN",title:"Subnetting Practice",due:"2026-06-08",marks:10,status:"Evaluated",score:9,desc:"Solve 10 subnetting problems for Class B and Class C networks."},
-    {id:4,sub:"TOC",title:"NFA to DFA Conversion",due:"2026-06-25",marks:25,status:"Pending",desc:"Convert given NFA to equivalent DFA using subset construction method."},
-  ]);
+function AssignmentsView({ role, auth }) {
+  const myUid = auth?.uid || auth?.id;
+  const [facultySubjects, setFacultySubjects] = useState([]);
+  const [myEnrollments, setMyEnrollments] = useState([]);
+  const [assignments, setAssignments] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
-  const [bulkForm, setBulkForm] = useState({title:"",subjects:[],desc:"",due:"",marks:"",sendToAll:true});
-  const [bulkDone, setBulkDone] = useState(false);
+  const [bulkForm, setBulkForm] = useState({title:"",subjects:[],desc:"",due:"",marks:""});
+  const [bulkDone, setBulkDone] = useState(null);
+  const [bulkErr, setBulkErr] = useState("");
+  const [bulkSending, setBulkSending] = useState(false);
   const [detail, setDetail] = useState(null);
-  const subjects = ["DBMS","OS","CN","TOC","SE","DS","ALGO"];
 
   const isFaculty = role === "faculty";
 
-  const toggleSubject = (s) => {
-    setBulkForm(f=>({...f,subjects:f.subjects.includes(s)?f.subjects.filter(x=>x!==s):[...f.subjects,s]}));
+  // Faculty: load their own real subjects
+  useEffect(() => {
+    if (!isFaculty || !myUid) return;
+    const unsub = subscribeFacultySubjects(myUid, setFacultySubjects, ()=>{});
+    return () => unsub();
+  }, [isFaculty, myUid]);
+
+  // Student: load their real enrollments to know which subjects' assignments to show
+  useEffect(() => {
+    if (isFaculty) return;
+    const unsub = subscribeMyEnrollments(auth?.email, auth?.rollOrId || auth?.roll, setMyEnrollments, ()=>{});
+    return () => unsub();
+  }, [isFaculty, auth?.email, auth?.rollOrId, auth?.roll]);
+
+  // Faculty: show assignments they created across all their subjects (merge per-subject subscriptions)
+  useEffect(() => {
+    if (!isFaculty || facultySubjects.length === 0) { setAssignments([]); setLoading(false); return; }
+    setLoading(true);
+    const unsubs = facultySubjects.map(s =>
+      subscribeSubjectAssignments(s.code, (rows) => {
+        setAssignments(prev => {
+          const others = prev.filter(a => a.subjectCode !== s.code);
+          return [...others, ...rows];
+        });
+        setLoading(false);
+      }, ()=>setLoading(false))
+    );
+    return () => unsubs.forEach(u=>u());
+  }, [isFaculty, facultySubjects.map(s=>s.code).join(",")]);
+
+  // Student: show assignments for subjects they're enrolled in
+  useEffect(() => {
+    if (isFaculty) return;
+    const codes = myEnrollments.map(e=>e.subjectCode);
+    if (codes.length === 0) { setAssignments([]); setLoading(false); return; }
+    const unsub = subscribeAssignmentsForSubjects(codes, (rows) => { setAssignments(rows); setLoading(false); }, ()=>setLoading(false));
+    return () => unsub();
+  }, [isFaculty, myEnrollments.map(e=>e.subjectCode).join(",")]);
+
+  const toggleSubject = (code) => {
+    setBulkForm(f=>({...f,subjects:f.subjects.includes(code)?f.subjects.filter(x=>x!==code):[...f.subjects,code]}));
   };
 
-  const createBulk = () => {
+  const createBulk = async () => {
     if (!bulkForm.title || !bulkForm.due || bulkForm.subjects.length === 0) return;
-    const newAssignments = bulkForm.subjects.map((sub,i) => ({
-      id: Date.now()+i, sub, title:bulkForm.title, due:bulkForm.due,
-      marks:parseInt(bulkForm.marks)||10, status:"Pending", desc:bulkForm.desc
-    }));
-    setAssignments(p=>[...p,...newAssignments]);
-    setBulkDone(true);
-    setTimeout(()=>{ setBulkDone(false); setShowCreate(false); setBulkForm({title:"",subjects:[],desc:"",due:"",marks:"",sendToAll:true}); }, 1800);
+    setBulkSending(true); setBulkErr(""); setBulkDone(null);
+    try {
+      let totalDelivered = 0, totalRecipients = 0;
+      for (const code of bulkForm.subjects) {
+        const subj = facultySubjects.find(s=>s.code===code);
+        if (!subj) continue;
+        const result = await createAssignment(code, subj.name, myUid, auth?.name, {
+          title: bulkForm.title, desc: bulkForm.desc, due: bulkForm.due, marks: parseInt(bulkForm.marks)||10,
+        });
+        totalDelivered += result.delivered; totalRecipients += result.recipientCount;
+      }
+      setBulkDone({ subjectCount: bulkForm.subjects.length, totalRecipients, totalDelivered });
+      setTimeout(()=>{ setBulkDone(null); setShowCreate(false); setBulkForm({title:"",subjects:[],desc:"",due:"",marks:""}); }, 2400);
+    } catch (e) {
+      setBulkErr(e.message || "Failed to create assignment.");
+    } finally {
+      setBulkSending(false);
+    }
   };
 
   const getDueStatus = (due) => {
@@ -1886,40 +1936,46 @@ function AssignmentsView({ role }) {
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
         <div style={{fontSize:18,fontWeight:700,color:"#0f172a"}}>📝 Assignments</div>
         {isFaculty && (
-          <button onClick={()=>setShowCreate(true)}
+          <button onClick={()=>{setShowCreate(true);setBulkErr("");}}
             style={{padding:"8px 18px",background:"linear-gradient(135deg,#6366f1,#8b5cf6)",color:"#fff",border:"none",borderRadius:8,fontWeight:600,cursor:"pointer",fontSize:13,display:"flex",alignItems:"center",gap:6}}>
             📤 Bulk Create Assignment
           </button>
         )}
       </div>
-      <div style={{display:"grid",gap:12}}>
-        {assignments.map(a => {
-          const due = getDueStatus(a.due);
-          return (
-            <div key={a.id} style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:12,padding:"14px 16px",display:"flex",alignItems:"center",gap:14,cursor:"pointer",transition:"box-shadow .15s"}}
-              onClick={()=>setDetail(a)}
-              onMouseEnter={e=>e.currentTarget.style.boxShadow="0 4px 16px rgba(99,102,241,0.12)"}
-              onMouseLeave={e=>e.currentTarget.style.boxShadow="none"}>
-              <div style={{width:44,height:44,borderRadius:10,background:"#eef2ff",display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,flexShrink:0}}>📋</div>
-              <div style={{flex:1}}>
-                <div style={{fontWeight:700,color:"#0f172a",fontSize:14}}>{a.title}</div>
-                <div style={{fontSize:12,color:"#6366f1",fontWeight:600,marginTop:2}}>{a.sub}</div>
+
+      {loading ? (
+        <div style={{padding:"40px",textAlign:"center",color:"#94a3b8",fontSize:13}}>Loading assignments...</div>
+      ) : assignments.length === 0 ? (
+        <div style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:12,padding:"40px 20px",textAlign:"center"}}>
+          <div style={{fontSize:40,marginBottom:10}}>📭</div>
+          <div style={{fontWeight:700,fontSize:14,color:"#0f172a",marginBottom:4}}>No assignments yet</div>
+          <div style={{fontSize:12,color:"#94a3b8"}}>
+            {isFaculty ? "Create one for any of your subjects using the button above." : "Assignments from your enrolled subjects will appear here."}
+          </div>
+        </div>
+      ) : (
+        <div style={{display:"grid",gap:12}}>
+          {assignments.map(a => {
+            const due = getDueStatus(a.due);
+            return (
+              <div key={a.id} style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:12,padding:"14px 16px",display:"flex",alignItems:"center",gap:14,cursor:"pointer",transition:"box-shadow .15s"}}
+                onClick={()=>setDetail(a)}
+                onMouseEnter={e=>e.currentTarget.style.boxShadow="0 4px 16px rgba(99,102,241,0.12)"}
+                onMouseLeave={e=>e.currentTarget.style.boxShadow="none"}>
+                <div style={{width:44,height:44,borderRadius:10,background:"#eef2ff",display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,flexShrink:0}}>📋</div>
+                <div style={{flex:1}}>
+                  <div style={{fontWeight:700,color:"#0f172a",fontSize:14}}>{a.title}</div>
+                  <div style={{fontSize:12,color:"#6366f1",fontWeight:600,marginTop:2}}>{a.subjectCode} — {a.subjectName}</div>
+                </div>
+                <div style={{textAlign:"right",flexShrink:0}}>
+                  <span style={{padding:"3px 10px",borderRadius:8,fontSize:11,fontWeight:700,background:due.bg,color:due.color}}>{due.label}</span>
+                  <div style={{fontSize:11,color:"#94a3b8",marginTop:4}}>Max: {a.marks} marks</div>
+                </div>
               </div>
-              <div style={{textAlign:"right",flexShrink:0}}>
-                <span style={{padding:"3px 10px",borderRadius:8,fontSize:11,fontWeight:700,background:due.bg,color:due.color}}>{due.label}</span>
-                <div style={{fontSize:11,color:"#94a3b8",marginTop:4}}>Max: {a.marks} marks</div>
-              </div>
-              <div style={{flexShrink:0}}>
-                <span style={{padding:"3px 10px",borderRadius:8,fontSize:11,fontWeight:700,
-                  background:a.status==="Submitted"?"#e8f0ff":a.status==="Evaluated"?"#dcfce7":"#fff8e1",
-                  color:a.status==="Submitted"?"#6366f1":a.status==="Evaluated"?"#16a34a":"#f59e0b"}}>
-                  {a.status==="Evaluated"?`✅ ${a.score}/${a.marks}`:a.status}
-                </span>
-              </div>
-            </div>
-          );
-        })}
-      </div>
+            );
+          })}
+        </div>
+      )}
 
       {/* Detail Modal */}
       {detail && (
@@ -1927,27 +1983,21 @@ function AssignmentsView({ role }) {
           <div style={{background:"#fff",borderRadius:14,width:520,overflow:"hidden",boxShadow:"0 20px 60px rgba(0,0,0,0.25)"}} onClick={e=>e.stopPropagation()}>
             <div style={{background:"linear-gradient(135deg,#6366f1,#8b5cf6)",padding:"16px 20px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
               <div><div style={{color:"#fff",fontWeight:700,fontSize:15}}>{detail.title}</div>
-              <div style={{color:"rgba(255,255,255,0.8)",fontSize:12,marginTop:2}}>{detail.sub} · Max {detail.marks} marks</div></div>
+              <div style={{color:"rgba(255,255,255,0.8)",fontSize:12,marginTop:2}}>{detail.subjectCode} — {detail.subjectName} · Max {detail.marks} marks</div></div>
               <button onClick={()=>setDetail(null)} style={{background:"rgba(255,255,255,0.2)",border:"none",borderRadius:6,color:"#fff",width:28,height:28,cursor:"pointer",fontSize:16}}>✕</button>
             </div>
             <div style={{padding:"20px 24px"}}>
-              <div style={{fontSize:13,color:"#475569",lineHeight:1.7,marginBottom:16}}>{detail.desc}</div>
+              <div style={{fontSize:13,color:"#475569",lineHeight:1.7,marginBottom:16}}>{detail.desc || "No additional instructions provided."}</div>
               <div style={{display:"flex",gap:12,marginBottom:18}}>
                 <div style={{flex:1,background:"#f8fafc",borderRadius:8,padding:"10px 14px"}}>
                   <div style={{fontSize:11,color:"#94a3b8",fontWeight:600}}>DEADLINE</div>
                   <div style={{fontSize:13,fontWeight:700,color:"#0f172a",marginTop:2}}>{new Date(detail.due).toLocaleDateString("en-GB",{day:"numeric",month:"long",year:"numeric"})}</div>
                 </div>
                 <div style={{flex:1,background:"#f8fafc",borderRadius:8,padding:"10px 14px"}}>
-                  <div style={{fontSize:11,color:"#94a3b8",fontWeight:600}}>STATUS</div>
-                  <div style={{fontSize:13,fontWeight:700,color:"#6366f1",marginTop:2}}>{detail.status}</div>
+                  <div style={{fontSize:11,color:"#94a3b8",fontWeight:600}}>{isFaculty?"CREATED":"FACULTY"}</div>
+                  <div style={{fontSize:13,fontWeight:700,color:"#6366f1",marginTop:2}}>{isFaculty?new Date(detail.createdAt).toLocaleDateString("en-GB",{day:"numeric",month:"short"}):detail.facultyName}</div>
                 </div>
               </div>
-              {detail.status === "Pending" && (
-                <button onClick={()=>{ setAssignments(p=>p.map(a=>a.id===detail.id?{...a,status:"Submitted"}:a)); setDetail(null); }}
-                  style={{width:"100%",padding:"10px",background:"linear-gradient(135deg,#6366f1,#8b5cf6)",color:"#fff",border:"none",borderRadius:8,fontWeight:600,cursor:"pointer",fontSize:14}}>
-                  📎 Upload Submission
-                </button>
-              )}
             </div>
           </div>
         </div>
@@ -1964,8 +2014,14 @@ function AssignmentsView({ role }) {
             {bulkDone ? (
               <div style={{padding:"40px",textAlign:"center"}}>
                 <div style={{fontSize:48,marginBottom:12}}>✅</div>
-                <div style={{fontWeight:700,fontSize:16,color:"#0f172a"}}>Assignments Created!</div>
-                <div style={{fontSize:13,color:"#64748b",marginTop:6}}>Sent to all students in selected subjects.</div>
+                <div style={{fontWeight:700,fontSize:16,color:"#0f172a"}}>Assignment Created!</div>
+                <div style={{fontSize:13,color:"#64748b",marginTop:6}}>
+                  Sent to {bulkDone.subjectCount} subject{bulkDone.subjectCount!==1?"s":""} — {bulkDone.totalRecipients} enrolled student{bulkDone.totalRecipients!==1?"s":""}, {bulkDone.totalDelivered} notified instantly (others will see it next time they open Assignments).
+                </div>
+              </div>
+            ) : facultySubjects.length === 0 ? (
+              <div style={{padding:"30px 22px",textAlign:"center",color:"#94a3b8",fontSize:13}}>
+                You have no subjects yet. Add a subject in "Subjects & Students" first, then come back here.
               </div>
             ) : (
               <div style={{padding:"20px 22px",display:"grid",gap:14}}>
@@ -1976,12 +2032,12 @@ function AssignmentsView({ role }) {
                     style={{width:"100%",boxSizing:"border-box",padding:"9px 12px",border:"1px solid #e2e8f0",borderRadius:8,fontSize:13,outline:"none",fontFamily:"inherit"}}/>
                 </div>
                 <div>
-                  <label style={{fontSize:11,fontWeight:700,color:"#475569",display:"block",marginBottom:6}}>SELECT SUBJECTS * <span style={{fontSize:10,color:"#94a3b8",fontWeight:400}}>(select multiple)</span></label>
+                  <label style={{fontSize:11,fontWeight:700,color:"#475569",display:"block",marginBottom:6}}>SELECT YOUR SUBJECTS * <span style={{fontSize:10,color:"#94a3b8",fontWeight:400}}>(select multiple)</span></label>
                   <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
-                    {subjects.map(s=>(
-                      <button key={s} onClick={()=>toggleSubject(s)}
-                        style={{padding:"5px 14px",border:`1px solid ${bulkForm.subjects.includes(s)?"#6366f1":"#e2e8f0"}`,borderRadius:20,fontSize:12,fontWeight:600,cursor:"pointer",background:bulkForm.subjects.includes(s)?"#eef2ff":"#fff",color:bulkForm.subjects.includes(s)?"#6366f1":"#475569",transition:"all .15s"}}>
-                        {s}
+                    {facultySubjects.map(s=>(
+                      <button key={s.code} onClick={()=>toggleSubject(s.code)}
+                        style={{padding:"5px 14px",border:`1px solid ${bulkForm.subjects.includes(s.code)?"#6366f1":"#e2e8f0"}`,borderRadius:20,fontSize:12,fontWeight:600,cursor:"pointer",background:bulkForm.subjects.includes(s.code)?"#eef2ff":"#fff",color:bulkForm.subjects.includes(s.code)?"#6366f1":"#475569",transition:"all .15s"}}>
+                        {s.code}
                       </button>
                     ))}
                   </div>
@@ -2006,11 +2062,12 @@ function AssignmentsView({ role }) {
                     style={{width:"100%",boxSizing:"border-box",padding:"9px 12px",border:"1px solid #e2e8f0",borderRadius:8,fontSize:13,outline:"none",resize:"vertical",fontFamily:"inherit"}}/>
                 </div>
                 <div style={{background:"#f0f4ff",borderRadius:8,padding:"10px 12px",fontSize:12,color:"#6366f1",fontWeight:600}}>
-                  📢 Will be sent to ALL students in: {bulkForm.subjects.length > 0 ? bulkForm.subjects.join(", ") : "no subjects selected"}
+                  📢 Will be sent to all students enrolled in: {bulkForm.subjects.length > 0 ? bulkForm.subjects.join(", ") : "no subjects selected"}
                 </div>
-                <button onClick={createBulk} disabled={!bulkForm.title||!bulkForm.due||bulkForm.subjects.length===0}
-                  style={{padding:"11px",background:(!bulkForm.title||!bulkForm.due||bulkForm.subjects.length===0)?"#c7d2fe":"linear-gradient(135deg,#6366f1,#8b5cf6)",color:"#fff",border:"none",borderRadius:8,fontWeight:700,cursor:(!bulkForm.title||!bulkForm.due||bulkForm.subjects.length===0)?"not-allowed":"pointer",fontSize:14}}>
-                  🚀 Create & Send to All Students
+                {bulkErr && <div style={{background:"#fee2e2",border:"1px solid #fca5a5",borderRadius:8,padding:"8px 12px",color:"#dc2626",fontSize:12,fontWeight:600}}>{bulkErr}</div>}
+                <button onClick={createBulk} disabled={!bulkForm.title||!bulkForm.due||bulkForm.subjects.length===0||bulkSending}
+                  style={{padding:"11px",background:(!bulkForm.title||!bulkForm.due||bulkForm.subjects.length===0||bulkSending)?"#c7d2fe":"linear-gradient(135deg,#6366f1,#8b5cf6)",color:"#fff",border:"none",borderRadius:8,fontWeight:700,cursor:(!bulkForm.title||!bulkForm.due||bulkForm.subjects.length===0||bulkSending)?"not-allowed":"pointer",fontSize:14}}>
+                  {bulkSending?"⏳ Creating...":"🚀 Create & Send to Enrolled Students"}
                 </button>
               </div>
             )}
@@ -2665,31 +2722,52 @@ function FacultySubjectsView({ faculty }) {
     ],
   };
 
-  const [subjects, setSubjects] = useState([
+  const SEED_SUBJECTS = [
     {code:"CS301",name:"Database Management Systems",class:"CSE 5A",type:"Theory"},
     {code:"CS301L",name:"DBMS Lab",class:"CSE 5B",type:"Lab"},
     {code:"CS302",name:"Operating Systems",class:"CSE 5C",type:"Theory"},
     {code:"CS499",name:"Final Year Project",class:"CSE 7A",type:"Project"},
-  ]);
+  ];
+  const [realSubjects, setRealSubjects] = useState([]);
+  const [subjectsLoaded, setSubjectsLoaded] = useState(false);
+  const myFacultyUid = faculty?.uid || faculty?.id;
+
+  useEffect(() => {
+    if (!myFacultyUid) return;
+    const unsub = subscribeFacultySubjects(myFacultyUid,
+      (rows) => { setRealSubjects(rows); setSubjectsLoaded(true); },
+      () => setSubjectsLoaded(true)
+    );
+    return () => unsub();
+  }, [myFacultyUid]);
+
+  // Show seed demo subjects only until the faculty has added at least one real subject
+  const subjects = realSubjects.length > 0 ? realSubjects : SEED_SUBJECTS;
+
   const [showAddSubject, setShowAddSubject] = useState(false);
   const [newSubject, setNewSubject] = useState({code:"",name:"",class:"",type:"Theory"});
   const [addSubjectErr, setAddSubjectErr] = useState("");
   const [confirmDeleteSubject, setConfirmDeleteSubject] = useState(null);
 
-  const handleAddSubject = () => {
+  const handleAddSubject = async () => {
     setAddSubjectErr("");
     const code = newSubject.code.trim().toUpperCase();
     const name = newSubject.name.trim();
     const cls = newSubject.class.trim();
     if (!code || !name || !cls) { setAddSubjectErr("Subject code, name, and class/batch are all required."); return; }
     if (subjects.some(s=>s.code===code)) { setAddSubjectErr(`Subject code "${code}" already exists in your list.`); return; }
-    setSubjects(prev=>[...prev, {code, name, class:cls, type:newSubject.type}]);
-    setNewSubject({code:"",name:"",class:"",type:"Theory"});
-    setShowAddSubject(false);
+    try {
+      await addFacultySubject(myFacultyUid, {code, name, class:cls, type:newSubject.type});
+      setNewSubject({code:"",name:"",class:"",type:"Theory"});
+      setShowAddSubject(false);
+    } catch (e) {
+      setAddSubjectErr(e.message || "Failed to add subject.");
+    }
   };
 
-  const handleDeleteSubject = (code) => {
-    setSubjects(prev=>prev.filter(s=>s.code!==code));
+  const handleDeleteSubject = async (code) => {
+    const subj = realSubjects.find(s=>s.code===code);
+    if (subj?.id) await removeFacultySubject(subj.id);
     if (sel?.code===code) setSel(null);
     setConfirmDeleteSubject(null);
   };
@@ -6601,8 +6679,23 @@ function RealTimeAttendanceView() {
 }
 
 // ─── Phase 2: Bulk Messaging (Faculty/Admin) ──────────────────────────────────
-function BulkMessagingView({ role }) {
+function BulkMessagingView({ role, auth }) {
   const [tab, setTab] = useState("compose");
+  const myUid = auth?.uid || auth?.id;
+  const [facultySubjects, setFacultySubjects] = useState([]);
+
+  useEffect(() => {
+    if (role !== "faculty" || !myUid) return;
+    const unsub = subscribeFacultySubjects(myUid, setFacultySubjects, ()=>{});
+    return () => unsub();
+  }, [role, myUid]);
+
+  // ── Faculty: real subject-scoped sending ──
+  if (role === "faculty") {
+    return <FacultyBulkMessaging auth={auth} myUid={myUid} facultySubjects={facultySubjects} tab={tab} setTab={setTab}/>;
+  }
+
+  // ── Admin: existing broad-targeting UI (unchanged, not subject-scoped) ──
   const [form, setForm] = useState({to:"all",subject:"",message:"",priority:"normal"});
   const [sent, setSent] = useState(false);
   const [sentLog, setSentLog] = useState([
@@ -6611,22 +6704,16 @@ function BulkMessagingView({ role }) {
     {id:3,to:"All Students",subject:"Exam Hall Ticket Release",time:"Jun 12, 9:00 AM",count:420,priority:"normal"},
   ]);
 
-  const targets = role==="admin" ? [
+  const targets = [
     {value:"all",label:"All Students (420)",icon:"👥"},
     {value:"cse3",label:"CSE 3rd Year (87)",icon:"🎓"},
     {value:"att",label:"Students <75% Attendance (23)",icon:"⚠️"},
     {value:"fee",label:"Fee Defaulters (18)",icon:"💰"},
     {value:"faculty",label:"All Faculty (62)",icon:"🧑‍🏫"},
     {value:"dept",label:"CSE Department — All (149)",icon:"🏛️"},
-  ] : [
-    {value:"all",label:"All My Students (87)",icon:"👥"},
-    {value:"cs301",label:"DBMS Class (43)",icon:"📚"},
-    {value:"cs302",label:"OS Class (38)",icon:"📚"},
-    {value:"att",label:"Absent Today (8)",icon:"⚠️"},
-    {value:"low",label:"Low Attendance (<75%) (15)",icon:"🔴"},
   ];
 
-  const sendMessage = () => {
+  const handleSendAdmin = () => {
     if(!form.subject||!form.message) return;
     const target = targets.find(t=>t.value===form.to);
     const count = parseInt(target.label.match(/\((\d+)\)/)?.[1]||"0");
@@ -6659,7 +6746,6 @@ function BulkMessagingView({ role }) {
             </div>
           ) : (
             <div style={{padding:"20px 22px",display:"grid",gap:14}}>
-              {/* Target audience */}
               <div>
                 <label style={{fontSize:11,fontWeight:700,color:"#475569",display:"block",marginBottom:8}}>SEND TO *</label>
                 <div style={{display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:8}}>
@@ -6672,7 +6758,6 @@ function BulkMessagingView({ role }) {
                   ))}
                 </div>
               </div>
-              {/* Priority */}
               <div>
                 <label style={{fontSize:11,fontWeight:700,color:"#475569",display:"block",marginBottom:6}}>PRIORITY</label>
                 <div style={{display:"flex",gap:8}}>
@@ -6684,21 +6769,18 @@ function BulkMessagingView({ role }) {
                   ))}
                 </div>
               </div>
-              {/* Subject */}
               <div>
                 <label style={{fontSize:11,fontWeight:700,color:"#475569",display:"block",marginBottom:4}}>SUBJECT *</label>
                 <input value={form.subject} onChange={e=>setForm(f=>({...f,subject:e.target.value}))}
                   placeholder="e.g. Assignment Deadline Extended"
                   style={{width:"100%",boxSizing:"border-box",padding:"9px 12px",border:"1px solid #e2e8f0",borderRadius:8,fontSize:13,outline:"none",fontFamily:"inherit"}}/>
               </div>
-              {/* Message */}
               <div>
                 <label style={{fontSize:11,fontWeight:700,color:"#475569",display:"block",marginBottom:4}}>MESSAGE *</label>
                 <textarea value={form.message} onChange={e=>setForm(f=>({...f,message:e.target.value}))} rows={5}
                   placeholder="Type your message here..."
                   style={{width:"100%",boxSizing:"border-box",padding:"9px 12px",border:"1px solid #e2e8f0",borderRadius:8,fontSize:13,outline:"none",resize:"vertical",fontFamily:"inherit"}}/>
               </div>
-              {/* Preview */}
               {form.subject && form.message && (
                 <div style={{background:"#f8fafc",border:"1px solid #e2e8f0",borderRadius:10,padding:"12px 16px"}}>
                   <div style={{fontSize:11,fontWeight:700,color:"#94a3b8",marginBottom:6}}>PREVIEW</div>
@@ -6707,7 +6789,7 @@ function BulkMessagingView({ role }) {
                   <div style={{fontSize:11,color:"#94a3b8",marginTop:6}}>→ To: {targets.find(t=>t.value===form.to)?.label}</div>
                 </div>
               )}
-              <button onClick={sendMessage} disabled={!form.subject||!form.message}
+              <button onClick={handleSendAdmin} disabled={!form.subject||!form.message}
                 style={{padding:"12px",background:(!form.subject||!form.message)?"#e2e8f0":"linear-gradient(135deg,#6366f1,#8b5cf6)",color:(!form.subject||!form.message)?"#94a3b8":"#fff",border:"none",borderRadius:8,fontWeight:700,cursor:(!form.subject||!form.message)?"not-allowed":"pointer",fontSize:14}}>
                 🚀 Send Message
               </button>
@@ -6732,6 +6814,166 @@ function BulkMessagingView({ role }) {
               </div>
             </div>
           ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Faculty Bulk Messaging — real subjects, real recipients ─────────────────
+function FacultyBulkMessaging({ auth, myUid, facultySubjects, tab, setTab }) {
+  const [form, setForm] = useState({subjectCodes:[],subject:"",message:"",priority:"normal"});
+  const [sending, setSending] = useState(false);
+  const [sendErr, setSendErr] = useState("");
+  const [sentResult, setSentResult] = useState(null);
+  const [sentLog, setSentLog] = useState([]);
+  const [loadingLog, setLoadingLog] = useState(true);
+
+  // Load this faculty's sent bulk message history
+  useEffect(() => {
+    if (!myUid) { setLoadingLog(false); return; }
+    let cancelled = false;
+    (async () => {
+      try {
+        const rows = await fetchMyBulkMessageLog(myUid);
+        if (!cancelled) { setSentLog(rows); setLoadingLog(false); }
+      } catch {
+        if (!cancelled) setLoadingLog(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [myUid, sentResult]);
+
+  const toggleSubject = (code) => {
+    setForm(f=>({...f,subjectCodes:f.subjectCodes.includes(code)?f.subjectCodes.filter(c=>c!==code):[...f.subjectCodes,code]}));
+  };
+
+  const handleSend = async () => {
+    if (!form.subject || !form.message || form.subjectCodes.length===0) return;
+    setSending(true); setSendErr(""); setSentResult(null);
+    try {
+      let totalRecipients = 0, totalDelivered = 0;
+      for (const code of form.subjectCodes) {
+        const subj = facultySubjects.find(s=>s.code===code);
+        if (!subj) continue;
+        const result = await sendBulkMessageToSubject(code, subj.name, myUid, auth?.name, form.subject, form.message, form.priority);
+        totalRecipients += result.recipientCount; totalDelivered += result.delivered;
+      }
+      setSentResult({ subjectCount: form.subjectCodes.length, totalRecipients, totalDelivered });
+      setTimeout(()=>{ setSentResult(null); setForm({subjectCodes:[],subject:"",message:"",priority:"normal"}); }, 2400);
+    } catch (e) {
+      setSendErr(e.message || "Failed to send message.");
+    } finally {
+      setSending(false);
+    }
+  };
+
+  return (
+    <div>
+      <div style={{display:"flex",gap:4,background:"#f1f5f9",borderRadius:8,padding:3,marginBottom:14,width:"fit-content"}}>
+        {[["compose","✍️ Compose"],["log","📤 Sent Log"]].map(([t,l])=>(
+          <button key={t} onClick={()=>setTab(t)} style={{padding:"7px 18px",border:"none",borderRadius:6,cursor:"pointer",fontSize:13,fontWeight:600,
+            background:tab===t?"linear-gradient(135deg,#6366f1,#8b5cf6)":"transparent",color:tab===t?"#fff":"#64748b"}}>
+            {l}
+          </button>
+        ))}
+      </div>
+
+      {tab==="compose" && (
+        <div style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:12,overflow:"hidden"}}>
+          <div style={{background:"linear-gradient(135deg,#6366f1,#8b5cf6)",padding:"12px 18px",color:"#fff",fontWeight:700,fontSize:14}}>
+            📢 Message Students Enrolled in Your Subjects
+          </div>
+          {sentResult ? (
+            <div style={{padding:"48px",textAlign:"center"}}>
+              <div style={{fontSize:52,marginBottom:12}}>✅</div>
+              <div style={{fontWeight:700,fontSize:16,color:"#0f172a"}}>Message Sent!</div>
+              <div style={{fontSize:13,color:"#64748b",marginTop:6}}>
+                Sent to {sentResult.subjectCount} subject{sentResult.subjectCount!==1?"s":""} — {sentResult.totalRecipients} enrolled student{sentResult.totalRecipients!==1?"s":""}, {sentResult.totalDelivered} notified instantly.
+              </div>
+            </div>
+          ) : facultySubjects.length === 0 ? (
+            <div style={{padding:"30px 22px",textAlign:"center",color:"#94a3b8",fontSize:13}}>
+              You have no subjects yet. Add a subject in "Subjects & Students" first.
+            </div>
+          ) : (
+            <div style={{padding:"20px 22px",display:"grid",gap:14}}>
+              <div>
+                <label style={{fontSize:11,fontWeight:700,color:"#475569",display:"block",marginBottom:8}}>SEND TO STUDENTS ENROLLED IN *</label>
+                <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+                  {facultySubjects.map(s=>(
+                    <div key={s.code} onClick={()=>toggleSubject(s.code)}
+                      style={{display:"flex",alignItems:"center",gap:8,padding:"8px 14px",border:`2px solid ${form.subjectCodes.includes(s.code)?"#6366f1":"#e2e8f0"}`,borderRadius:10,cursor:"pointer",background:form.subjectCodes.includes(s.code)?"#eef2ff":"#fff",transition:"all .15s"}}>
+                      <span style={{fontSize:12,fontWeight:form.subjectCodes.includes(s.code)?700:500,color:form.subjectCodes.includes(s.code)?"#6366f1":"#334155"}}>{s.code} — {s.name}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <label style={{fontSize:11,fontWeight:700,color:"#475569",display:"block",marginBottom:6}}>PRIORITY</label>
+                <div style={{display:"flex",gap:8}}>
+                  {[["normal","Normal","#6366f1"],["urgent","🚨 Urgent","#ef4444"]].map(([v,l,c])=>(
+                    <button key={v} onClick={()=>setForm(f=>({...f,priority:v}))}
+                      style={{padding:"6px 16px",border:`2px solid ${form.priority===v?c:"#e2e8f0"}`,borderRadius:20,fontSize:12,fontWeight:600,cursor:"pointer",background:form.priority===v?c+"15":"#fff",color:form.priority===v?c:"#64748b",transition:"all .15s"}}>
+                      {l}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <label style={{fontSize:11,fontWeight:700,color:"#475569",display:"block",marginBottom:4}}>SUBJECT LINE *</label>
+                <input value={form.subject} onChange={e=>setForm(f=>({...f,subject:e.target.value}))}
+                  placeholder="e.g. Assignment Deadline Extended"
+                  style={{width:"100%",boxSizing:"border-box",padding:"9px 12px",border:"1px solid #e2e8f0",borderRadius:8,fontSize:13,outline:"none",fontFamily:"inherit"}}/>
+              </div>
+              <div>
+                <label style={{fontSize:11,fontWeight:700,color:"#475569",display:"block",marginBottom:4}}>MESSAGE *</label>
+                <textarea value={form.message} onChange={e=>setForm(f=>({...f,message:e.target.value}))} rows={5}
+                  placeholder="Type your message here..."
+                  style={{width:"100%",boxSizing:"border-box",padding:"9px 12px",border:"1px solid #e2e8f0",borderRadius:8,fontSize:13,outline:"none",resize:"vertical",fontFamily:"inherit"}}/>
+              </div>
+              {form.subject && form.message && form.subjectCodes.length>0 && (
+                <div style={{background:"#f8fafc",border:"1px solid #e2e8f0",borderRadius:10,padding:"12px 16px"}}>
+                  <div style={{fontSize:11,fontWeight:700,color:"#94a3b8",marginBottom:6}}>PREVIEW</div>
+                  <div style={{fontSize:12,fontWeight:700,color:"#0f172a",marginBottom:4}}>📢 {form.subject}</div>
+                  <div style={{fontSize:12,color:"#475569",lineHeight:1.6}}>{form.message}</div>
+                  <div style={{fontSize:11,color:"#94a3b8",marginTop:6}}>→ Students enrolled in: {form.subjectCodes.join(", ")}</div>
+                </div>
+              )}
+              {sendErr && <div style={{background:"#fee2e2",border:"1px solid #fca5a5",borderRadius:8,padding:"8px 12px",color:"#dc2626",fontSize:12,fontWeight:600}}>{sendErr}</div>}
+              <button onClick={handleSend} disabled={!form.subject||!form.message||form.subjectCodes.length===0||sending}
+                style={{padding:"12px",background:(!form.subject||!form.message||form.subjectCodes.length===0||sending)?"#e2e8f0":"linear-gradient(135deg,#6366f1,#8b5cf6)",color:(!form.subject||!form.message||form.subjectCodes.length===0||sending)?"#94a3b8":"#fff",border:"none",borderRadius:8,fontWeight:700,cursor:(!form.subject||!form.message||form.subjectCodes.length===0||sending)?"not-allowed":"pointer",fontSize:14}}>
+                {sending?"⏳ Sending...":"🚀 Send to Enrolled Students"}
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {tab==="log" && (
+        <div style={{display:"flex",flexDirection:"column",gap:10}}>
+          {loadingLog ? (
+            <div style={{padding:"40px",textAlign:"center",color:"#94a3b8",fontSize:13}}>Loading sent log...</div>
+          ) : sentLog.length === 0 ? (
+            <div style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:12,padding:"40px 20px",textAlign:"center",color:"#94a3b8",fontSize:13}}>
+              No bulk messages sent yet.
+            </div>
+          ) : (
+            sentLog.map(m=>(
+              <div key={m.id} style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:10,padding:"14px 16px",display:"flex",gap:14,alignItems:"center"}}>
+                <div style={{width:44,height:44,borderRadius:10,background:"#eef2ff",display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,flexShrink:0}}>📤</div>
+                <div style={{flex:1}}>
+                  <div style={{fontWeight:700,fontSize:13,color:"#0f172a"}}>{m.subject}</div>
+                  <div style={{fontSize:12,color:"#64748b",marginTop:2}}>{m.subjectCode} — {m.subjectName} · {new Date(m.sentAt).toLocaleString("en-GB",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"})}</div>
+                </div>
+                <div style={{textAlign:"right",flexShrink:0}}>
+                  <div style={{fontWeight:700,fontSize:14,color:"#6366f1"}}>{m.recipientCount}</div>
+                  <div style={{fontSize:10,color:"#94a3b8"}}>enrolled</div>
+                  {m.priority==="urgent" && <span style={{fontSize:10,fontWeight:700,color:"#ef4444",background:"#fee2e2",padding:"2px 6px",borderRadius:4}}>URGENT</span>}
+                </div>
+              </div>
+            ))
+          )}
         </div>
       )}
     </div>
@@ -8646,7 +8888,7 @@ export default function App() {
   const studentViews = {
     dashboard:<StudentDashboard user={auth}/>, attendance:<AttendanceView/>,
     analytics:<AttendanceAnalytics/>,
-    exam:<ExamView/>, fee:<FeeView/>, assignments:<AssignmentsView role="student"/>, notices:<NoticesView/>,
+    exam:<ExamView/>, fee:<FeeView/>, assignments:<AssignmentsView role="student" auth={auth}/>, notices:<NoticesView/>,
     timetable:<StudentTimetable/>, papers:<QuestionPapers/>,
     hallticket:<HallTicket user={auth}/>, grievance:<GrievancePortal/>,
     library:<LibraryView/>, placement:<PlacementView/>,
@@ -8662,8 +8904,8 @@ export default function App() {
   };
   const facultyViews = {
     dashboard:<FacultyDashboard user={auth}/>, subjects:<FacultySubjectsView faculty={auth}/>,
-    assignments:<AssignmentsView role="faculty"/>,
-    bulkmessage:<BulkMessagingView role="faculty"/>,
+    assignments:<AssignmentsView role="faculty" auth={auth}/>,
+    bulkmessage:<BulkMessagingView role="faculty" auth={auth}/>,
     messages:<FacultyMessaging user={auth}/>,
     attendanceexport:<AttendanceExport/>,
     facultytimetable:<FacultyTimetable/>,

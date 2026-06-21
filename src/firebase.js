@@ -1,6 +1,6 @@
 import { initializeApp, getApps, deleteApp } from "firebase/app";
 import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged, createUserWithEmailAndPassword } from "firebase/auth";
-import { getFirestore, collection, doc, setDoc, getDoc, addDoc, onSnapshot, query, orderBy, serverTimestamp, updateDoc, where, getDocs } from "firebase/firestore";
+import { getFirestore, collection, doc, setDoc, getDoc, addDoc, onSnapshot, query, orderBy, serverTimestamp, updateDoc, where, getDocs, deleteDoc } from "firebase/firestore";
 
 const firebaseConfig = {
   apiKey: "AIzaSyCTQvdFAqV2yDQLz3Q2nUuIFFV5MWgjXLA",
@@ -159,6 +159,118 @@ export const subscribeSubjectAttendance = (subjectCode, callback, onError) => {
     snap => callback(snap.docs.map(d => ({ id: d.id, ...d.data() }))),
     err => { console.error("subscribeSubjectAttendance error:", err); if (onError) onError(err); }
   );
+};
+
+// ── Faculty subjects (persisted, so they survive reloads and are visible app-wide) ──
+export const addFacultySubject = async (facultyUid, subject) => {
+  const ref = await addDoc(collection(db, "facultySubjects"), {
+    facultyUid, code: subject.code, name: subject.name,
+    class: subject.class, type: subject.type,
+    createdAt: new Date().toISOString(),
+  });
+  return ref.id;
+};
+export const removeFacultySubject = async (docId) => {
+  await setDoc(doc(db, "facultySubjects", docId), { removed: true }, { merge: true });
+};
+export const subscribeFacultySubjects = (facultyUid, callback, onError) => {
+  const q = query(collection(db, "facultySubjects"), where("facultyUid", "==", facultyUid));
+  return onSnapshot(q,
+    snap => callback(snap.docs.map(d => ({ id: d.id, ...d.data() })).filter(s => !s.removed)),
+    err => { console.error("subscribeFacultySubjects error:", err); if (onError) onError(err); }
+  );
+};
+export const createAssignment = async (subjectCode, subjectName, facultyUid, facultyName, assignment) => {
+  const ref = await addDoc(collection(db, "assignments"), {
+    subjectCode, subjectName, facultyUid, facultyName,
+    title: assignment.title, desc: assignment.desc || "",
+    due: assignment.due, marks: assignment.marks || 10,
+    createdAt: new Date().toISOString(),
+  });
+  // Notify enrolled students with resolvable accounts
+  const enrollSnap = await getDocs(query(collection(db, "enrollments"), where("subjectCode", "==", subjectCode)));
+  const students = enrollSnap.docs.map(d => d.data()).filter(e => !e.removed);
+  let delivered = 0;
+  for (const s of students) {
+    let targetUid = null;
+    if (s.studentEmail) {
+      const bySEmail = await getDocs(query(collection(db, "users"), where("email", "==", s.studentEmail)));
+      if (!bySEmail.empty) targetUid = bySEmail.docs[0].id;
+    }
+    if (!targetUid && s.studentRoll) {
+      const byRoll = await getDocs(query(collection(db, "users"), where("rollOrId", "==", s.studentRoll)));
+      if (!byRoll.empty) targetUid = byRoll.docs[0].id;
+    }
+    if (targetUid) {
+      await pushNotification(targetUid, { text: `📝 New assignment in ${subjectName}: ${assignment.title}`, type: "assignment" });
+      delivered++;
+    }
+  }
+  return { id: ref.id, recipientCount: students.length, delivered };
+};
+
+// Faculty-side: live assignments they created for one subject
+export const subscribeSubjectAssignments = (subjectCode, callback, onError) => {
+  const q = query(collection(db, "assignments"), where("subjectCode", "==", subjectCode));
+  return onSnapshot(q,
+    snap => callback(snap.docs.map(d => ({ id: d.id, ...d.data() }))),
+    err => { console.error("subscribeSubjectAssignments error:", err); if (onError) onError(err); }
+  );
+};
+
+// Student-side: live assignments across all subjects they're enrolled in
+export const subscribeAssignmentsForSubjects = (subjectCodes, callback, onError) => {
+  if (!subjectCodes || subjectCodes.length === 0) { callback([]); return () => {}; }
+  // Firestore 'in' queries support up to 30 values, which covers any realistic enrollment count
+  const q = query(collection(db, "assignments"), where("subjectCode", "in", subjectCodes.slice(0, 30)));
+  return onSnapshot(q,
+    snap => callback(snap.docs.map(d => ({ id: d.id, ...d.data() }))),
+    err => { console.error("subscribeAssignmentsForSubjects error:", err); if (onError) onError(err); }
+  );
+};
+
+// ── Bulk messaging to a subject's enrolled students ────────────────────────────
+export const sendBulkMessageToSubject = async (subjectCode, subjectName, facultyUid, facultyName, subject, message, priority) => {
+  // 1. Find all students enrolled in this subject
+  const enrollSnap = await getDocs(query(collection(db, "enrollments"), where("subjectCode", "==", subjectCode)));
+  const students = enrollSnap.docs.map(d => d.data()).filter(e => !e.removed);
+  // 2. Resolve each enrolled student to a real account UID by matching email or roll
+  //    against the users collection (enrollments only store name/roll/email, not uid)
+  let delivered = 0;
+  for (const s of students) {
+    let targetUid = null;
+    if (s.studentEmail) {
+      const bySEmail = await getDocs(query(collection(db, "users"), where("email", "==", s.studentEmail)));
+      if (!bySEmail.empty) targetUid = bySEmail.docs[0].id;
+    }
+    if (!targetUid && s.studentRoll) {
+      const byRoll = await getDocs(query(collection(db, "users"), where("rollOrId", "==", s.studentRoll)));
+      if (!byRoll.empty) targetUid = byRoll.docs[0].id;
+    }
+    if (targetUid) {
+      await pushNotification(targetUid, { text: `📢 ${subject} — ${message.slice(0,80)}`, type: priority==="urgent"?"urgent":"general" });
+      delivered++;
+    }
+  }
+  // 3. Log the bulk send
+  const logRef = await addDoc(collection(db, "bulkMessageLog"), {
+    subjectCode, subjectName, facultyUid, facultyName,
+    subject, message, priority: priority || "normal",
+    recipientCount: students.length, delivered,
+    sentAt: new Date().toISOString(),
+  });
+  return { recipientCount: students.length, delivered, logId: logRef.id };
+};
+
+// Fetch a faculty's own bulk message send history (one-time read, sorted newest first)
+export const fetchMyBulkMessageLog = async (facultyUid) => {
+  const snap = await getDocs(query(collection(db, "bulkMessageLog"), where("facultyUid", "==", facultyUid)));
+  return snap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a,b) => new Date(b.sentAt) - new Date(a.sentAt));
+};
+
+// Delete a broken/malformed user record (e.g. doc ID isn't a real Firebase Auth UID)
+export const deleteBrokenUserRecord = async (docId) => {
+  await deleteDoc(doc(db, "users", docId));
 };
 
 // Student-side: live attendance for this student across all subjects, matched by email or roll

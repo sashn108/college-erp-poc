@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import {
   auth, db, signInWithGoogle, logOut, onAuthStateChanged,
-  saveUserProfile, getUserProfile, getPendingUsers, getAllUsersDebug, adminCreateUser, repairMissingStatus,
+  saveUserProfile, getUserProfile, getPendingUsers, getAllUsersDebug, adminCreateUser, repairMissingStatus, deleteBrokenUserRecord,
   approveUser, rejectUser,
   sendMessage, subscribeToMessages,
   submitFeedback, subscribeFeedbackAggregates,
@@ -245,6 +245,7 @@ export function AdminUserApprovals() {
   const [createSuccess, setCreateSuccess] = useState("");
   const [repairing, setRepairing] = useState(false);
   const [repairResult, setRepairResult] = useState(null);
+  const [deletingBroken, setDeletingBroken] = useState(null);
 
   const handleRepair = async () => {
     setRepairing(true); setRepairResult(null);
@@ -255,6 +256,17 @@ export function AdminUserApprovals() {
       setRepairResult({ error: e.message });
     } finally {
       setRepairing(false);
+    }
+  };
+
+  const handleDeleteBroken = async (docId) => {
+    setDeletingBroken(docId);
+    try {
+      await deleteBrokenUserRecord(docId);
+    } catch (e) {
+      console.error("Failed to delete broken record:", e);
+    } finally {
+      setDeletingBroken(null);
     }
   };
 
@@ -404,10 +416,18 @@ export function AdminUserApprovals() {
               allUsers.map(u=>{
                 const looksLikeValidUid = /^[A-Za-z0-9]{20,}$/.test(u.id);
                 return (
-                  <div key={u.id} style={{borderBottom:"1px solid #1e293b",padding:"8px 0",fontFamily:"monospace",fontSize:11}}>
-                    <div style={{color:looksLikeValidUid?"#10b981":"#ef4444"}}>docId: {u.id} {!looksLikeValidUid && "⚠️ NOT A VALID AUTH UID — this user can never log in"}</div>
-                    <div style={{color:"#e2e8f0"}}>name: {String(u.name)} | email: {String(u.email)}</div>
-                    <div style={{color:"#fbbf24"}}>role: {String(u.role)} | status: <strong>{String(u.status)}</strong> | requestedRole: {String(u.requestedRole)}</div>
+                  <div key={u.id} style={{borderBottom:"1px solid #1e293b",padding:"8px 0",fontFamily:"monospace",fontSize:11,display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:10}}>
+                    <div style={{flex:1}}>
+                      <div style={{color:looksLikeValidUid?"#10b981":"#ef4444"}}>docId: {u.id} {!looksLikeValidUid && "⚠️ NOT A VALID AUTH UID — this user can never log in"}</div>
+                      <div style={{color:"#e2e8f0"}}>name: {String(u.name)} | email: {String(u.email)}</div>
+                      <div style={{color:"#fbbf24"}}>role: {String(u.role)} | status: <strong>{String(u.status)}</strong> | requestedRole: {String(u.requestedRole)}</div>
+                    </div>
+                    {!looksLikeValidUid && (
+                      <button onClick={()=>handleDeleteBroken(u.id)} disabled={deletingBroken===u.id}
+                        style={{padding:"5px 10px",background:deletingBroken===u.id?"#fca5a5":"#ef4444",color:"#fff",border:"none",borderRadius:6,fontSize:10,fontWeight:700,cursor:deletingBroken===u.id?"wait":"pointer",whiteSpace:"nowrap",flexShrink:0}}>
+                        {deletingBroken===u.id?"Deleting...":"🗑 Delete"}
+                      </button>
+                    )}
                   </div>
                 );
               })
