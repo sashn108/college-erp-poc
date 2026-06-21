@@ -247,6 +247,10 @@ export function AdminUserApprovals() {
   const [repairResult, setRepairResult] = useState(null);
   const [deletingBroken, setDeletingBroken] = useState(null);
   const [deleteError, setDeleteError] = useState("");
+  const [userSearch, setUserSearch] = useState("");
+  const [confirmDeleteUser, setConfirmDeleteUser] = useState(null);
+  const [deletingConfirmed, setDeletingConfirmed] = useState(false);
+  const [deleteConfirmedErr, setDeleteConfirmedErr] = useState("");
 
   const handleRepair = async () => {
     setRepairing(true); setRepairResult(null);
@@ -269,6 +273,20 @@ export function AdminUserApprovals() {
       setDeleteError(`Could not delete ${docId}: ${e.message || e.code || "unknown error"}`);
     } finally {
       setDeletingBroken(null);
+    }
+  };
+
+  const handleConfirmedDelete = async () => {
+    if (!confirmDeleteUser) return;
+    setDeletingConfirmed(true); setDeleteConfirmedErr("");
+    try {
+      await deleteBrokenUserRecord(confirmDeleteUser.id);
+      setConfirmDeleteUser(null);
+    } catch (e) {
+      console.error("Failed to delete user:", e);
+      setDeleteConfirmedErr(`Could not delete this user: ${e.message || e.code || "unknown error"}`);
+    } finally {
+      setDeletingConfirmed(false);
     }
   };
 
@@ -373,6 +391,78 @@ export function AdminUserApprovals() {
           )}
         </div>
       </div>
+
+      {/* Manage All Users — Delete from database */}
+      <div style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:12,overflow:"hidden",marginBottom:16}}>
+        <div style={{background:"linear-gradient(135deg,#0f172a,#1e293b)",padding:"12px 16px",display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:8}}>
+          <span style={{color:"#fff",fontWeight:700,fontSize:14}}>🗂️ Manage All Users ({allUsers.length})</span>
+          <input value={userSearch} onChange={e=>setUserSearch(e.target.value)}
+            placeholder="🔍 Search name or email..."
+            style={{padding:"6px 12px",border:"none",borderRadius:7,fontSize:12,outline:"none",width:200,fontFamily:"inherit"}}/>
+        </div>
+        <div style={{maxHeight:320,overflowY:"auto"}}>
+          {allUsers.length === 0 ? (
+            <div style={{padding:"30px",textAlign:"center",color:"#94a3b8",fontSize:12}}>No users found.</div>
+          ) : (
+            allUsers
+              .filter(u => !userSearch.trim() || `${u.name||""} ${u.email||""}`.toLowerCase().includes(userSearch.toLowerCase()))
+              .map(u => {
+                const validUid = /^[A-Za-z0-9]{20,}$/.test(u.id);
+                return (
+                  <div key={u.id} style={{display:"flex",alignItems:"center",gap:10,padding:"10px 16px",borderBottom:"1px solid #f1f5f9"}}>
+                    <div style={{width:32,height:32,borderRadius:"50%",background:"linear-gradient(135deg,#6366f1,#8b5cf6)",display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",fontWeight:700,fontSize:13,flexShrink:0}}>{(u.name||"?")[0]}</div>
+                    <div style={{flex:1,minWidth:0}}>
+                      <div style={{display:"flex",alignItems:"center",gap:6,flexWrap:"wrap"}}>
+                        <span style={{fontWeight:700,fontSize:13,color:"#0f172a"}}>{u.name||"(no name)"}</span>
+                        <span style={{fontSize:10,fontWeight:700,padding:"1px 7px",borderRadius:10,background:"#eef2ff",color:"#6366f1",textTransform:"capitalize"}}>{u.role||"—"}</span>
+                        <span style={{fontSize:10,fontWeight:700,padding:"1px 7px",borderRadius:10,background:u.status==="approved"?"#dcfce7":u.status==="pending"?"#fef9c3":"#fee2e2",color:u.status==="approved"?"#16a34a":u.status==="pending"?"#ca8a04":"#dc2626"}}>{u.status||"—"}</span>
+                        {!validUid && <span style={{fontSize:10,fontWeight:700,padding:"1px 7px",borderRadius:10,background:"#fee2e2",color:"#dc2626"}}>⚠️ invalid uid</span>}
+                      </div>
+                      <div style={{fontSize:11,color:"#94a3b8"}}>{u.email||"—"} · doc: {u.id}</div>
+                    </div>
+                    <button onClick={()=>{setConfirmDeleteUser(u);setDeleteConfirmedErr("");}}
+                      style={{padding:"6px 12px",background:"#fee2e2",color:"#dc2626",border:"none",borderRadius:7,fontSize:11,fontWeight:700,cursor:"pointer",flexShrink:0}}>
+                      🗑 Delete
+                    </button>
+                  </div>
+                );
+              })
+          )}
+        </div>
+      </div>
+
+      {/* Confirm Delete Modal */}
+      {confirmDeleteUser && (
+        <div style={{position:"fixed",inset:0,background:"rgba(15,23,42,0.6)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center"}} onClick={()=>setConfirmDeleteUser(null)}>
+          <div style={{background:"#fff",borderRadius:14,width:420,overflow:"hidden",boxShadow:"0 20px 60px rgba(0,0,0,0.25)"}} onClick={e=>e.stopPropagation()}>
+            <div style={{padding:"24px 22px",textAlign:"center"}}>
+              <div style={{fontSize:40,marginBottom:10}}>⚠️</div>
+              <div style={{fontWeight:700,fontSize:15,color:"#0f172a",marginBottom:6}}>Delete this user permanently?</div>
+              <div style={{fontSize:12,color:"#64748b",marginBottom:6}}>
+                <strong>{confirmDeleteUser.name}</strong> ({confirmDeleteUser.email})
+              </div>
+              <div style={{fontSize:11,color:"#94a3b8",marginBottom:18}}>
+                This removes their profile document from the database entirely. This cannot be undone. If they have a real login account, they won't be able to sign in afterward unless re-created.
+              </div>
+              {deleteConfirmedErr && (
+                <div style={{marginBottom:14,background:"#fee2e2",border:"1px solid #fca5a5",borderRadius:8,padding:"8px 12px",color:"#dc2626",fontSize:12,fontWeight:600,textAlign:"left"}}>
+                  {deleteConfirmedErr}
+                </div>
+              )}
+              <div style={{display:"flex",gap:10}}>
+                <button onClick={()=>setConfirmDeleteUser(null)} disabled={deletingConfirmed}
+                  style={{flex:1,padding:"9px",background:"#f1f5f9",color:"#334155",border:"none",borderRadius:8,fontWeight:600,cursor:"pointer",fontSize:13}}>
+                  Cancel
+                </button>
+                <button onClick={handleConfirmedDelete} disabled={deletingConfirmed}
+                  style={{flex:1,padding:"9px",background:deletingConfirmed?"#fca5a5":"#ef4444",color:"#fff",border:"none",borderRadius:8,fontWeight:600,cursor:deletingConfirmed?"wait":"pointer",fontSize:13}}>
+                  {deletingConfirmed?"Deleting...":"Delete Permanently"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {loadError && (
         <div style={{background:"#fee2e2",border:"1px solid #fca5a5",borderRadius:10,padding:"14px 16px",marginBottom:14}}>
