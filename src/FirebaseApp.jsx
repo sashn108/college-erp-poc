@@ -604,7 +604,7 @@ export function AdminUserApprovals() {
                   {createLoading?"⏳ Creating...":"✅ Create Account"}
                 </button>
                 <div style={{fontSize:11,color:"#94a3b8",textAlign:"center"}}>
-                  This creates a real login-capable account. Share the email + temporary password with the user securely.
+                  ⚠️ This will sign you out and sign in as the new account. Log back in as admin afterward to continue managing users.
                 </div>
               </div>
             )}

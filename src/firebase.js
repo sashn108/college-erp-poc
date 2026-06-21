@@ -21,22 +21,17 @@ export const logOut = () => signOut(auth);
 export { onAuthStateChanged, serverTimestamp };
 
 // ── Admin-side user creation ──────────────────────────────────────────────────
-// Uses a temporary secondary Firebase app instance so creating a new Auth user
-// does NOT sign out / replace the admin's current session (a client-SDK quirk:
-// createUserWithEmailAndPassword auto-signs-in as the new user on the app it runs on).
+// NOTE: this uses the standard Firebase pattern, which means creating a new account
+// will sign the admin out and sign in as the newly created user (a known client-SDK
+// behavior of createUserWithEmailAndPassword). The admin will need to log back in
+// afterward. We previously used a secondary temporary app instance to avoid this,
+// but that pattern can trigger network errors in some browser environments, so we've
+// reverted to the simpler, more reliable standard approach.
 export const adminCreateUser = async (email, password, profileData) => {
-  const tempAppName = `admin-create-${Date.now()}`;
-  const tempApp = initializeApp(firebaseConfig, tempAppName);
-  const tempAuth = getAuth(tempApp);
-  try {
-    const cred = await createUserWithEmailAndPassword(tempAuth, email, password);
-    const uid = cred.user.uid;
-    await setDoc(doc(db, "users", uid), { uid, email, ...profileData }, { merge: true });
-    await signOut(tempAuth);
-    return { uid, email };
-  } finally {
-    await deleteApp(tempApp);
-  }
+  const cred = await createUserWithEmailAndPassword(auth, email, password);
+  const uid = cred.user.uid;
+  await setDoc(doc(db, "users", uid), { uid, email, ...profileData }, { merge: true });
+  return { uid, email };
 };
 
 // ── User profile ──────────────────────────────────────────────────────────────
