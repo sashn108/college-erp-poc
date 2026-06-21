@@ -246,6 +246,7 @@ export function AdminUserApprovals() {
   const [repairing, setRepairing] = useState(false);
   const [repairResult, setRepairResult] = useState(null);
   const [deletingBroken, setDeletingBroken] = useState(null);
+  const [deleteError, setDeleteError] = useState("");
 
   const handleRepair = async () => {
     setRepairing(true); setRepairResult(null);
@@ -260,11 +261,12 @@ export function AdminUserApprovals() {
   };
 
   const handleDeleteBroken = async (docId) => {
-    setDeletingBroken(docId);
+    setDeletingBroken(docId); setDeleteError("");
     try {
       await deleteBrokenUserRecord(docId);
     } catch (e) {
       console.error("Failed to delete broken record:", e);
+      setDeleteError(`Could not delete ${docId}: ${e.message || e.code || "unknown error"}`);
     } finally {
       setDeletingBroken(null);
     }
@@ -406,6 +408,11 @@ export function AdminUserApprovals() {
                   </div>
                 )
             }
+          </div>
+        )}
+        {deleteError && (
+          <div style={{marginTop:8,background:"#fee2e2",border:"1px solid #fca5a5",borderRadius:8,padding:"10px 14px",fontSize:12,color:"#dc2626",fontWeight:600}}>
+            ⚠️ {deleteError}
           </div>
         )}
         {showDebug && (
