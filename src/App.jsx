@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import * as XLSX from "xlsx";
 import { FirebaseLogin, RealtimeChat, LiveFeedbackView, LiveFacultyFeedback, useFirebaseAuth, AdminUserApprovals } from "./FirebaseApp.jsx";
-import { logOut, getPendingUsers, enrollStudent, unenrollStudent, subscribeSubjectEnrollments, subscribeMyEnrollments, subscribeApprovedFaculty, sendMessage, subscribeToMessages, pushNotification, subscribeNotifications, markNotificationRead, markAllNotificationsRead, subscribeMyConversations, createAssignment, subscribeSubjectAssignments, subscribeAssignmentsForSubjects, sendBulkMessageToSubject, addFacultySubject, removeFacultySubject, subscribeFacultySubjects, fetchMyBulkMessageLog } from "./firebase.js";
+import { logOut, getPendingUsers, enrollStudent, unenrollStudent, subscribeSubjectEnrollments, subscribeMyEnrollments, subscribeApprovedFaculty, sendMessage, subscribeToMessages, pushNotification, subscribeNotifications, markNotificationRead, markAllNotificationsRead, subscribeMyConversations, createAssignment, subscribeSubjectAssignments, subscribeAssignmentsForSubjects, sendBulkMessageToSubject, addFacultySubject, removeFacultySubject, subscribeFacultySubjects, fetchMyBulkMessageLog, markAttendance, subscribeSubjectAttendance, subscribeMyAttendance } from "./firebase.js";
 
 // ─── Odisha Holidays 2026 ─────────────────────────────────────────────────────
 const ODISHA_HOLIDAYS = {
@@ -709,11 +709,27 @@ function FacultyDashboard({ user }) {
 }
 
 // ─── Attendance View ──────────────────────────────────────────────────────────
-function AttendanceView() {
+function AttendanceView({ auth }) {
   const [tab, setTab] = useState("attendance");
   const [showApply, setShowApply] = useState(false);
   const [form, setForm] = useState({ type:"Casual Leave", from:"", to:"", sendTo:"HOD", reason:"" });
   const [submitted, setSubmitted] = useState(false);
+
+  // Real attendance — aggregated from Firestore per enrolled subject
+  const [myEnrollments, setMyEnrollments] = useState([]);
+  const [myAttendance, setMyAttendance] = useState([]);
+  const [attLoading, setAttLoading] = useState(true);
+
+  useEffect(() => {
+    const unsub = subscribeMyEnrollments(auth?.email, auth?.rollOrId || auth?.roll, setMyEnrollments, ()=>{});
+    return () => unsub();
+  }, [auth?.email, auth?.rollOrId, auth?.roll]);
+
+  useEffect(() => {
+    const unsub = subscribeMyAttendance(auth?.email, auth?.rollOrId || auth?.roll,
+      (rows) => { setMyAttendance(rows); setAttLoading(false); }, ()=>setAttLoading(false));
+    return () => unsub();
+  }, [auth?.email, auth?.rollOrId, auth?.roll]);
 
   // Leave balance — approved leaves auto-deduct from total
   const [leaveBalance, setLeaveBalance] = useState([
@@ -769,13 +785,12 @@ function AttendanceView() {
     },
   ]);
 
-  const subjects = [
-    {code:"CS301",name:"Database Management Systems",total:40,present:36,faculty:"Dr. A. Sharma"},
-    {code:"CS302",name:"Operating Systems",total:42,present:31,faculty:"Prof. S. Das"},
-    {code:"CS303",name:"Computer Networks",total:38,present:32,faculty:"Dr. R. Panda"},
-    {code:"CS304",name:"Theory of Computation",total:35,present:23,faculty:"Dr. K. Rath"},
-    {code:"CS305",name:"Software Engineering",total:40,present:32,faculty:"Prof. M. Behera"},
-  ];
+  // Aggregate real per-subject attendance from Firestore records
+  const subjects = myEnrollments.map(e => {
+    const records = myAttendance.filter(a => a.subjectCode === e.subjectCode);
+    const present = records.filter(a => a.status === "P").length;
+    return { code: e.subjectCode, name: e.subjectName, total: records.length, present, faculty: e.facultyName || "—" };
+  });
 
   const recipients = [
     { value:"HOD",           label:"HOD",                desc:"Head of Department, CSE" },
@@ -870,35 +885,47 @@ function AttendanceView() {
       {/* Attendance Cards */}
       {tab==="attendance"&&(
         <div>
-          <div style={{fontSize:13,fontWeight:700,color:"#0f172a",marginBottom:10}}>📋 Subject-wise Attendance — Spring 2025-26</div>
-          <div style={{display:"flex",flexDirection:"column",gap:8}}>
-            {subjects.map(s=>{
-              const pct=Math.round(s.present/s.total*100);
-              return (
-                <div key={s.code} style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:11,padding:"12px 16px",display:"flex",alignItems:"center",gap:14}}>
-                  <div style={{width:46,height:46,borderRadius:10,background:"#eef2ff",display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:800,color:"#6366f1",flexShrink:0}}>{s.code}</div>
-                  <div style={{flex:1,minWidth:0}}>
-                    <div style={{fontWeight:700,fontSize:13,color:"#0f172a"}}>{s.name}</div>
-                    <div style={{fontSize:11,color:"#94a3b8",marginTop:2}}>{s.faculty} · {s.present}/{s.total} classes</div>
-                  </div>
-                  <div style={{width:110,flexShrink:0}}>
-                    <div style={{display:"flex",justifyContent:"space-between",marginBottom:3}}>
-                      <span style={{fontSize:10,color:"#94a3b8"}}>Attendance</span>
-                      <span style={{fontWeight:700,fontSize:12,color:pct>=75?"#10b981":pct>=65?"#f59e0b":"#ef4444"}}>{pct}%</span>
+          <div style={{fontSize:13,fontWeight:700,color:"#0f172a",marginBottom:10}}>📋 Subject-wise Attendance — Live</div>
+          {attLoading ? (
+            <div style={{padding:"30px",textAlign:"center",color:"#94a3b8",fontSize:13}}>Loading...</div>
+          ) : subjects.length === 0 ? (
+            <div style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:12,padding:"30px 20px",textAlign:"center",color:"#94a3b8",fontSize:13}}>
+              No subjects yet. Once a faculty enrolls you, your attendance will show here.
+            </div>
+          ) : (
+            <div style={{display:"flex",flexDirection:"column",gap:8}}>
+              {subjects.map(s=>{
+                const pct = s.total > 0 ? Math.round(s.present/s.total*100) : 0;
+                return (
+                  <div key={s.code} style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:11,padding:"12px 16px",display:"flex",alignItems:"center",gap:14}}>
+                    <div style={{width:46,height:46,borderRadius:10,background:"#eef2ff",display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:800,color:"#6366f1",flexShrink:0}}>{s.code}</div>
+                    <div style={{flex:1,minWidth:0}}>
+                      <div style={{fontWeight:700,fontSize:13,color:"#0f172a"}}>{s.name}</div>
+                      <div style={{fontSize:11,color:"#94a3b8",marginTop:2}}>{s.faculty} · {s.total>0?`${s.present}/${s.total} classes`:"No classes marked yet"}</div>
                     </div>
-                    <div style={{height:6,background:"#f1f5f9",borderRadius:3}}>
-                      <div style={{width:pct+"%",height:"100%",background:pct>=75?"#10b981":pct>=65?"#f59e0b":"#ef4444",borderRadius:3}}/>
-                    </div>
+                    {s.total > 0 && (
+                      <>
+                        <div style={{width:110,flexShrink:0}}>
+                          <div style={{display:"flex",justifyContent:"space-between",marginBottom:3}}>
+                            <span style={{fontSize:10,color:"#94a3b8"}}>Attendance</span>
+                            <span style={{fontWeight:700,fontSize:12,color:pct>=75?"#10b981":pct>=65?"#f59e0b":"#ef4444"}}>{pct}%</span>
+                          </div>
+                          <div style={{height:6,background:"#f1f5f9",borderRadius:3}}>
+                            <div style={{width:pct+"%",height:"100%",background:pct>=75?"#10b981":pct>=65?"#f59e0b":"#ef4444",borderRadius:3}}/>
+                          </div>
+                        </div>
+                        <span style={{padding:"3px 10px",borderRadius:6,fontSize:11,fontWeight:700,flexShrink:0,
+                          background:pct>=75?"#dcfce7":pct>=65?"#fef9c3":"#fee2e2",
+                          color:pct>=75?"#16a34a":pct>=65?"#ca8a04":"#dc2626"}}>
+                          {pct>=75?"Safe":pct>=65?"Warning":"Shortage"}
+                        </span>
+                      </>
+                    )}
                   </div>
-                  <span style={{padding:"3px 10px",borderRadius:6,fontSize:11,fontWeight:700,flexShrink:0,
-                    background:pct>=75?"#dcfce7":pct>=65?"#fef9c3":"#fee2e2",
-                    color:pct>=75?"#16a34a":pct>=65?"#ca8a04":"#dc2626"}}>
-                    {pct>=75?"Safe":pct>=65?"Warning":"Shortage"}
-                  </span>
-                </div>
-              );
-            })}
-          </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       )}
 
@@ -2646,7 +2673,7 @@ function FacultySubjectsView({ faculty }) {
   const [modal, setModal] = useState(null);
   const [activeTab, setActiveTab] = useState("students");
   const [attSaved, setAttSaved] = useState(false);
-  const [selAttDate, setSelAttDate] = useState("Jun 19");
+  const [selAttDate, setSelAttDate] = useState(new Date().toISOString().slice(0,10));
   const [marksLocked, setMarksLocked] = useState({});
   const [marksSaved, setMarksSaved] = useState(false);
   const [csvError, setCsvError] = useState("");
@@ -2670,20 +2697,24 @@ function FacultySubjectsView({ faculty }) {
   ]);
 
   // Attendance state: {subjectCode: {roll: {date: "P"|"A"|"L"}}}
-  const classDates = ["Jun 3","Jun 5","Jun 7","Jun 10","Jun 12","Jun 14","Jun 17","Jun 19"];
-  const [attData, setAttData] = useState({
-    "CS301":{
-      "22CS001":{"Jun 3":"P","Jun 5":"P","Jun 7":"P","Jun 10":"A","Jun 12":"P","Jun 14":"P","Jun 17":"P","Jun 19":"P"},
-      "22CS002":{"Jun 3":"P","Jun 5":"A","Jun 7":"P","Jun 10":"P","Jun 12":"P","Jun 14":"A","Jun 17":"P","Jun 19":"P"},
-      "22CS003":{"Jun 3":"P","Jun 5":"P","Jun 7":"A","Jun 10":"P","Jun 12":"A","Jun 14":"P","Jun 17":"P","Jun 19":"A"},
-      "22CS004":{"Jun 3":"A","Jun 5":"A","Jun 7":"P","Jun 10":"A","Jun 12":"P","Jun 14":"A","Jun 17":"A","Jun 19":"P"},
-    },
-    "CS302":{
-      "22CS005":{"Jun 3":"P","Jun 5":"P","Jun 7":"P","Jun 10":"P","Jun 12":"A","Jun 14":"P","Jun 17":"P","Jun 19":"P"},
-      "22CS006":{"Jun 3":"P","Jun 5":"P","Jun 7":"P","Jun 10":"P","Jun 12":"P","Jun 14":"P","Jun 17":"A","Jun 19":"P"},
-      "22CS007":{"Jun 3":"P","Jun 5":"A","Jun 7":"A","Jun 10":"P","Jun 12":"P","Jun 14":"A","Jun 17":"P","Jun 19":"P"},
-    },
+  // Generate the last 14 days (excluding future) as selectable class dates
+  const classDates = Array.from({length:14}, (_,i) => {
+    const d = new Date(); d.setDate(d.getDate()-i);
+    return d.toISOString().slice(0,10); // YYYY-MM-DD, sortable and unambiguous
   });
+  const formatDateLabel = (iso) => new Date(iso).toLocaleDateString("en-GB",{day:"numeric",month:"short"});
+
+  const [liveAttendance, setLiveAttendance] = useState([]); // raw records from Firestore for sel.code
+  const [attSaving, setAttSaving] = useState(false);
+  const [attErr, setAttErr] = useState("");
+  // Pending local edits before "Save Attendance" is clicked: {roll: status}
+  const [pendingAttEdits, setPendingAttEdits] = useState({});
+
+  useEffect(() => {
+    if (!sel) { setLiveAttendance([]); return; }
+    const unsub = subscribeSubjectAttendance(sel.code, setLiveAttendance, (err)=>setAttErr(err.message||"Failed to load attendance"));
+    return () => unsub();
+  }, [sel?.code]);
 
   // Marks state: {subjectCode: {roll: {component: marks}}}
   const [marksData, setMarksData] = useState({
@@ -2785,16 +2816,40 @@ function FacultySubjectsView({ faculty }) {
   const unread = inbox.filter(m=>!m.read).length;
   const typeColor = {Theory:"#6366f1",Lab:"#f59e0b",Project:"#10b981"};
 
-  // Attendance helpers
-  const toggleAtt = (code,roll,date) => {
-    const cycle = {"P":"A","A":"L","L":"P"};
-    setAttData(prev=>({...prev,[code]:{...prev[code],[roll]:{...(prev[code]?.[roll]||{}),[date]:cycle[prev[code]?.[roll]?.[date]||"P"]||"P"}}}));
+  // Attendance helpers — read from real Firestore records, merged with unsaved local edits
+  const getAttStatus = (roll, dateIso) => {
+    if (pendingAttEdits[roll]?.[dateIso] !== undefined) return pendingAttEdits[roll][dateIso];
+    const rec = liveAttendance.find(a => a.studentRoll === roll && a.dateStr === dateIso);
+    return rec?.status || "P";
   };
-  const getAttPct = (code,roll) => {
-    const d = attData[code]?.[roll]||{};
-    const vals = Object.values(d);
-    if(!vals.length) return 0;
-    return Math.round(vals.filter(v=>v==="P").length/vals.length*100);
+  const setAttStatus = (roll, dateIso, status) => {
+    setPendingAttEdits(prev => ({...prev, [roll]: {...(prev[roll]||{}), [dateIso]: status}}));
+  };
+  const getAttPct = (code, roll) => {
+    const records = liveAttendance.filter(a => a.studentRoll === roll);
+    if (records.length === 0) return 0;
+    return Math.round(records.filter(a => a.status === "P").length / records.length * 100);
+  };
+
+  const handleSaveAttendance = async () => {
+    if (!sel || Object.keys(pendingAttEdits).length === 0) return;
+    setAttSaving(true); setAttErr("");
+    try {
+      for (const [roll, dates] of Object.entries(pendingAttEdits)) {
+        const status = dates[selAttDate];
+        if (status === undefined) continue;
+        const student = students.find(s => s.roll === roll);
+        if (!student) continue;
+        await markAttendance(sel.code, sel.name, selAttDate, student, status, faculty?.name);
+      }
+      setPendingAttEdits({});
+      setAttSaved(true);
+      setTimeout(()=>setAttSaved(false), 3000);
+    } catch (e) {
+      setAttErr(e.message || "Failed to save attendance.");
+    } finally {
+      setAttSaving(false);
+    }
   };
 
   // Marks helpers
@@ -3290,18 +3345,18 @@ function FacultySubjectsView({ faculty }) {
                       <div style={{fontSize:11,fontWeight:700,color:"#94a3b8",marginBottom:4}}>CLASS DATE</div>
                       <select value={selAttDate} onChange={e=>setSelAttDate(e.target.value)}
                         style={{padding:"8px 12px",border:"1px solid #e2e8f0",borderRadius:8,fontSize:13,fontWeight:600,color:"#334155",background:"#fff",outline:"none",cursor:"pointer",fontFamily:"inherit"}}>
-                        {classDates.map(d=><option key={d} value={d}>{d}</option>)}
+                        {classDates.map(d=><option key={d} value={d}>{formatDateLabel(d)}</option>)}
                       </select>
                     </div>
                     <div style={{height:36,width:1,background:"#e2e8f0"}}/>
                     <div>
                       <div style={{fontSize:11,fontWeight:700,color:"#94a3b8",marginBottom:4}}>BULK MARK</div>
                       <div style={{display:"flex",gap:8}}>
-                        <button onClick={()=>students.forEach(s=>setAttData(prev=>({...prev,[sel.code]:{...prev[sel.code],[s.roll]:{...(prev[sel.code]?.[s.roll]||{}),[selAttDate]:"P"}}})))}
+                        <button onClick={()=>students.forEach(s=>setAttStatus(s.roll,selAttDate,"P"))}
                           style={{padding:"7px 16px",background:"#dcfce7",border:"1px solid #86efac",borderRadius:8,cursor:"pointer",fontSize:12,fontWeight:700,color:"#16a34a",display:"flex",alignItems:"center",gap:5}}>
                           ✓ All Present
                         </button>
-                        <button onClick={()=>students.forEach(s=>setAttData(prev=>({...prev,[sel.code]:{...prev[sel.code],[s.roll]:{...(prev[sel.code]?.[s.roll]||{}),[selAttDate]:"A"}}})))}
+                        <button onClick={()=>students.forEach(s=>setAttStatus(s.roll,selAttDate,"A"))}
                           style={{padding:"7px 16px",background:"#fee2e2",border:"1px solid #fca5a5",borderRadius:8,cursor:"pointer",fontSize:12,fontWeight:700,color:"#dc2626",display:"flex",alignItems:"center",gap:5}}>
                           ✕ All Absent
                         </button>
@@ -3309,19 +3364,25 @@ function FacultySubjectsView({ faculty }) {
                     </div>
                     <div style={{marginLeft:"auto",textAlign:"right"}}>
                       <div style={{fontSize:11,color:"#94a3b8",fontWeight:600}}>
-                        {students.filter(s=>(attData[sel.code]?.[s.roll]?.[selAttDate]||"P")==="P").length}/{students.length} Present
+                        {students.filter(s=>getAttStatus(s.roll,selAttDate)==="P").length}/{students.length} Present
                       </div>
                       <div style={{fontSize:11,color:"#94a3b8"}}>
-                        {students.filter(s=>(attData[sel.code]?.[s.roll]?.[selAttDate]||"P")==="A").length} Absent &nbsp;·&nbsp;
-                        {students.filter(s=>(attData[sel.code]?.[s.roll]?.[selAttDate]||"P")==="L").length} Leave
+                        {students.filter(s=>getAttStatus(s.roll,selAttDate)==="A").length} Absent &nbsp;·&nbsp;
+                        {students.filter(s=>getAttStatus(s.roll,selAttDate)==="L").length} Leave
                       </div>
                     </div>
                   </div>
 
+                  {Object.keys(pendingAttEdits).length > 0 && (
+                    <div style={{background:"#fef9c3",border:"1px solid #fde047",borderRadius:8,padding:"8px 14px",marginBottom:10,fontSize:12,color:"#92400e",fontWeight:600}}>
+                      ✏️ You have unsaved changes for {formatDateLabel(selAttDate)} — click "Save Attendance" below to write them.
+                    </div>
+                  )}
+
                   {/* Student list — one row per student, big P/A/L toggle */}
                   <div style={{display:"flex",flexDirection:"column",gap:8}}>
                     {students.map((s,i)=>{
-                      const status = attData[sel.code]?.[s.roll]?.[selAttDate]||"P";
+                      const status = getAttStatus(s.roll,selAttDate);
                       const pct = getAttPct(sel.code,s.roll);
                       return (
                         <div key={s.roll} style={{display:"flex",alignItems:"center",gap:12,background:"#fff",border:"1px solid #e2e8f0",borderRadius:10,padding:"10px 14px",
@@ -3338,7 +3399,7 @@ function FacultySubjectsView({ faculty }) {
                           <div style={{display:"flex",gap:6,flexShrink:0}}>
                             {[["P","Present","#10b981","#dcfce7"],["A","Absent","#ef4444","#fee2e2"],["L","Leave","#f59e0b","#fef9c3"]].map(([val,tip,c,bg])=>(
                               <button key={val} title={tip}
-                                onClick={()=>setAttData(prev=>({...prev,[sel.code]:{...prev[sel.code],[s.roll]:{...(prev[sel.code]?.[s.roll]||{}),[selAttDate]:val}}}))}
+                                onClick={()=>setAttStatus(s.roll,selAttDate,val)}
                                 style={{width:40,height:36,borderRadius:8,border:`2px solid ${status===val?c:"#e2e8f0"}`,cursor:"pointer",fontSize:13,fontWeight:800,
                                   background:status===val?bg:"#fff",color:status===val?c:"#cbd5e1",transition:"all .12s"}}>
                                 {val}
@@ -3350,12 +3411,18 @@ function FacultySubjectsView({ faculty }) {
                     })}
                   </div>
 
+                  {attErr && (
+                    <div style={{marginTop:12,background:"#fee2e2",border:"1px solid #fca5a5",borderRadius:8,padding:"8px 14px",fontSize:12,color:"#dc2626",fontWeight:600}}>
+                      ⚠️ {attErr}
+                    </div>
+                  )}
+
                   <div style={{marginTop:14,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                    {attSaved&&<div style={{background:"#dcfce7",border:"1px solid #86efac",borderRadius:8,padding:"8px 14px",fontSize:12,color:"#16a34a",fontWeight:600}}>✅ Attendance saved for {selAttDate}!</div>}
+                    {attSaved&&<div style={{background:"#dcfce7",border:"1px solid #86efac",borderRadius:8,padding:"8px 14px",fontSize:12,color:"#16a34a",fontWeight:600}}>✅ Attendance saved for {formatDateLabel(selAttDate)}!</div>}
                     {!attSaved&&<div/>}
-                    <button onClick={()=>{setAttSaved(true);setTimeout(()=>setAttSaved(false),3000);}}
-                      style={{padding:"9px 22px",background:"linear-gradient(135deg,#6366f1,#8b5cf6)",color:"#fff",border:"none",borderRadius:8,fontWeight:600,cursor:"pointer",fontSize:13}}>
-                      💾 Save Attendance
+                    <button onClick={handleSaveAttendance} disabled={attSaving||Object.keys(pendingAttEdits).length===0}
+                      style={{padding:"9px 22px",background:(attSaving||Object.keys(pendingAttEdits).length===0)?"#c7d2fe":"linear-gradient(135deg,#6366f1,#8b5cf6)",color:"#fff",border:"none",borderRadius:8,fontWeight:600,cursor:(attSaving||Object.keys(pendingAttEdits).length===0)?"not-allowed":"pointer",fontSize:13}}>
+                      {attSaving?"⏳ Saving...":"💾 Save Attendance"}
                     </button>
                   </div>
                 </div>
@@ -6559,42 +6626,53 @@ function InternalMarksView() {
 }
 
 // ─── Phase 2: Real-time Attendance View (Student) ────────────────────────────
-function RealTimeAttendanceView() {
+function RealTimeAttendanceView({ auth }) {
   const [liveDate] = useState(new Date().toLocaleDateString("en-GB",{weekday:"long",day:"numeric",month:"long",year:"numeric"}));
-  const [lastUpdate, setLastUpdate] = useState(new Date());
-  const [tick, setTick] = useState(0);
+  const [myEnrollments, setMyEnrollments] = useState([]);
+  const [myAttendance, setMyAttendance] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
-  // Simulate real-time updates every 8 seconds
-  useEffect(()=>{
-    const interval = setInterval(()=>{
-      setLastUpdate(new Date());
-      setTick(t=>t+1);
-    }, 8000);
-    return ()=>clearInterval(interval);
-  },[]);
+  useEffect(() => {
+    const unsub = subscribeMyEnrollments(auth?.email, auth?.rollOrId || auth?.roll,
+      setMyEnrollments, (err)=>setError(err.message||"Failed to load enrollments"));
+    return () => unsub();
+  }, [auth?.email, auth?.rollOrId, auth?.roll]);
 
-  const todayClasses = [
-    {time:"8:00–9:00 AM",code:"CS301",name:"Database Management Systems",room:"201-A",faculty:"Dr. A. Sharma",status:"present",marked:"8:02 AM"},
-    {time:"9:00–10:00 AM",code:"CS302",name:"Operating Systems",room:"202-B",faculty:"Prof. S. Das",status:"present",marked:"9:04 AM"},
-    {time:"10:00–11:00 AM",code:"CS303",name:"Computer Networks",room:"201-A",faculty:"Dr. R. Panda",status:"absent",marked:null},
-    {time:"11:00–12:00 PM",code:"CS304",name:"Theory of Computation",room:"203-C",faculty:"Dr. K. Rath",status:"ongoing",marked:null},
-    {time:"2:00–3:00 PM",code:"CS305",name:"Software Engineering",room:"201-A",faculty:"Prof. M. Behera",status:"upcoming",marked:null},
-    {time:"3:00–5:00 PM",code:"CS301L",name:"DBMS Lab",room:"DB Lab",faculty:"Dr. A. Sharma",status:"upcoming",marked:null},
-  ];
-  const statusMap = {
-    present:{label:"Present",bg:"#dcfce7",color:"#16a34a",icon:"✅"},
-    absent:{label:"Absent",bg:"#fee2e2",color:"#dc2626",icon:"❌"},
-    ongoing:{label:"Ongoing",bg:"#fef3c7",color:"#d97706",icon:"🔴"},
-    upcoming:{label:"Upcoming",bg:"#f1f5f9",color:"#64748b",icon:"🕐"},
-  };
+  useEffect(() => {
+    const unsub = subscribeMyAttendance(auth?.email, auth?.rollOrId || auth?.roll,
+      (rows) => { setMyAttendance(rows); setLoading(false); },
+      (err) => { setError(err.message||"Failed to load attendance"); setLoading(false); });
+    return () => unsub();
+  }, [auth?.email, auth?.rollOrId, auth?.roll]);
 
-  const subjects = [
-    {code:"CS301",name:"DBMS",present:36,total:40},
-    {code:"CS302",name:"OS",present:31,total:42},
-    {code:"CS303",name:"CN",present:32,total:38},
-    {code:"CS304",name:"TOC",present:23,total:35},
-    {code:"CS305",name:"SE",present:32,total:40},
-  ];
+  // Aggregate per-subject totals from real records
+  const subjectTotals = myEnrollments.map(e => {
+    const records = myAttendance.filter(a => a.subjectCode === e.subjectCode);
+    const present = records.filter(a => a.status === "P").length;
+    const total = records.length;
+    return { code: e.subjectCode, name: e.subjectName, present, total };
+  });
+
+  // Today's marked records, if any
+  const todayIso = new Date().toISOString().slice(0,10);
+  const todaysRecords = myAttendance.filter(a => a.dateStr === todayIso);
+
+  if (loading) {
+    return (
+      <div style={{background:"#fff",borderRadius:14,border:"1px solid #e2e8f0",padding:"60px 20px",textAlign:"center",color:"#94a3b8",fontSize:13}}>
+        Loading your attendance...
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div style={{background:"#fee2e2",border:"1px solid #fca5a5",borderRadius:12,padding:"20px",color:"#dc2626",fontSize:13,fontWeight:600}}>
+        ⚠️ {error}
+      </div>
+    );
+  }
 
   return (
     <div>
@@ -6602,78 +6680,85 @@ function RealTimeAttendanceView() {
       <div style={{background:"linear-gradient(135deg,#0f172a,#1e293b)",borderRadius:12,padding:"16px 20px",marginBottom:16,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
         <div>
           <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:4}}>
-            <div style={{width:8,height:8,borderRadius:"50%",background:"#10b981",animation:"pulse 2s infinite"}}/>
+            <div style={{width:8,height:8,borderRadius:"50%",background:"#10b981"}}/>
             <span style={{color:"#10b981",fontSize:12,fontWeight:700}}>LIVE ATTENDANCE</span>
           </div>
           <div style={{color:"#fff",fontWeight:700,fontSize:15}}>{liveDate}</div>
         </div>
         <div style={{textAlign:"right"}}>
-          <div style={{color:"#94a3b8",fontSize:11}}>Last updated</div>
-          <div style={{color:"#e2e8f0",fontSize:13,fontWeight:600}}>{lastUpdate.toLocaleTimeString("en-GB",{hour:"2-digit",minute:"2-digit",second:"2-digit"})}</div>
-          <div style={{color:"#6366f1",fontSize:10,marginTop:2}}>Auto-refresh every 8s</div>
+          <div style={{color:"#94a3b8",fontSize:11}}>Subjects Enrolled</div>
+          <div style={{color:"#e2e8f0",fontSize:18,fontWeight:700}}>{myEnrollments.length}</div>
         </div>
       </div>
 
-      {/* Today's classes */}
-      <div style={{marginBottom:16}}>
-        <div style={{fontSize:13,fontWeight:700,color:"#0f172a",marginBottom:10}}>📅 Today's Classes</div>
-        <div style={{display:"flex",flexDirection:"column",gap:8}}>
-          {todayClasses.map((c,i)=>{
-            const st = statusMap[c.status];
-            return (
-              <div key={i} style={{background:"#fff",border:`1px solid ${c.status==="ongoing"?"#fcd34d":"#e2e8f0"}`,borderRadius:10,padding:"12px 16px",display:"flex",alignItems:"center",gap:12,
-                boxShadow:c.status==="ongoing"?"0 0 0 2px #fef3c7":undefined}}>
-                <div style={{fontSize:22,width:32,textAlign:"center",flexShrink:0}}>{st.icon}</div>
-                <div style={{flex:1}}>
-                  <div style={{fontWeight:700,fontSize:13,color:"#0f172a"}}>{c.name}</div>
-                  <div style={{fontSize:11,color:"#94a3b8",marginTop:2}}>{c.time} · {c.room} · {c.faculty}</div>
-                </div>
-                <div style={{textAlign:"right",flexShrink:0}}>
-                  <span style={{padding:"3px 10px",borderRadius:8,fontSize:11,fontWeight:700,background:st.bg,color:st.color}}>{st.label}</span>
-                  {c.marked && <div style={{fontSize:10,color:"#94a3b8",marginTop:3}}>Marked at {c.marked}</div>}
-                </div>
-              </div>
-            );
-          })}
+      {myEnrollments.length === 0 ? (
+        <div style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:12,padding:"40px 20px",textAlign:"center"}}>
+          <div style={{fontSize:40,marginBottom:10}}>📭</div>
+          <div style={{fontWeight:700,fontSize:14,color:"#0f172a",marginBottom:4}}>No subjects yet</div>
+          <div style={{fontSize:12,color:"#94a3b8"}}>Once a faculty enrolls you in a subject, your attendance will appear here.</div>
         </div>
-      </div>
+      ) : (
+        <>
+          {/* Today's marked attendance, if any */}
+          {todaysRecords.length > 0 && (
+            <div style={{marginBottom:16}}>
+              <div style={{fontSize:13,fontWeight:700,color:"#0f172a",marginBottom:10}}>📅 Marked Today</div>
+              <div style={{display:"flex",flexDirection:"column",gap:8}}>
+                {todaysRecords.map(r=>{
+                  const statusMap = {P:{label:"Present",bg:"#dcfce7",color:"#16a34a",icon:"✅"},A:{label:"Absent",bg:"#fee2e2",color:"#dc2626",icon:"❌"},L:{label:"Leave",bg:"#fef9c3",color:"#ca8a04",icon:"📋"}};
+                  const st = statusMap[r.status] || statusMap.P;
+                  return (
+                    <div key={r.id} style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:10,padding:"12px 16px",display:"flex",alignItems:"center",gap:12}}>
+                      <div style={{fontSize:20,width:28,textAlign:"center",flexShrink:0}}>{st.icon}</div>
+                      <div style={{flex:1}}>
+                        <div style={{fontWeight:700,fontSize:13,color:"#0f172a"}}>{r.subjectName}</div>
+                        <div style={{fontSize:11,color:"#94a3b8",marginTop:2}}>{r.subjectCode} · Marked by {r.facultyName||"faculty"}</div>
+                      </div>
+                      <span style={{padding:"3px 10px",borderRadius:8,fontSize:11,fontWeight:700,background:st.bg,color:st.color}}>{st.label}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
-      {/* Running totals */}
-      <div style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:12,overflow:"hidden"}}>
-        <div style={{background:"linear-gradient(135deg,#6366f1,#8b5cf6)",padding:"10px 16px",color:"#fff",fontWeight:700,fontSize:13,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-          <span>📊 Running Attendance Totals</span>
-          <span style={{fontSize:11,opacity:0.8}}>Updated live</span>
-        </div>
-        <div style={{padding:16,display:"flex",flexDirection:"column",gap:10}}>
-          {subjects.map(s=>{
-            const pct = Math.round(s.present/s.total*100);
-            const color = pct>=75?"#10b981":pct>=65?"#f59e0b":"#ef4444";
-            return (
-              <div key={s.code} style={{display:"flex",alignItems:"center",gap:12}}>
-                <div style={{width:60,fontSize:11,fontWeight:700,color:"#6366f1",flexShrink:0}}>{s.code}</div>
-                <div style={{flex:1,fontSize:12,color:"#334155",minWidth:0,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{s.name}</div>
-                <div style={{width:120,flexShrink:0}}>
-                  <div style={{display:"flex",justifyContent:"space-between",fontSize:11,marginBottom:3}}>
-                    <span style={{color:"#94a3b8"}}>{s.present}/{s.total}</span>
-                    <span style={{fontWeight:700,color}}>{pct}%</span>
+          {/* Running totals — real */}
+          <div style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:12,overflow:"hidden"}}>
+            <div style={{background:"linear-gradient(135deg,#6366f1,#8b5cf6)",padding:"10px 16px",color:"#fff",fontWeight:700,fontSize:13,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+              <span>📊 Running Attendance Totals</span>
+              <span style={{fontSize:11,opacity:0.8}}>Live from faculty records</span>
+            </div>
+            <div style={{padding:16,display:"flex",flexDirection:"column",gap:10}}>
+              {subjectTotals.map(s=>{
+                const pct = s.total > 0 ? Math.round(s.present/s.total*100) : 0;
+                const color = s.total===0 ? "#94a3b8" : pct>=75?"#10b981":pct>=65?"#f59e0b":"#ef4444";
+                return (
+                  <div key={s.code} style={{display:"flex",alignItems:"center",gap:12}}>
+                    <div style={{width:60,fontSize:11,fontWeight:700,color:"#6366f1",flexShrink:0}}>{s.code}</div>
+                    <div style={{flex:1,fontSize:12,color:"#334155",minWidth:0,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{s.name}</div>
+                    <div style={{width:120,flexShrink:0}}>
+                      <div style={{display:"flex",justifyContent:"space-between",fontSize:11,marginBottom:3}}>
+                        <span style={{color:"#94a3b8"}}>{s.total>0?`${s.present}/${s.total}`:"No data"}</span>
+                        {s.total>0 && <span style={{fontWeight:700,color}}>{pct}%</span>}
+                      </div>
+                      <div style={{height:6,background:"#f1f5f9",borderRadius:3}}>
+                        <div style={{width:(s.total>0?pct:0)+"%",height:"100%",background:color,borderRadius:3,transition:"width 1s ease"}}/>
+                      </div>
+                    </div>
+                    {s.total>0 && (
+                      <span style={{width:64,textAlign:"center",fontSize:10,fontWeight:700,padding:"2px 6px",borderRadius:6,flexShrink:0,
+                        background:pct>=75?"#dcfce7":pct>=65?"#fef9c3":"#fee2e2",
+                        color:pct>=75?"#16a34a":pct>=65?"#ca8a04":"#dc2626"}}>
+                        {pct>=75?"Safe":pct>=65?"Warn":"Risk"}
+                      </span>
+                    )}
                   </div>
-                  <div style={{height:6,background:"#f1f5f9",borderRadius:3}}>
-                    <div style={{width:pct+"%",height:"100%",background:color,borderRadius:3,transition:"width 1s ease"}}/>
-                  </div>
-                </div>
-                <span style={{width:64,textAlign:"center",fontSize:10,fontWeight:700,padding:"2px 6px",borderRadius:6,flexShrink:0,
-                  background:pct>=75?"#dcfce7":pct>=65?"#fef9c3":"#fee2e2",
-                  color:pct>=75?"#16a34a":pct>=65?"#ca8a04":"#dc2626"}}>
-                  {pct>=75?"Safe":pct>=65?"Warn":"Risk"}
-                </span>
-              </div>
-            );
-          })}
-        </div>
-        <div style={{padding:"8px 16px",background:"#f8fafc",borderTop:"1px solid #e2e8f0",fontSize:11,color:"#94a3b8"}}>
-          🔴 Live: TOC class is currently ongoing — attendance not yet marked
-        </div>
-      </div>
+                );
+              })}
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }
@@ -8886,7 +8971,7 @@ export default function App() {
   const unreadCount = notifs.filter(n=>!n.read&&!readNotifs.includes(n.id)).length;
 
   const studentViews = {
-    dashboard:<StudentDashboard user={auth}/>, attendance:<AttendanceView/>,
+    dashboard:<StudentDashboard user={auth}/>, attendance:<AttendanceView auth={auth}/>,
     analytics:<AttendanceAnalytics/>,
     exam:<ExamView/>, fee:<FeeView/>, assignments:<AssignmentsView role="student" auth={auth}/>, notices:<NoticesView/>,
     timetable:<StudentTimetable/>, papers:<QuestionPapers/>,
@@ -8897,7 +8982,7 @@ export default function App() {
     feedback: uid ? <LiveFeedbackView uid={uid}/> : <FeedbackView/>,
     messages:<StudentMessaging user={auth}/>,
     internalmarks:<InternalMarksView/>,
-    liveattendance:<RealTimeAttendanceView/>,
+    liveattendance:<RealTimeAttendanceView auth={auth}/>,
     profile:<StudentProfile user={auth}/>, auditlog:<AuditLog role="student"/>,
     transport:<TransportView/>, alumni:<AlumniConnect user={auth}/>, elearning:<ELearningView/>,
     marksheet:<MarksheetView user={auth}/>,
