@@ -251,6 +251,7 @@ export function AdminUserApprovals() {
   const [confirmDeleteUser, setConfirmDeleteUser] = useState(null);
   const [deletingConfirmed, setDeletingConfirmed] = useState(false);
   const [deleteConfirmedErr, setDeleteConfirmedErr] = useState("");
+  const [deleteSuccessMsg, setDeleteSuccessMsg] = useState("");
 
   const handleRepair = async () => {
     setRepairing(true); setRepairResult(null);
@@ -278,13 +279,16 @@ export function AdminUserApprovals() {
 
   const handleConfirmedDelete = async () => {
     if (!confirmDeleteUser) return;
-    setDeletingConfirmed(true); setDeleteConfirmedErr("");
+    setDeletingConfirmed(true); setDeleteConfirmedErr(""); setDeleteSuccessMsg("");
+    const targetId = confirmDeleteUser.id;
     try {
-      await deleteBrokenUserRecord(confirmDeleteUser.id);
+      await deleteBrokenUserRecord(targetId);
+      setDeleteSuccessMsg(`Delete call completed for doc "${targetId}" with no error. If it still shows in the list below, the list view itself isn't refreshing — not a delete failure.`);
       setConfirmDeleteUser(null);
     } catch (e) {
-      console.error("Failed to delete user:", e);
-      setDeleteConfirmedErr(`Could not delete this user: ${e.message || e.code || "unknown error"}`);
+      console.error("Full delete error object:", e);
+      const details = `code: ${e.code || "none"} | message: ${e.message || "none"} | name: ${e.name || "none"}`;
+      setDeleteConfirmedErr(`Delete failed — ${details}`);
     } finally {
       setDeletingConfirmed(false);
     }
@@ -393,6 +397,11 @@ export function AdminUserApprovals() {
       </div>
 
       {/* Manage All Users — Delete from database */}
+      {deleteSuccessMsg && (
+        <div style={{background:"#dbeafe",border:"1px solid #93c5fd",borderRadius:10,padding:"12px 16px",marginBottom:12,color:"#1d4ed8",fontSize:12,fontWeight:600}}>
+          ℹ️ {deleteSuccessMsg}
+        </div>
+      )}
       <div style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:12,overflow:"hidden",marginBottom:16}}>
         <div style={{background:"linear-gradient(135deg,#0f172a,#1e293b)",padding:"12px 16px",display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:8}}>
           <span style={{color:"#fff",fontWeight:700,fontSize:14}}>🗂️ Manage All Users ({allUsers.length})</span>
