@@ -282,9 +282,22 @@ export function AdminUserApprovals() {
     setDeletingConfirmed(true); setDeleteConfirmedErr(""); setDeleteSuccessMsg("");
     const targetId = confirmDeleteUser.id;
     try {
+      // Verify the doc exists right before deleting
+      const beforeSnap = await getUserProfile(targetId);
+      console.log("BEFORE delete, doc exists:", !!beforeSnap, beforeSnap);
+
       await deleteBrokenUserRecord(targetId);
-      setDeleteSuccessMsg(`Delete call completed for doc "${targetId}" with no error. If it still shows in the list below, the list view itself isn't refreshing — not a delete failure.`);
-      setConfirmDeleteUser(null);
+
+      // Immediately re-read directly (bypassing any cache) to verify it's actually gone
+      const afterSnap = await getUserProfile(targetId);
+      console.log("AFTER delete, doc still exists:", !!afterSnap, afterSnap);
+
+      if (afterSnap) {
+        setDeleteConfirmedErr(`Delete call succeeded with no error, but re-reading the document immediately afterward shows it STILL EXISTS in Firestore. Doc data: ${JSON.stringify(afterSnap)}. This usually means a different project/database is being read than the one being written to, or there's a Firestore-side rule specifically blocking deletes while allowing reads/writes.`);
+      } else {
+        setDeleteSuccessMsg(`Confirmed: doc "${targetId}" was deleted and verified gone on re-read.`);
+        setConfirmDeleteUser(null);
+      }
     } catch (e) {
       console.error("Full delete error object:", e);
       const details = `code: ${e.code || "none"} | message: ${e.message || "none"} | name: ${e.name || "none"}`;
