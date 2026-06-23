@@ -204,6 +204,71 @@ export const createAssignment = async (subjectCode, subjectName, facultyUid, fac
   return { id: ref.id, recipientCount: students.length, delivered };
 };
 
+// ── Assignment submissions & grading ───────────────────────────────────────────
+// Doc id pattern: `${assignmentId}_${studentRollOrEmail}` for natural de-duplication.
+const submissionDocId = (assignmentId, rollOrEmail) =>
+  `${assignmentId}_${rollOrEmail}`.replace(/[\/\s]+/g, "_");
+
+export const submitAssignment = async (assignmentId, student, note) => {
+  const id = submissionDocId(assignmentId, student.roll || student.email);
+  await setDoc(doc(db, "submissions", id), {
+    assignmentId, studentRoll: student.roll || "", studentEmail: student.email || "",
+    studentName: student.name || "", note: note || "",
+    status: "submitted", submittedAt: new Date().toISOString(),
+  }, { merge: true });
+};
+
+export const gradeSubmission = async (submissionId, score, maxMarks, feedback, facultyUid, facultyName) => {
+  await setDoc(doc(db, "submissions", submissionId), {
+    status: "graded", score, maxMarks, feedback: feedback || "",
+    gradedAt: new Date().toISOString(), gradedByUid: facultyUid, gradedByName: facultyName,
+  }, { merge: true });
+  // Notify the student
+  const subSnap = await getDoc(doc(db, "submissions", submissionId));
+  const sub = subSnap.exists() ? subSnap.data() : null;
+  if (sub) {
+    let targetUid = null;
+    if (sub.studentEmail) {
+      const byEmail = await getDocs(query(collection(db, "users"), where("email", "==", sub.studentEmail)));
+      if (!byEmail.empty) targetUid = byEmail.docs[0].id;
+    }
+    if (!targetUid && sub.studentRoll) {
+      const byRoll = await getDocs(query(collection(db, "users"), where("rollOrId", "==", sub.studentRoll)));
+      if (!byRoll.empty) targetUid = byRoll.docs[0].id;
+    }
+    if (targetUid) {
+      await pushNotification(targetUid, { text: `📊 Your assignment was graded: ${score}/${maxMarks}`, type: "marks" });
+    }
+  }
+};
+
+// Faculty-side: live submissions for one assignment
+export const subscribeAssignmentSubmissions = (assignmentId, callback, onError) => {
+  const q = query(collection(db, "submissions"), where("assignmentId", "==", assignmentId));
+  return onSnapshot(q,
+    snap => callback(snap.docs.map(d => ({ id: d.id, ...d.data() }))),
+    err => { console.error("subscribeAssignmentSubmissions error:", err); if (onError) onError(err); }
+  );
+};
+
+// Student-side: live submissions across all their assignments, matched by email or roll
+export const subscribeMySubmissions = (studentEmail, studentRoll, callback, onError) => {
+  const qByEmail = studentEmail ? query(collection(db, "submissions"), where("studentEmail", "==", studentEmail)) : null;
+  const qByRoll = studentRoll ? query(collection(db, "submissions"), where("studentRoll", "==", studentRoll)) : null;
+  let latestByEmail = [], latestByRoll = [];
+  const merge = () => {
+    const all = [...latestByEmail, ...latestByRoll];
+    const seen = new Set();
+    callback(all.filter(e => { if (seen.has(e.id)) return false; seen.add(e.id); return true; }));
+  };
+  const unsubs = [];
+  if (qByEmail) unsubs.push(onSnapshot(qByEmail, snap => { latestByEmail = snap.docs.map(d => ({ id: d.id, ...d.data() })); merge(); },
+    err => { console.error("subscribeMySubmissions(email) error:", err); if (onError) onError(err); }));
+  if (qByRoll) unsubs.push(onSnapshot(qByRoll, snap => { latestByRoll = snap.docs.map(d => ({ id: d.id, ...d.data() })); merge(); },
+    err => { console.error("subscribeMySubmissions(roll) error:", err); if (onError) onError(err); }));
+  return () => unsubs.forEach(u => u());
+};
+
 // Faculty-side: live assignments they created for one subject
 export const subscribeSubjectAssignments = (subjectCode, callback, onError) => {
   const q = query(collection(db, "assignments"), where("subjectCode", "==", subjectCode));

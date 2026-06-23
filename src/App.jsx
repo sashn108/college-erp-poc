@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import * as XLSX from "xlsx";
 import { FirebaseLogin, RealtimeChat, LiveFeedbackView, LiveFacultyFeedback, useFirebaseAuth, AdminUserApprovals } from "./FirebaseApp.jsx";
-import { logOut, getPendingUsers, enrollStudent, unenrollStudent, subscribeSubjectEnrollments, subscribeMyEnrollments, subscribeApprovedFaculty, sendMessage, subscribeToMessages, pushNotification, subscribeNotifications, markNotificationRead, markAllNotificationsRead, subscribeMyConversations, createAssignment, subscribeSubjectAssignments, subscribeAssignmentsForSubjects, sendBulkMessageToSubject, addFacultySubject, removeFacultySubject, subscribeFacultySubjects, fetchMyBulkMessageLog, markAttendance, subscribeSubjectAttendance, subscribeMyAttendance } from "./firebase.js";
+import { logOut, getPendingUsers, enrollStudent, unenrollStudent, subscribeSubjectEnrollments, subscribeMyEnrollments, subscribeApprovedFaculty, sendMessage, subscribeToMessages, pushNotification, subscribeNotifications, markNotificationRead, markAllNotificationsRead, subscribeMyConversations, createAssignment, subscribeSubjectAssignments, subscribeAssignmentsForSubjects, sendBulkMessageToSubject, addFacultySubject, removeFacultySubject, subscribeFacultySubjects, fetchMyBulkMessageLog, markAttendance, subscribeSubjectAttendance, subscribeMyAttendance, submitAssignment, gradeSubmission, subscribeAssignmentSubmissions, subscribeMySubmissions } from "./firebase.js";
 
 // ─── Odisha Holidays 2026 ─────────────────────────────────────────────────────
 const ODISHA_HOLIDAYS = {
@@ -1882,6 +1882,17 @@ function AssignmentsView({ role, auth }) {
   const [bulkErr, setBulkErr] = useState("");
   const [bulkSending, setBulkSending] = useState(false);
   const [detail, setDetail] = useState(null);
+  // Student: my own submissions across all assignments
+  const [mySubmissions, setMySubmissions] = useState([]);
+  // Faculty: submissions for the currently-open assignment's detail view
+  const [detailSubmissions, setDetailSubmissions] = useState([]);
+  const [submitNote, setSubmitNote] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [submitErr, setSubmitErr] = useState("");
+  const [gradingId, setGradingId] = useState(null);
+  const [gradeForm, setGradeForm] = useState({score:"",feedback:""});
+  const [gradeErr, setGradeErr] = useState("");
+  const [gradingBusy, setGradingBusy] = useState(false);
 
   const isFaculty = role === "faculty";
 
@@ -1950,6 +1961,51 @@ function AssignmentsView({ role, auth }) {
     }
   };
 
+  // Student: load my own submissions, live
+  useEffect(() => {
+    if (isFaculty) return;
+    const unsub = subscribeMySubmissions(auth?.email, auth?.rollOrId || auth?.roll, setMySubmissions, ()=>{});
+    return () => unsub();
+  }, [isFaculty, auth?.email, auth?.rollOrId, auth?.roll]);
+
+  // Faculty: when an assignment's detail modal is open, load its submissions live
+  useEffect(() => {
+    if (!isFaculty || !detail) { setDetailSubmissions([]); return; }
+    const unsub = subscribeAssignmentSubmissions(detail.id, setDetailSubmissions, ()=>{});
+    return () => unsub();
+  }, [isFaculty, detail?.id]);
+
+  const mySubmissionFor = (assignmentId) => mySubmissions.find(s => s.assignmentId === assignmentId);
+
+  const handleSubmit = async (assignment) => {
+    setSubmitting(true); setSubmitErr("");
+    try {
+      await submitAssignment(assignment.id, { name: auth?.name, roll: auth?.rollOrId||auth?.roll, email: auth?.email }, submitNote);
+      setSubmitNote("");
+    } catch (e) {
+      setSubmitErr(e.message || "Failed to submit.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleGrade = async (submission) => {
+    setGradeErr("");
+    const score = parseFloat(gradeForm.score);
+    if (isNaN(score) || score < 0 || score > detail.marks) {
+      setGradeErr(`Score must be a number between 0 and ${detail.marks}.`); return;
+    }
+    setGradingBusy(true);
+    try {
+      await gradeSubmission(submission.id, score, detail.marks, gradeForm.feedback, myUid, auth?.name);
+      setGradingId(null); setGradeForm({score:"",feedback:""});
+    } catch (e) {
+      setGradeErr(e.message || "Failed to save grade.");
+    } finally {
+      setGradingBusy(false);
+    }
+  };
+
   const getDueStatus = (due) => {
     const d = new Date(due), now = new Date();
     const diff = Math.ceil((d-now)/(1000*60*60*24));
@@ -1984,6 +2040,7 @@ function AssignmentsView({ role, auth }) {
         <div style={{display:"grid",gap:12}}>
           {assignments.map(a => {
             const due = getDueStatus(a.due);
+            const mySub = !isFaculty ? mySubmissionFor(a.id) : null;
             return (
               <div key={a.id} style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:12,padding:"14px 16px",display:"flex",alignItems:"center",gap:14,cursor:"pointer",transition:"box-shadow .15s"}}
                 onClick={()=>setDetail(a)}
@@ -1994,10 +2051,22 @@ function AssignmentsView({ role, auth }) {
                   <div style={{fontWeight:700,color:"#0f172a",fontSize:14}}>{a.title}</div>
                   <div style={{fontSize:12,color:"#6366f1",fontWeight:600,marginTop:2}}>{a.subjectCode} — {a.subjectName}</div>
                 </div>
-                <div style={{textAlign:"right",flexShrink:0}}>
-                  <span style={{padding:"3px 10px",borderRadius:8,fontSize:11,fontWeight:700,background:due.bg,color:due.color}}>{due.label}</span>
-                  <div style={{fontSize:11,color:"#94a3b8",marginTop:4}}>Max: {a.marks} marks</div>
-                </div>
+                {!isFaculty && mySub?.status === "graded" ? (
+                  <div style={{textAlign:"right",flexShrink:0}}>
+                    <span style={{padding:"3px 10px",borderRadius:8,fontSize:11,fontWeight:700,background:"#dcfce7",color:"#16a34a"}}>✅ Graded</span>
+                    <div style={{fontSize:14,fontWeight:800,color:"#16a34a",marginTop:4}}>{mySub.score}/{mySub.maxMarks}</div>
+                  </div>
+                ) : !isFaculty && mySub?.status === "submitted" ? (
+                  <div style={{textAlign:"right",flexShrink:0}}>
+                    <span style={{padding:"3px 10px",borderRadius:8,fontSize:11,fontWeight:700,background:"#e0e7ff",color:"#4338ca"}}>📤 Submitted</span>
+                    <div style={{fontSize:11,color:"#94a3b8",marginTop:4}}>Awaiting grading</div>
+                  </div>
+                ) : (
+                  <div style={{textAlign:"right",flexShrink:0}}>
+                    <span style={{padding:"3px 10px",borderRadius:8,fontSize:11,fontWeight:700,background:due.bg,color:due.color}}>{due.label}</span>
+                    <div style={{fontSize:11,color:"#94a3b8",marginTop:4}}>Max: {a.marks} marks</div>
+                  </div>
+                )}
               </div>
             );
           })}
@@ -2006,12 +2075,12 @@ function AssignmentsView({ role, auth }) {
 
       {/* Detail Modal */}
       {detail && (
-        <div style={{position:"fixed",inset:0,background:"rgba(15,23,42,0.6)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center"}} onClick={()=>setDetail(null)}>
-          <div style={{background:"#fff",borderRadius:14,width:520,overflow:"hidden",boxShadow:"0 20px 60px rgba(0,0,0,0.25)"}} onClick={e=>e.stopPropagation()}>
-            <div style={{background:"linear-gradient(135deg,#6366f1,#8b5cf6)",padding:"16px 20px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+        <div style={{position:"fixed",inset:0,background:"rgba(15,23,42,0.6)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center"}} onClick={()=>{setDetail(null);setGradingId(null);}}>
+          <div style={{background:"#fff",borderRadius:14,width:560,maxHeight:"85vh",overflow:"auto",boxShadow:"0 20px 60px rgba(0,0,0,0.25)"}} onClick={e=>e.stopPropagation()}>
+            <div style={{background:"linear-gradient(135deg,#6366f1,#8b5cf6)",padding:"16px 20px",display:"flex",justifyContent:"space-between",alignItems:"center",position:"sticky",top:0}}>
               <div><div style={{color:"#fff",fontWeight:700,fontSize:15}}>{detail.title}</div>
               <div style={{color:"rgba(255,255,255,0.8)",fontSize:12,marginTop:2}}>{detail.subjectCode} — {detail.subjectName} · Max {detail.marks} marks</div></div>
-              <button onClick={()=>setDetail(null)} style={{background:"rgba(255,255,255,0.2)",border:"none",borderRadius:6,color:"#fff",width:28,height:28,cursor:"pointer",fontSize:16}}>✕</button>
+              <button onClick={()=>{setDetail(null);setGradingId(null);}} style={{background:"rgba(255,255,255,0.2)",border:"none",borderRadius:6,color:"#fff",width:28,height:28,cursor:"pointer",fontSize:16}}>✕</button>
             </div>
             <div style={{padding:"20px 24px"}}>
               <div style={{fontSize:13,color:"#475569",lineHeight:1.7,marginBottom:16}}>{detail.desc || "No additional instructions provided."}</div>
@@ -2025,6 +2094,98 @@ function AssignmentsView({ role, auth }) {
                   <div style={{fontSize:13,fontWeight:700,color:"#6366f1",marginTop:2}}>{isFaculty?new Date(detail.createdAt).toLocaleDateString("en-GB",{day:"numeric",month:"short"}):detail.facultyName}</div>
                 </div>
               </div>
+
+              {/* ── STUDENT: submit or view grade ── */}
+              {!isFaculty && (() => {
+                const mySub = mySubmissionFor(detail.id);
+                if (mySub?.status === "graded") {
+                  return (
+                    <div style={{background:"#f0fdf4",border:"1px solid #86efac",borderRadius:10,padding:"16px"}}>
+                      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
+                        <span style={{fontWeight:700,fontSize:14,color:"#16a34a"}}>✅ Graded</span>
+                        <span style={{fontWeight:800,fontSize:18,color:"#16a34a"}}>{mySub.score}/{mySub.maxMarks}</span>
+                      </div>
+                      {mySub.feedback && <div style={{fontSize:12,color:"#475569",lineHeight:1.6}}><strong>Feedback:</strong> {mySub.feedback}</div>}
+                    </div>
+                  );
+                }
+                if (mySub?.status === "submitted") {
+                  return (
+                    <div style={{background:"#eef2ff",border:"1px solid #c7d2fe",borderRadius:10,padding:"16px"}}>
+                      <div style={{fontWeight:700,fontSize:13,color:"#4338ca",marginBottom:4}}>📤 Submitted</div>
+                      <div style={{fontSize:12,color:"#64748b"}}>Submitted {new Date(mySub.submittedAt).toLocaleDateString("en-GB",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"})}. Awaiting grading.</div>
+                      {mySub.note && <div style={{fontSize:12,color:"#475569",marginTop:8}}><strong>Your note:</strong> {mySub.note}</div>}
+                    </div>
+                  );
+                }
+                return (
+                  <div>
+                    <label style={{fontSize:11,fontWeight:700,color:"#475569",display:"block",marginBottom:4}}>NOTE (optional)</label>
+                    <textarea value={submitNote} onChange={e=>setSubmitNote(e.target.value)} rows={3}
+                      placeholder="Add a note about your submission..."
+                      style={{width:"100%",boxSizing:"border-box",padding:"9px 12px",border:"1px solid #e2e8f0",borderRadius:8,fontSize:13,outline:"none",resize:"vertical",fontFamily:"inherit",marginBottom:10}}/>
+                    {submitErr && <div style={{marginBottom:10,background:"#fee2e2",border:"1px solid #fca5a5",borderRadius:8,padding:"8px 12px",color:"#dc2626",fontSize:12,fontWeight:600}}>{submitErr}</div>}
+                    <button onClick={()=>handleSubmit(detail)} disabled={submitting}
+                      style={{width:"100%",padding:"10px",background:submitting?"#c7d2fe":"linear-gradient(135deg,#6366f1,#8b5cf6)",color:"#fff",border:"none",borderRadius:8,fontWeight:600,cursor:submitting?"wait":"pointer",fontSize:14}}>
+                      {submitting?"⏳ Submitting...":"📎 Mark as Submitted"}
+                    </button>
+                  </div>
+                );
+              })()}
+
+              {/* ── FACULTY: see submissions, grade each ── */}
+              {isFaculty && (
+                <div>
+                  <div style={{fontWeight:700,fontSize:13,color:"#0f172a",marginBottom:10}}>📥 Submissions ({detailSubmissions.length})</div>
+                  {detailSubmissions.length === 0 ? (
+                    <div style={{padding:"20px",textAlign:"center",color:"#94a3b8",fontSize:12,background:"#f8fafc",borderRadius:8}}>
+                      No submissions yet.
+                    </div>
+                  ) : (
+                    <div style={{display:"flex",flexDirection:"column",gap:8}}>
+                      {detailSubmissions.map(sub => (
+                        <div key={sub.id} style={{border:"1px solid #e2e8f0",borderRadius:9,padding:"10px 12px"}}>
+                          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                            <div>
+                              <div style={{fontWeight:700,fontSize:13,color:"#0f172a"}}>{sub.studentName}</div>
+                              <div style={{fontSize:11,color:"#94a3b8"}}>{sub.studentRoll} · {new Date(sub.submittedAt).toLocaleDateString("en-GB",{day:"numeric",month:"short"})}</div>
+                              {sub.note && <div style={{fontSize:11,color:"#64748b",marginTop:3}}>"{sub.note}"</div>}
+                            </div>
+                            {sub.status === "graded" ? (
+                              <span style={{fontWeight:800,fontSize:15,color:"#16a34a",flexShrink:0}}>{sub.score}/{sub.maxMarks}</span>
+                            ) : gradingId === sub.id ? null : (
+                              <button onClick={()=>{setGradingId(sub.id);setGradeForm({score:"",feedback:""});setGradeErr("");}}
+                                style={{padding:"5px 12px",background:"linear-gradient(135deg,#6366f1,#8b5cf6)",color:"#fff",border:"none",borderRadius:7,cursor:"pointer",fontSize:11,fontWeight:600,flexShrink:0}}>
+                                Grade
+                              </button>
+                            )}
+                          </div>
+                          {gradingId === sub.id && (
+                            <div style={{marginTop:10,paddingTop:10,borderTop:"1px solid #f1f5f9",display:"grid",gap:8}}>
+                              <div style={{display:"flex",gap:8}}>
+                                <input type="number" min="0" max={detail.marks} value={gradeForm.score} onChange={e=>setGradeForm(f=>({...f,score:e.target.value}))}
+                                  placeholder={`Score (max ${detail.marks})`}
+                                  style={{flex:1,padding:"7px 10px",border:"1px solid #e2e8f0",borderRadius:7,fontSize:12,outline:"none",fontFamily:"inherit"}}/>
+                              </div>
+                              <input value={gradeForm.feedback} onChange={e=>setGradeForm(f=>({...f,feedback:e.target.value}))}
+                                placeholder="Feedback (optional)"
+                                style={{padding:"7px 10px",border:"1px solid #e2e8f0",borderRadius:7,fontSize:12,outline:"none",fontFamily:"inherit"}}/>
+                              {gradeErr && <div style={{fontSize:11,color:"#dc2626",fontWeight:600}}>{gradeErr}</div>}
+                              <div style={{display:"flex",gap:8}}>
+                                <button onClick={()=>setGradingId(null)} style={{flex:1,padding:"7px",background:"#f1f5f9",color:"#334155",border:"none",borderRadius:7,fontSize:12,fontWeight:600,cursor:"pointer"}}>Cancel</button>
+                                <button onClick={()=>handleGrade(sub)} disabled={gradingBusy}
+                                  style={{flex:1,padding:"7px",background:gradingBusy?"#c7d2fe":"linear-gradient(135deg,#6366f1,#8b5cf6)",color:"#fff",border:"none",borderRadius:7,fontSize:12,fontWeight:600,cursor:gradingBusy?"wait":"pointer"}}>
+                                  {gradingBusy?"Saving...":"Save Grade"}
+                                </button>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         </div>
