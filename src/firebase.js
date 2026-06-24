@@ -47,14 +47,14 @@ export const getUserProfile = async (uid) => {
 export const getPendingUsers = (callback, onError) => {
   const q = query(collection(db, "users"), where("status", "==", "pending"));
   return onSnapshot(q,
-    snap => callback(snap.docs.map(d => ({ id: d.id, uid: d.id, ...d.data() }))),
+    snap => callback(snap.docs.map(d => ({ ...d.data(), id: d.id, uid: d.id }))),
     err => { console.error("getPendingUsers error:", err); if (onError) onError(err); }
   );
 };
 // DEBUG: fetch ALL users regardless of status, to diagnose missing pending users
 export const getAllUsersDebug = (callback, onError) => {
   return onSnapshot(collection(db, "users"),
-    snap => callback(snap.docs.map(d => ({ id: d.id, uid: d.id, ...d.data() }))),
+    snap => callback(snap.docs.map(d => ({ ...d.data(), id: d.id, uid: d.id }))),
     err => { console.error("getAllUsersDebug error:", err); if (onError) onError(err); }
   );
 };
@@ -77,7 +77,12 @@ export const repairMissingStatus = async () => {
 export const subscribeApprovedFaculty = (callback, onError) => {
   const q = query(collection(db, "users"), where("role", "==", "faculty"), where("status", "==", "approved"));
   return onSnapshot(q,
-    snap => callback(snap.docs.map(d => ({ uid: d.id, ...d.data() }))),
+    snap => {
+      const rows = snap.docs
+        .map(d => ({ ...d.data(), uid: d.id })) // uid: d.id LAST so it always wins over any stray field in the doc
+        .filter(r => /^[A-Za-z0-9]{20,}$/.test(r.uid)); // exclude legacy/broken docs whose ID isn't a real Firebase Auth UID
+      callback(rows);
+    },
     err => { console.error("subscribeApprovedFaculty error:", err); if (onError) onError(err); }
   );
 };

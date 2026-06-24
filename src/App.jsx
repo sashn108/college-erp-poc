@@ -8528,6 +8528,7 @@ function StudentMessaging({ user }) {
   const msgEnd = React.useRef(null);
 
   const myUid = user?.uid || user?.email; // fallback if uid isn't on the profile object
+  const usingFallbackUid = !user?.uid && !!user?.email;
 
   useEffect(() => {
     const unsub = subscribeApprovedFaculty(
@@ -8634,6 +8635,11 @@ function StudentMessaging({ user }) {
                 <div style={{fontSize:11,color:"#94a3b8"}}>{selected.designation||"Faculty"} · {selected.dept||""} · <span style={{color:"#10b981"}}>Real-time</span></div>
               </div>
             </div>
+            {usingFallbackUid && (
+              <div style={{padding:"8px 16px",background:"#fef9c3",borderBottom:"1px solid #fde047",color:"#92400e",fontSize:11,fontWeight:600}}>
+                ⚠️ Your account is missing a proper login ID. Messages may not reach the faculty correctly — contact admin to fix your account.
+              </div>
+            )}
             <div style={{flex:1,overflowY:"auto",padding:"16px",display:"flex",flexDirection:"column",gap:10}}>
               {messages.length === 0 && (
                 <div style={{textAlign:"center",color:"#94a3b8",fontSize:13,marginTop:40}}>
@@ -8691,6 +8697,7 @@ function FacultyMessaging({ user }) {
   const msgEnd = React.useRef(null);
 
   const myUid = user?.uid || user?.email;
+  const usingFallbackUid = !user?.uid && !!user?.email;
 
   useEffect(() => {
     if (!myUid) return;
@@ -8816,6 +8823,11 @@ function FacultyMessaging({ user }) {
                 <div style={{fontSize:11,color:"#10b981"}}>Real-time</div>
               </div>
             </div>
+            {usingFallbackUid && (
+              <div style={{padding:"8px 16px",background:"#fef9c3",borderBottom:"1px solid #fde047",color:"#92400e",fontSize:11,fontWeight:600}}>
+                ⚠️ Your account is missing a proper login ID. Replies may not reach the student correctly — contact admin to fix your account.
+              </div>
+            )}
             <div style={{flex:1,overflowY:"auto",padding:"16px",display:"flex",flexDirection:"column",gap:10}}>
               {messages.map(m=>{
                 const isMe = m.senderUid === myUid;
