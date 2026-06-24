@@ -6,6 +6,7 @@ import {
   sendMessage, subscribeToMessages,
   submitFeedback, subscribeFeedbackAggregates,
   pushNotification, subscribeNotifications, serverTimestamp,
+  subscribeMyEnrollments, subscribeFacultySubjects,
 } from "./firebase.js";
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from "firebase/auth";
 
@@ -781,17 +782,22 @@ export function RealtimeChat({ currentUid, currentName, otherUid, otherName, onC
 }
 
 // ── Live Feedback (Student) ───────────────────────────────────────────────────
-export function LiveFeedbackView({ uid }) {
+export function LiveFeedbackView({ uid, studentEmail, studentRoll }) {
   const [submitted, setSubmitted] = useState({});
   const [ratings, setRatings] = useState({});
   const [saving, setSaving] = useState(null);
-  const subjects = [
-    {code:"CS301",name:"Database Management Systems",faculty:"Dr. A. Sharma"},
-    {code:"CS302",name:"Operating Systems",faculty:"Prof. S. Das"},
-    {code:"CS303",name:"Computer Networks",faculty:"Dr. R. Panda"},
-    {code:"CS304",name:"Theory of Computation",faculty:"Dr. K. Rath"},
-    {code:"CS305",name:"Software Engineering",faculty:"Prof. M. Behera"},
-  ];
+  const [enrollments, setEnrollments] = useState([]);
+  useEffect(() => {
+    const unsub = subscribeMyEnrollments(studentEmail, studentRoll, setEnrollments, ()=>{});
+    return () => unsub();
+  }, [studentEmail, studentRoll]);
+  // Real subjects this student is enrolled in (deduped by subject code)
+  const subjects = enrollments.reduce((acc, e) => {
+    if (!acc.some(s => s.code === e.subjectCode)) {
+      acc.push({ code: e.subjectCode, name: e.subjectName, faculty: e.facultyName || "—" });
+    }
+    return acc;
+  }, []);
   const questions = ["Course Content","Teaching Quality","Pace","Interaction","Practical Relevance"];
   const setRating = (code,q,val) => setRatings(p=>({...p,[code]:{...(p[code]||{}),[q]:val}}));
   const getRating = (code,q) => ratings[code]?.[q]||0;
@@ -802,6 +808,15 @@ export function LiveFeedbackView({ uid }) {
     setSubmitted(p=>({...p,[code]:true}));
     setSaving(null);
   };
+  if (subjects.length === 0) {
+    return (
+      <div style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:12,padding:"40px 20px",textAlign:"center"}}>
+        <div style={{fontSize:40,marginBottom:10}}>📭</div>
+        <div style={{fontWeight:700,fontSize:14,color:"#0f172a",marginBottom:4}}>No subjects yet</div>
+        <div style={{fontSize:12,color:"#94a3b8"}}>Once a faculty enrolls you in a subject, you can give feedback for it here.</div>
+      </div>
+    );
+  }
   return (
     <div>
       <div style={{background:"#eef2ff",border:"1px solid #c7d2fe",borderRadius:10,padding:"10px 14px",marginBottom:14,fontSize:13,color:"#4338ca"}}>
@@ -844,15 +859,30 @@ export function LiveFeedbackView({ uid }) {
 }
 
 // ── Live Feedback Results (Faculty) ───────────────────────────────────────────
-export function LiveFacultyFeedback() {
-  const subjects = ["CS301","CS302","CS303","CS304","CS305"];
-  const names = {CS301:"DBMS",CS302:"OS",CS303:"CN",CS304:"TOC",CS305:"SE"};
+export function LiveFacultyFeedback({ facultyUid }) {
+  const [facultySubjects, setFacultySubjects] = useState([]);
+  useEffect(() => {
+    if (!facultyUid) return;
+    const unsub = subscribeFacultySubjects(facultyUid, setFacultySubjects, ()=>{});
+    return () => unsub();
+  }, [facultyUid]);
+  const subjects = facultySubjects.map(s => s.code);
+  const names = facultySubjects.reduce((acc, s) => { acc[s.code] = s.name; return acc; }, {});
   const labels = ["Course Content","Teaching Quality","Pace","Interaction","Practical Relevance"];
   const [data, setData] = useState({});
   useEffect(() => {
     const unsubs = subjects.map(code => subscribeFeedbackAggregates(code, agg => setData(p => ({...p,[code]:agg}))));
     return () => unsubs.forEach(u => u?.());
-  }, []);
+  }, [subjects.join(",")]);
+  if (subjects.length === 0) {
+    return (
+      <div style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:12,padding:"40px 20px",textAlign:"center"}}>
+        <div style={{fontSize:40,marginBottom:10}}>📭</div>
+        <div style={{fontWeight:700,fontSize:14,color:"#0f172a",marginBottom:4}}>No subjects yet</div>
+        <div style={{fontSize:12,color:"#94a3b8"}}>Add a subject in "Subjects & Students" to start collecting feedback for it.</div>
+      </div>
+    );
+  }
   return (
     <div>
       <div style={{background:"#eef2ff",border:"1px solid #c7d2fe",borderRadius:10,padding:"10px 14px",marginBottom:14,fontSize:13,color:"#4338ca"}}>
