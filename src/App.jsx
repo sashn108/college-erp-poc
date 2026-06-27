@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import * as XLSX from "xlsx";
 import { FirebaseLogin, RealtimeChat, LiveFeedbackView, LiveFacultyFeedback, useFirebaseAuth, AdminUserApprovals } from "./FirebaseApp.jsx";
-import { logOut, getPendingUsers, enrollStudent, unenrollStudent, subscribeSubjectEnrollments, subscribeMyEnrollments, subscribeApprovedFaculty, sendMessage, subscribeToMessages, pushNotification, subscribeNotifications, markNotificationRead, markAllNotificationsRead, subscribeMyConversations, createAssignment, subscribeSubjectAssignments, subscribeAssignmentsForSubjects, sendBulkMessageToSubject, addFacultySubject, removeFacultySubject, subscribeFacultySubjects, fetchMyBulkMessageLog, markAttendance, subscribeSubjectAttendance, subscribeMyAttendance, submitAssignment, gradeSubmission, subscribeAssignmentSubmissions, subscribeMySubmissions } from "./firebase.js";
+import { logOut, getPendingUsers, enrollStudent, unenrollStudent, subscribeSubjectEnrollments, subscribeMyEnrollments, subscribeApprovedFaculty, sendMessage, subscribeToMessages, pushNotification, subscribeNotifications, markNotificationRead, markAllNotificationsRead, subscribeMyConversations, createAssignment, subscribeSubjectAssignments, subscribeAssignmentsForSubjects, sendBulkMessageToSubject, addFacultySubject, removeFacultySubject, subscribeFacultySubjects, fetchMyBulkMessageLog, markAttendance, subscribeSubjectAttendance, subscribeMyAttendance, submitAssignment, gradeSubmission, subscribeAssignmentSubmissions, subscribeMySubmissions, addFacultyLeaveRecord, deleteFacultyLeaveRecord, subscribeFacultyLeaveRecords } from "./firebase.js";
 
 // ─── Odisha Holidays 2026 ─────────────────────────────────────────────────────
 const ODISHA_HOLIDAYS = {
@@ -5162,6 +5162,229 @@ function SRICCEView() {
   );
 }
 
+// ─── Faculty Leave Tracker (personal self-recorded log) ───────────────────────
+function FacultyLeaveTracker({ auth }) {
+  const myUid = auth?.uid || auth?.id;
+  const [records, setRecords] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [showAdd, setShowAdd] = useState(false);
+  const [form, setForm] = useState({ type:"Casual Leave", date:"", toDate:"", note:"" });
+  const [saving, setSaving] = useState(false);
+  const [saveErr, setSaveErr] = useState("");
+  const [confirmDelete, setConfirmDelete] = useState(null);
+  const [deleting, setDeleting] = useState(false);
+
+  const leaveTypes = [
+    {label:"Casual Leave", icon:"🌴", color:"#6366f1"},
+    {label:"Medical Leave", icon:"🏥", color:"#ef4444"},
+    {label:"Compensatory Leave", icon:"🔁", color:"#f59e0b"},
+    {label:"Earned Leave", icon:"📆", color:"#10b981"},
+    {label:"On Duty / Conference", icon:"🎓", color:"#8b5cf6"},
+    {label:"Other", icon:"📋", color:"#64748b"},
+  ];
+  const typeMeta = (type) => leaveTypes.find(t=>t.label===type) || leaveTypes[leaveTypes.length-1];
+
+  useEffect(() => {
+    if (!myUid) return;
+    const unsub = subscribeFacultyLeaveRecords(myUid,
+      (rows) => { setRecords(rows.sort((a,b)=>new Date(b.date)-new Date(a.date))); setLoading(false); },
+      (err) => { setError(err.message||"Failed to load leave records"); setLoading(false); });
+    return () => unsub();
+  }, [myUid]);
+
+  const daysBetween = (from, to) => {
+    if (!from) return 0;
+    const a = new Date(from), b = new Date(to||from);
+    return Math.round((b-a)/(1000*60*60*24)) + 1;
+  };
+
+  // Running totals per leave type, current calendar year
+  const thisYear = new Date().getFullYear();
+  const totals = leaveTypes.map(t => {
+    const days = records
+      .filter(r => r.type === t.label && new Date(r.date).getFullYear() === thisYear)
+      .reduce((sum,r) => sum + daysBetween(r.date, r.toDate), 0);
+    return { ...t, days };
+  }).filter(t => t.days > 0 || true); // keep all, even zero, for visibility
+
+  const totalDaysThisYear = records
+    .filter(r => new Date(r.date).getFullYear() === thisYear)
+    .reduce((sum,r) => sum + daysBetween(r.date, r.toDate), 0);
+
+  const handleAdd = async () => {
+    setSaveErr("");
+    if (!form.date) { setSaveErr("Please select a date."); return; }
+    if (form.toDate && new Date(form.toDate) < new Date(form.date)) { setSaveErr("End date can't be before start date."); return; }
+    setSaving(true);
+    try {
+      await addFacultyLeaveRecord(myUid, form);
+      setForm({ type:"Casual Leave", date:"", toDate:"", note:"" });
+      setShowAdd(false);
+    } catch (e) {
+      setSaveErr(e.message || "Failed to save record.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!confirmDelete) return;
+    setDeleting(true);
+    try {
+      await deleteFacultyLeaveRecord(confirmDelete.id);
+      setConfirmDelete(null);
+    } catch (e) {
+      console.error("Failed to delete leave record:", e);
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  return (
+    <div>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
+        <div>
+          <div style={{fontSize:18,fontWeight:700,color:"#0f172a"}}>🗓️ My Leave Record</div>
+          <div style={{fontSize:12,color:"#94a3b8",marginTop:2}}>Personal log — {thisYear} · {totalDaysThisYear} day{totalDaysThisYear!==1?"s":""} taken so far</div>
+        </div>
+        <button onClick={()=>{setShowAdd(true);setSaveErr("");}}
+          style={{padding:"8px 18px",background:"linear-gradient(135deg,#6366f1,#8b5cf6)",color:"#fff",border:"none",borderRadius:8,fontWeight:600,cursor:"pointer",fontSize:13}}>
+          ➕ Log a Leave
+        </button>
+      </div>
+
+      {/* Per-type summary cards */}
+      <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:10,marginBottom:16}}>
+        {totals.map(t=>(
+          <div key={t.label} style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:10,padding:"12px 14px",borderLeft:`4px solid ${t.color}`}}>
+            <div style={{fontSize:18,marginBottom:2}}>{t.icon}</div>
+            <div style={{fontSize:20,fontWeight:800,color:t.color}}>{t.days}</div>
+            <div style={{fontSize:11,color:"#94a3b8",fontWeight:600}}>{t.label}</div>
+          </div>
+        ))}
+      </div>
+
+      {error && (
+        <div style={{background:"#fee2e2",border:"1px solid #fca5a5",borderRadius:10,padding:"14px 16px",marginBottom:14,color:"#dc2626",fontSize:13,fontWeight:600}}>
+          ⚠️ {error}
+        </div>
+      )}
+
+      {/* Records list */}
+      {loading ? (
+        <div style={{padding:"40px",textAlign:"center",color:"#94a3b8",fontSize:13}}>Loading...</div>
+      ) : records.length === 0 ? (
+        <div style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:12,padding:"40px 20px",textAlign:"center"}}>
+          <div style={{fontSize:40,marginBottom:10}}>📭</div>
+          <div style={{fontWeight:700,fontSize:14,color:"#0f172a",marginBottom:4}}>No leaves logged yet</div>
+          <div style={{fontSize:12,color:"#94a3b8"}}>Click "Log a Leave" to start tracking.</div>
+        </div>
+      ) : (
+        <div style={{display:"flex",flexDirection:"column",gap:8}}>
+          {records.map(r=>{
+            const meta = typeMeta(r.type);
+            const days = daysBetween(r.date, r.toDate);
+            const sameDay = r.date === r.toDate || !r.toDate;
+            return (
+              <div key={r.id} style={{background:"#fff",border:"1px solid #e2e8f0",borderRadius:11,padding:"12px 16px",display:"flex",alignItems:"center",gap:14}}>
+                <div style={{width:40,height:40,borderRadius:10,background:meta.color+"15",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,flexShrink:0}}>{meta.icon}</div>
+                <div style={{flex:1,minWidth:0}}>
+                  <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
+                    <span style={{fontWeight:700,fontSize:13,color:"#0f172a"}}>{r.type}</span>
+                    <span style={{fontSize:11,fontWeight:700,padding:"1px 8px",borderRadius:10,background:meta.color+"15",color:meta.color}}>{days} day{days!==1?"s":""}</span>
+                  </div>
+                  <div style={{fontSize:12,color:"#64748b",marginTop:2}}>
+                    {sameDay
+                      ? new Date(r.date).toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric"})
+                      : `${new Date(r.date).toLocaleDateString("en-GB",{day:"numeric",month:"short"})} – ${new Date(r.toDate).toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric"})}`}
+                  </div>
+                  {r.note && <div style={{fontSize:11,color:"#94a3b8",marginTop:3}}>"{r.note}"</div>}
+                </div>
+                <button onClick={()=>setConfirmDelete(r)}
+                  style={{padding:"5px 10px",background:"#fee2e2",color:"#dc2626",border:"none",borderRadius:7,fontSize:11,fontWeight:600,cursor:"pointer",flexShrink:0}}>
+                  🗑
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Add Leave Modal */}
+      {showAdd && (
+        <div style={{position:"fixed",inset:0,background:"rgba(15,23,42,0.6)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center"}} onClick={()=>setShowAdd(false)}>
+          <div style={{background:"#fff",borderRadius:14,width:440,overflow:"hidden",boxShadow:"0 20px 60px rgba(0,0,0,0.25)"}} onClick={e=>e.stopPropagation()}>
+            <div style={{background:"linear-gradient(135deg,#6366f1,#8b5cf6)",padding:"14px 18px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+              <span style={{color:"#fff",fontWeight:700,fontSize:15}}>➕ Log a Leave</span>
+              <button onClick={()=>setShowAdd(false)} style={{background:"rgba(255,255,255,0.2)",border:"none",borderRadius:6,color:"#fff",width:28,height:28,cursor:"pointer",fontSize:16}}>✕</button>
+            </div>
+            <div style={{padding:"20px 22px",display:"grid",gap:12}}>
+              <div>
+                <label style={{fontSize:11,fontWeight:700,color:"#475569",display:"block",marginBottom:6}}>LEAVE TYPE</label>
+                <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+                  {leaveTypes.map(t=>(
+                    <button key={t.label} onClick={()=>setForm(f=>({...f,type:t.label}))}
+                      style={{padding:"6px 12px",border:`2px solid ${form.type===t.label?t.color:"#e2e8f0"}`,borderRadius:20,fontSize:11,fontWeight:600,cursor:"pointer",background:form.type===t.label?t.color+"15":"#fff",color:form.type===t.label?t.color:"#64748b"}}>
+                      {t.icon} {t.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+                <div>
+                  <label style={{fontSize:11,fontWeight:700,color:"#475569",display:"block",marginBottom:4}}>FROM DATE *</label>
+                  <input type="date" value={form.date} onChange={e=>setForm(f=>({...f,date:e.target.value}))}
+                    style={{width:"100%",boxSizing:"border-box",padding:"9px 12px",border:"1px solid #e2e8f0",borderRadius:8,fontSize:13,outline:"none",fontFamily:"inherit"}}/>
+                </div>
+                <div>
+                  <label style={{fontSize:11,fontWeight:700,color:"#475569",display:"block",marginBottom:4}}>TO DATE <span style={{fontWeight:400,color:"#94a3b8"}}>(if multi-day)</span></label>
+                  <input type="date" value={form.toDate} onChange={e=>setForm(f=>({...f,toDate:e.target.value}))}
+                    style={{width:"100%",boxSizing:"border-box",padding:"9px 12px",border:"1px solid #e2e8f0",borderRadius:8,fontSize:13,outline:"none",fontFamily:"inherit"}}/>
+                </div>
+              </div>
+              <div>
+                <label style={{fontSize:11,fontWeight:700,color:"#475569",display:"block",marginBottom:4}}>NOTE <span style={{fontWeight:400,color:"#94a3b8"}}>(optional)</span></label>
+                <input value={form.note} onChange={e=>setForm(f=>({...f,note:e.target.value}))}
+                  placeholder="e.g. Covered classes arranged with Dr. Sharma"
+                  style={{width:"100%",boxSizing:"border-box",padding:"9px 12px",border:"1px solid #e2e8f0",borderRadius:8,fontSize:13,outline:"none",fontFamily:"inherit"}}/>
+              </div>
+              {saveErr && <div style={{background:"#fee2e2",border:"1px solid #fca5a5",borderRadius:8,padding:"8px 12px",color:"#dc2626",fontSize:12,fontWeight:600}}>{saveErr}</div>}
+              <button onClick={handleAdd} disabled={saving}
+                style={{padding:"11px",background:saving?"#c7d2fe":"linear-gradient(135deg,#6366f1,#8b5cf6)",color:"#fff",border:"none",borderRadius:8,fontWeight:700,cursor:saving?"wait":"pointer",fontSize:14}}>
+                {saving?"⏳ Saving...":"✅ Save Leave Record"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Confirm Delete Modal */}
+      {confirmDelete && (
+        <div style={{position:"fixed",inset:0,background:"rgba(15,23,42,0.6)",zIndex:1000,display:"flex",alignItems:"center",justifyContent:"center"}} onClick={()=>setConfirmDelete(null)}>
+          <div style={{background:"#fff",borderRadius:14,width:380,overflow:"hidden",boxShadow:"0 20px 60px rgba(0,0,0,0.25)"}} onClick={e=>e.stopPropagation()}>
+            <div style={{padding:"22px",textAlign:"center"}}>
+              <div style={{fontSize:36,marginBottom:8}}>⚠️</div>
+              <div style={{fontWeight:700,fontSize:14,color:"#0f172a",marginBottom:6}}>Delete this leave record?</div>
+              <div style={{fontSize:12,color:"#64748b",marginBottom:16}}>{confirmDelete.type} on {new Date(confirmDelete.date).toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric"})}</div>
+              <div style={{display:"flex",gap:10}}>
+                <button onClick={()=>setConfirmDelete(null)} disabled={deleting}
+                  style={{flex:1,padding:"9px",background:"#f1f5f9",color:"#334155",border:"none",borderRadius:8,fontWeight:600,cursor:"pointer",fontSize:13}}>
+                  Cancel
+                </button>
+                <button onClick={handleDelete} disabled={deleting}
+                  style={{flex:1,padding:"9px",background:deleting?"#fca5a5":"#ef4444",color:"#fff",border:"none",borderRadius:8,fontWeight:600,cursor:deleting?"wait":"pointer",fontSize:13}}>
+                  {deleting?"Deleting...":"Delete"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function DutyView() {
   const duties=[
     {date:"Jun 18",time:"9:00 AM",type:"Invigilation",room:"201-A",exam:"DBMS — CS301",status:"Upcoming"},
@@ -9169,6 +9392,7 @@ export default function App() {
     facultytimetable:<FacultyTimetable/>,
     lab:<LabView/>, attendance:<FacultySubjectsView faculty={auth}/>, evaluation:<EvaluationView/>,
     research:<ResearchView/>, duty:<DutyView/>, notices:<NoticesView/>,
+    myleaves:<FacultyLeaveTracker auth={auth}/>,
     copo:<COPOView/>,
     feedback: uid ? <LiveFacultyFeedback facultyUid={uid}/> : <FacultyFeedbackView/>,
     profile:<FacultyProfile user={auth}/>, auditlog:<AuditLog role="faculty"/>,
@@ -9210,7 +9434,7 @@ export default function App() {
     ["Dashboard","dashboard"],["Subjects & Students","subjects"],["Lab","lab"],
     ["My Class Attendance","attendance"],["Evaluation","evaluation"],["Assignments","assignments"],
     ["Bulk Message","bulkmessage"],["Student Messages","messages"],["Attendance Export","attendanceexport"],
-    ["My Timetable","facultytimetable"],
+    ["My Timetable","facultytimetable"],["My Leave Record","myleaves"],
     ["Research","research"],
     ["CO/PO Attainment","copo"],["Syllabus Tracker","syllabus"],["Question Paper","qpaper"],["File Tracking","fts"],["Services","services"],
     ["Exam & Duty","duty"],["Feedback Results","feedback"],

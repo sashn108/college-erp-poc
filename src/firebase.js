@@ -302,6 +302,7 @@ export const sendBulkMessageToSubject = async (subjectCode, subjectName, faculty
   // 2. Resolve each enrolled student to a real account UID by matching email or roll
   //    against the users collection (enrollments only store name/roll/email, not uid)
   let delivered = 0;
+  const fullText = `📢 [${subjectName}] ${subject}\n\n${message}`;
   for (const s of students) {
     let targetUid = null;
     if (s.studentEmail) {
@@ -313,7 +314,15 @@ export const sendBulkMessageToSubject = async (subjectCode, subjectName, faculty
       if (!byRoll.empty) targetUid = byRoll.docs[0].id;
     }
     if (targetUid) {
-      await pushNotification(targetUid, { text: `📢 ${subject} — ${message.slice(0,80)}`, type: priority==="urgent"?"urgent":"general" });
+      // Write the FULL message into the real one-on-one conversation thread, not just a
+      // truncated notification — so the student sees it in "Message Faculty" and can reply.
+      const convId = [facultyUid, targetUid].sort().join("_");
+      await sendMessage(convId, {
+        text: fullText, senderUid: facultyUid, senderName: facultyName || "Faculty",
+        participantUids: [facultyUid, targetUid],
+        participantNames: { [facultyUid]: facultyName || "Faculty", [targetUid]: s.studentName || "Student" },
+      });
+      await pushNotification(targetUid, { text: `📢 ${subjectName} — ${subject}`, type: priority==="urgent"?"urgent":"general" });
       delivered++;
     }
   }
@@ -333,7 +342,24 @@ export const fetchMyBulkMessageLog = async (facultyUid) => {
   return snap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a,b) => new Date(b.sentAt) - new Date(a.sentAt));
 };
 
-// Delete a broken/malformed user record (e.g. doc ID isn't a real Firebase Auth UID)
+// ── Faculty personal leave tracker (self-recorded, no approval needed) ────────
+export const addFacultyLeaveRecord = async (facultyUid, record) => {
+  const ref = await addDoc(collection(db, "facultyLeaveRecords"), {
+    facultyUid, type: record.type, date: record.date, toDate: record.toDate || record.date,
+    note: record.note || "", createdAt: new Date().toISOString(),
+  });
+  return ref.id;
+};
+export const deleteFacultyLeaveRecord = async (recordId) => {
+  await deleteDoc(doc(db, "facultyLeaveRecords", recordId));
+};
+export const subscribeFacultyLeaveRecords = (facultyUid, callback, onError) => {
+  const q = query(collection(db, "facultyLeaveRecords"), where("facultyUid", "==", facultyUid));
+  return onSnapshot(q,
+    snap => callback(snap.docs.map(d => ({ id: d.id, ...d.data() }))),
+    err => { console.error("subscribeFacultyLeaveRecords error:", err); if (onError) onError(err); }
+  );
+};
 export const deleteBrokenUserRecord = async (docId) => {
   await deleteDoc(doc(db, "users", docId));
 };
