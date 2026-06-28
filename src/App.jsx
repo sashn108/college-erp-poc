@@ -9457,6 +9457,7 @@ export default function App() {
     ["📥 Attendance Export","attendanceexport"],["Assignments","assignments"],
     ["Evaluation","evaluation"],
     ["Research Scholars","research"],["CO/PO Attainment","copo"],
+    ["My Leave Record","myleaves"],
     ["Exam & Duty","duty"],["Feedback Results","feedback"],
     ["My Profile","profile"],["Audit Log","auditlog"],["Notices","notices"],
   ];
@@ -9698,6 +9699,7 @@ export default function App() {
               ["📊","Evaluation","evaluation"],
               ["📄","Question Paper","qpaper"],
               ["🔬","Research","research"],
+              ["🗓️","My Leave Record","myleaves"],
               ["📅","Exam & Duty","duty"],
               ["💬","Feedback Results","feedback"],
               ["📰","Notices","notices"],
