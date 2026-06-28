@@ -9663,16 +9663,15 @@ export default function App() {
             {[
               ["🏠","Dashboard","dashboard"],
               ["📡","Live Attendance","liveattendance"],
+              ["📚","My Subjects (Live)","mysubjects"],
               ["📊","Internal Marks","internalmarks"],
               ["📝","Assignments","assignments"],
               ["💬","Messages","messages"],
               ["📋","Attendance & Leave","attendance"],
-              ["📤","CSV Upload","dashboard"],
               ["📰","Notices","notices"],
               ["💰","Fee Payment","fee"],
               ["📄","Question Papers","papers"],
               ["📅","Timetable","timetable"],
-              ["🔍","Search","dashboard"],
             ].map(([icon,label,key])=>(
               <div key={key+label} onClick={()=>setActive(key)}
                 style={{display:"flex",alignItems:"center",gap:8,padding:"6px 8px",borderRadius:7,cursor:"pointer",marginBottom:1,
@@ -9695,6 +9694,7 @@ export default function App() {
               ["📋","Attendance Upload","attendance"],
               ["📥","Export Attendance","attendanceexport"],
               ["📢","Bulk Message","bulkmessage"],
+              ["💬","Student Messages","messages"],
               ["📝","Assignments","assignments"],
               ["📊","Evaluation","evaluation"],
               ["📄","Question Paper","qpaper"],
