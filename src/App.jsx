@@ -8950,21 +8950,35 @@ function FacultyMessaging({ user }) {
     return { uid: otherUid, name: conv.participantNames?.[otherUid] || "Student" };
   };
 
+  const [sendError, setSendError] = useState("");
+
   const sendMsg = async () => {
     if (!msg.trim() || !selected || sending) return;
+    setSendError("");
+    const other = getOtherParticipant(selected);
+    if (!myUid || !other.uid) {
+      setSendError("Couldn't identify your account or the student's account. Try refreshing the page.");
+      console.error("Cannot send: missing uid", {myUid, otherUid: other.uid, selected});
+      return;
+    }
     setSending(true);
     const text = msg.trim();
     setMsg("");
-    const other = getOtherParticipant(selected);
     try {
+      // Defensive fallback: if the conversation doc is missing participant data
+      // (e.g. an older thread), rebuild it from what we know instead of writing undefined.
+      const participantUids = (selected.participantUids && selected.participantUids.length === 2)
+        ? selected.participantUids : [myUid, other.uid];
+      const participantNames = (selected.participantNames && Object.keys(selected.participantNames).length > 0)
+        ? selected.participantNames : { [myUid]: user?.name||"Faculty", [other.uid]: other.name||"Student" };
       await sendMessage(selected.id, {
         text, senderUid: myUid, senderName: user?.name||"Faculty",
-        participantUids: selected.participantUids,
-        participantNames: selected.participantNames,
+        participantUids, participantNames,
       });
-      if (other.uid) await pushNotification(other.uid, { text: `New message from ${user?.name||"your faculty"}: "${text.slice(0,60)}"`, type: "message" });
+      await pushNotification(other.uid, { text: `New message from ${user?.name||"your faculty"}: "${text.slice(0,60)}"`, type: "message" });
     } catch (e) {
       console.error("Send message failed:", e);
+      setSendError(e.message || "Failed to send message.");
     } finally {
       setSending(false);
     }
@@ -9069,6 +9083,11 @@ function FacultyMessaging({ user }) {
               })}
               <div ref={msgEnd}/>
             </div>
+            {sendError && (
+              <div style={{padding:"8px 16px",background:"#fee2e2",borderTop:"1px solid #fca5a5",color:"#dc2626",fontSize:12,fontWeight:600}}>
+                ⚠️ {sendError}
+              </div>
+            )}
             <div style={{padding:"12px 16px",borderTop:"1px solid #f1f5f9",display:"flex",gap:8}}>
               <input value={msg} onChange={e=>setMsg(e.target.value)}
                 onKeyDown={e=>{ if(e.key==="Enter"&&!e.shiftKey){ e.preventDefault(); sendMsg(); }}}
